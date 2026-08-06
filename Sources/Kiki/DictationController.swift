@@ -29,7 +29,7 @@ final class DictationController {
     private var preparationID = UUID()
     private var livePreviewID = UUID()
     private var liveAudioFeed: AudioSampleFeed?
-    private var livePreviewTask: Task<ParakeetLiveSession?, Never>?
+    private var livePreviewSession: ParakeetLiveSession?
     private var lastLiveTranscript: String?
 
     var activeModelName: String? {
@@ -200,24 +200,13 @@ final class DictationController {
         let feed = AudioSampleFeed()
         liveAudioFeed = feed
         recorder.setSamplesHandler { samples in feed.yield(samples) }
-        livePreviewTask = Task { [weak self] in
-            do {
-                let session = try await parakeetTranscriber.makeLiveSession(audio: feed.stream) { [weak self] text in
-                    guard let self,
-                          self.state == .recording,
-                          self.livePreviewID == currentID
-                    else { return }
-                    self.lastLiveTranscript = text
-                    self.hud.showListening(transcript: text)
-                }
-                if Task.isCancelled {
-                    await session.stop()
-                    return nil
-                }
-                return session
-            } catch {
-                return nil
-            }
+        livePreviewSession = parakeetTranscriber.makeLiveSession(audio: feed.stream) { [weak self] text in
+            guard let self,
+                  self.state == .recording,
+                  self.livePreviewID == currentID
+            else { return }
+            self.lastLiveTranscript = text
+            self.hud.showListening(transcript: text)
         }
     }
 
@@ -226,13 +215,10 @@ final class DictationController {
         livePreviewID = UUID()
         liveAudioFeed?.finish()
         liveAudioFeed = nil
-        let previewTask = livePreviewTask
-        livePreviewTask = nil
-        previewTask?.cancel()
+        let session = livePreviewSession
+        livePreviewSession = nil
         return Task {
-            if let session = await previewTask?.value {
-                await session.stop()
-            }
+            await session?.stop()
         }
     }
 
