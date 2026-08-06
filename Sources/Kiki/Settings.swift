@@ -53,6 +53,15 @@ enum Settings {
         }
         set { UserDefaults.standard.set(newValue, forKey: "silenceSystemAudioWhileRecording") }
     }
+
+    static var showLiveTranscription: Bool {
+        get {
+            let key = "showLiveTranscription"
+            guard UserDefaults.standard.object(forKey: key) != nil else { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "showLiveTranscription") }
+    }
 }
 
 enum ActivationMode: String, CaseIterable {

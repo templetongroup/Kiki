@@ -27,6 +27,10 @@ final class DictationController {
     private let hud = HUDPanel()
     private var recordingStartedAt: Date?
     private var preparationID = UUID()
+    private var livePreviewID = UUID()
+    private var liveAudioFeed: AudioSampleFeed?
+    private var livePreviewTask: Task<ParakeetLiveSession?, Never>?
+    private var lastLiveTranscript: String?
 
     var activeModelName: String? {
         Settings.transcriptionModel.displayName
@@ -136,11 +140,13 @@ final class DictationController {
             systemAudioSilencer.silence()
         }
         do {
+            beginLivePreviewIfAvailable()
             try recorder.start()
             recordingStartedAt = Date()
             state = .recording
-            hud.show("● Listening…")
+            hud.showListening()
         } catch {
+            stopLivePreview()
             systemAudioSilencer.restore()
             hud.show("Mic error: \(error.localizedDescription)")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
@@ -152,6 +158,8 @@ final class DictationController {
     func finishRecording() {
         guard state == .recording else { return }
         let samples = recorder.stop()
+        recorder.setSamplesHandler(nil)
+        let livePreviewCleanup = stopLivePreview()
         systemAudioSilencer.restore()
         let duration = Double(samples.count) / AudioRecorder.sampleRate
         recordingStartedAt = nil
@@ -164,9 +172,10 @@ final class DictationController {
         }
 
         state = .transcribing
-        hud.show("Transcribing…")
+        hud.showTranscribing(transcript: lastLiveTranscript)
         if let parakeetTranscriber {
             Task { [weak self] in
+                await livePreviewCleanup.value
                 let text = await parakeetTranscriber.transcribe(samples)
                 self?.completeTranscription(text)
             }
@@ -175,6 +184,54 @@ final class DictationController {
             transcribeQueue.async { [weak self] in
                 let text = transcriber?.transcribe(samples) ?? ""
                 DispatchQueue.main.async { self?.completeTranscription(text) }
+            }
+        }
+    }
+
+    private func beginLivePreviewIfAvailable() {
+        lastLiveTranscript = nil
+        guard Settings.showLiveTranscription, let parakeetTranscriber else {
+            recorder.setSamplesHandler(nil)
+            return
+        }
+
+        livePreviewID = UUID()
+        let currentID = livePreviewID
+        let feed = AudioSampleFeed()
+        liveAudioFeed = feed
+        recorder.setSamplesHandler { samples in feed.yield(samples) }
+        livePreviewTask = Task { [weak self] in
+            do {
+                let session = try await parakeetTranscriber.makeLiveSession(audio: feed.stream) { [weak self] text in
+                    guard let self,
+                          self.state == .recording,
+                          self.livePreviewID == currentID
+                    else { return }
+                    self.lastLiveTranscript = text
+                    self.hud.showListening(transcript: text)
+                }
+                if Task.isCancelled {
+                    await session.stop()
+                    return nil
+                }
+                return session
+            } catch {
+                return nil
+            }
+        }
+    }
+
+    @discardableResult
+    private func stopLivePreview() -> Task<Void, Never> {
+        livePreviewID = UUID()
+        liveAudioFeed?.finish()
+        liveAudioFeed = nil
+        let previewTask = livePreviewTask
+        livePreviewTask = nil
+        previewTask?.cancel()
+        return Task {
+            if let session = await previewTask?.value {
+                await session.stop()
             }
         }
     }
@@ -207,6 +264,8 @@ final class DictationController {
         if state == .recording {
             _ = recorder.stop()
         }
+        recorder.setSamplesHandler(nil)
+        stopLivePreview()
         systemAudioSilencer.restore()
     }
 }

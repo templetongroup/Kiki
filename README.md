@@ -27,7 +27,7 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - **Hold Right ⌥ (Option)** — record while held, transcribe and insert on release. Change the hold key in Settings.
 - **⌃⌥D** — toggle mode: press to start, press again to stop and insert.
 - System audio is silenced while recording by default, then restored exactly when recording stops. This can be disabled in Settings.
-- A small HUD pill at the bottom of the screen shows Listening / Transcribing.
+- A branded HUD shows Listening / Transcribing and, with Parakeet, a low-latency live transcript. The preview can be disabled in Settings.
 - The Kiki menu bar icon provides status and controls (settings, model info, models folder, quit).
 
 ## Setup
@@ -53,7 +53,9 @@ Public releases must use an Apple-issued Developer ID certificate and notarizati
 
 ## How it works
 
-`HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `WhisperTranscriber` (whisper.cpp, Metal GPU) → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
+`HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `ParakeetTranscriber` (FluidAudio/Core ML) or `WhisperTranscriber` (whisper.cpp/Metal) → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
+
+Parakeet also receives a short-window stream while recording so the HUD can show an immediate, provisional transcript. Kiki discards that preview when recording ends and runs the normal full-audio pass for the text it inserts.
 
 Whisper needs ≥ ~1 s of audio, so short clips are padded with silence; presses under 0.3 s are treated as accidental and discarded. Non-speech artifacts like `[BLANK_AUDIO]` are filtered.
 
@@ -81,7 +83,6 @@ FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet
 ## Feature ideas
 
 - Press Esc while recording to cancel
-- Streaming/partial transcription while speaking
 - Custom vocabulary / initial prompt for names and jargon
 - AI cleanup pass (punctuation, filler-word removal) before insertion
 - Per-app formatting rules; history window of past dictations

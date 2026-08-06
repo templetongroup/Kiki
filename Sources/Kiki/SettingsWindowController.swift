@@ -15,13 +15,18 @@ final class SettingsWindowController: NSWindowController {
         target: nil,
         action: nil
     )
+    private let liveTranscriptionCheckbox = NSButton(
+        checkboxWithTitle: "Show live transcription while speaking",
+        target: nil,
+        action: nil
+    )
     private let messageLabel = NSTextField(labelWithString: "")
     private var captureMonitor: Any?
     private var pendingModifierKeyCode: UInt16?
     private var pendingModifierFlags: NSEvent.ModifierFlags = []
 
     init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "Kiki Settings"
         window.isReleasedWhenClosed = false
@@ -87,9 +92,15 @@ final class SettingsWindowController: NSWindowController {
         silenceAudioDetail.textColor = .secondaryLabelColor
         silenceAudioDetail.font = .systemFont(ofSize: 12)
 
+        liveTranscriptionCheckbox.target = self
+        liveTranscriptionCheckbox.action = #selector(liveTranscriptionChanged)
+        let liveTranscriptionDetail = NSTextField(wrappingLabelWithString: "Shows words in Kiki's branded listening window as they are recognized. Low-latency preview is available with Parakeet models; the final paste still uses a full accuracy pass.")
+        liveTranscriptionDetail.textColor = .secondaryLabelColor
+        liveTranscriptionDetail.font = .systemFont(ofSize: 12)
+
         let divider = NSBox()
         divider.boxType = .separator
-        let stack = NSStackView(views: [title, detail, shortcutRow, messageLabel, modeRow, note, silenceAudioCheckbox, silenceAudioDetail, divider, modelTitle, modelRow, modelDetailLabel])
+        let stack = NSStackView(views: [title, detail, shortcutRow, messageLabel, modeRow, note, silenceAudioCheckbox, silenceAudioDetail, liveTranscriptionCheckbox, liveTranscriptionDetail, divider, modelTitle, modelRow, modelDetailLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -102,6 +113,7 @@ final class SettingsWindowController: NSWindowController {
             stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 26),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             silenceAudioDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            liveTranscriptionDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             modelDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             divider.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -111,6 +123,7 @@ final class SettingsWindowController: NSWindowController {
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
         silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
+        liveTranscriptionCheckbox.state = Settings.showLiveTranscription ? .on : .off
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         modelPopup.selectItem(at: TranscriptionModelID.allCases.firstIndex(of: Settings.transcriptionModel) ?? 0)
         updateModelControls()
@@ -167,6 +180,10 @@ final class SettingsWindowController: NSWindowController {
 
     @objc private func silenceAudioChanged() {
         Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on
+    }
+
+    @objc private func liveTranscriptionChanged() {
+        Settings.showLiveTranscription = liveTranscriptionCheckbox.state == .on
     }
 
     @objc private func modelSelectionChanged() {

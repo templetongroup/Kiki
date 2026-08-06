@@ -8,7 +8,16 @@ final class AudioRecorder {
     private var engine: AVAudioEngine?
     private var converter: AVAudioConverter?
     private var samples: [Float] = []
+    private var samplesHandler: (([Float]) -> Void)?
     private let lock = NSLock()
+
+    /// Receives newly captured 16 kHz mono samples. The handler runs off the
+    /// main thread and should return quickly.
+    func setSamplesHandler(_ handler: (([Float]) -> Void)?) {
+        lock.lock()
+        samplesHandler = handler
+        lock.unlock()
+    }
 
     func start() throws {
         let engine = AVAudioEngine()
@@ -68,10 +77,12 @@ final class AudioRecorder {
         }
         guard error == nil, out.frameLength > 0, let channel = out.floatChannelData else { return }
 
-        let ptr = UnsafeBufferPointer(start: channel[0], count: Int(out.frameLength))
+        let chunk = Array(UnsafeBufferPointer(start: channel[0], count: Int(out.frameLength)))
         lock.lock()
-        samples.append(contentsOf: ptr)
+        samples.append(contentsOf: chunk)
+        let handler = samplesHandler
         lock.unlock()
+        handler?(chunk)
     }
 }
 
