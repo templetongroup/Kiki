@@ -22,6 +22,7 @@ cp "$BIN" "$APP/Contents/MacOS/Kiki"
 # App icon.
 cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
 cp Resources/MenuBarIcon.png "$APP/Contents/Resources/MenuBarIcon.png"
+cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.
 cp Vendor/whisper.cpp/ggml/src/ggml-metal.metal "$APP/Contents/Resources/"
@@ -53,7 +54,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleVersion</key>
     <string>$BUILD_NUMBER</string>
     <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
+    <string>14.0</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSHighResolutionCapable</key>

@@ -8,15 +8,34 @@ MetalResources.configure()
 let args = CommandLine.arguments
 if args.count >= 3, args[1] == "--transcribe-file" {
     do {
-        guard let modelURL = ModelStore.activeModelURL() else {
-            fputs("No Whisper model installed. Run scripts/download-model.sh first.\n", stderr)
-            exit(1)
-        }
-        fputs("Loading model: \(modelURL.lastPathComponent)\n", stderr)
         let samples = try AudioFileLoader.load16kMono(url: URL(fileURLWithPath: args[2]))
         fputs("Audio: \(String(format: "%.1f", Double(samples.count) / 16000))s\n", stderr)
-        let transcriber = try WhisperTranscriber(modelPath: modelURL.path, language: Settings.language)
-        print(transcriber.transcribe(samples))
+
+        let selectedModel = Settings.transcriptionModel
+        fputs("Loading model: \(selectedModel.displayName)\n", stderr)
+        if selectedModel.isParakeet {
+            let semaphore = DispatchSemaphore(value: 0)
+            var transcription = ""
+            var loadError: Error?
+            Task {
+                do {
+                    let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
+                    transcription = await transcriber.transcribe(samples)
+                } catch {
+                    loadError = error
+                }
+                semaphore.signal()
+            }
+            semaphore.wait()
+            if let loadError { throw loadError }
+            print(transcription)
+        } else {
+            guard let modelURL = ModelStore.modelURL(for: selectedModel) else {
+                throw KikiError("Selected Whisper model is not installed.")
+            }
+            let transcriber = try WhisperTranscriber(modelPath: modelURL.path, language: Settings.language)
+            print(transcriber.transcribe(samples))
+        }
         exit(0)
     } catch {
         fputs("Error: \(error)\n", stderr)
@@ -24,8 +43,10 @@ if args.count >= 3, args[1] == "--transcribe-file" {
     }
 }
 
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.accessory)
-app.run()
+MainActor.assumeIsolated {
+    let app = NSApplication.shared
+    let delegate = AppDelegate()
+    app.delegate = delegate
+    app.setActivationPolicy(.accessory)
+    app.run()
+}

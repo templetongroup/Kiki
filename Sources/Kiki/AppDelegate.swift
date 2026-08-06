@@ -1,10 +1,23 @@
 import AppKit
 import AVFoundation
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let controller = DictationController()
     private let hotkeys = HotkeyManager()
+    private lazy var settingsWindow: SettingsWindowController = {
+        let controller = SettingsWindowController()
+        controller.onSettingsChange = { [weak self] shortcut, mode in
+            self?.hotkeys.dictationShortcut = shortcut
+            self?.hotkeys.activationMode = mode
+            self?.render(self?.controller.state ?? .idle)
+        }
+        controller.onModelChange = { [weak self] model in
+            self?.controller.selectModel(model)
+        }
+        return controller
+    }()
 
     private let stateMenuItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     private let modelMenuItem = NSMenuItem(title: "Model: none", action: nil, keyEquivalent: "")
@@ -25,6 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.prepare()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        controller.prepareForTermination()
+    }
+
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = Self.menuBarIcon()
@@ -38,6 +55,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(toggleMenuItem)
         menu.addItem(.separator())
+
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         let modelsItem = NSMenuItem(title: "Open Models Folder", action: #selector(openModelsFolder), keyEquivalent: "")
         modelsItem.target = self
@@ -67,13 +88,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch state {
         case .noModel:
-            stateMenuItem.title = "No model — put one in the models folder"
+            stateMenuItem.title = "Model unavailable — open Settings"
             toggleMenuItem.isEnabled = false
         case .loadingModel:
             stateMenuItem.title = "Loading model…"
             toggleMenuItem.isEnabled = false
         case .idle:
-            stateMenuItem.title = "Idle — hold Right ⌥ or press ⌃⌥D"
+            stateMenuItem.title = "Idle — \(Settings.dictationShortcut.displayString) or ⌃⌥D"
             toggleMenuItem.title = "Start Dictation (⌃⌥D)"
             toggleMenuItem.isEnabled = true
         case .recording:
@@ -88,6 +109,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleDictation() {
         controller.toggleRecording()
+    }
+
+    @objc private func openSettings() {
+        settingsWindow.show()
     }
 
     @objc private func openModelsFolder() {
