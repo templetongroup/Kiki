@@ -6,14 +6,29 @@
 
 A personal voice-dictation menu bar app for macOS — hold a key, speak, release, and the transcription is typed into whatever app you're using. Fully local: audio never leaves your Mac.
 
-Built with Swift/AppKit on top of [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (vendored in `Vendor/`, running on the GPU via Metal).
+Built with Swift/AppKit, [FluidAudio](https://github.com/FluidInference/FluidAudio), and [whisper.cpp](https://github.com/ggml-org/whisper.cpp). Parakeet runs through Core ML on Apple Silicon; Whisper runs through Metal and remains available as a compatibility fallback.
+
+## Local models
+
+Choose and download a model from **Settings…**. All inference stays on your Mac.
+
+| Model | Best for | Hardware | Approx. download |
+| --- | --- | --- | ---: |
+| Parakeet TDT v2 | Best English speed/accuracy balance | Apple Silicon | ~500 MB |
+| Parakeet TDT v3 | Fast multilingual dictation (25 European languages) | Apple Silicon | ~500 MB |
+| Whisper Large v3 Turbo | Maximum Whisper accuracy | Apple Silicon or Intel with ample memory | ~1.5 GB |
+| Whisper Small English | Balanced compatibility fallback | Apple Silicon or Intel | ~465 MB |
+| Whisper Base English | Older or memory-constrained Macs | Apple Silicon or Intel | ~142 MB |
+
+Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on Intel. Models download only when selected and can be changed later.
 
 ## Usage
 
-- **Hold Right ⌥ (Option)** — record while held, transcribe and insert on release.
+- **Hold Right ⌥ (Option)** — record while held, transcribe and insert on release. Change the hold key in Settings.
 - **⌃⌥D** — toggle mode: press to start, press again to stop and insert.
+- System audio is silenced while recording by default, then restored exactly when recording stops. This can be disabled in Settings.
 - A small HUD pill at the bottom of the screen shows Listening / Transcribing.
-- The menu bar mic icon shows state and has controls (model info, models folder, quit).
+- The Kiki menu bar icon provides status and controls (settings, model info, models folder, quit).
 
 ## Setup
 
@@ -23,7 +38,7 @@ Built with Swift/AppKit on top of [whisper.cpp](https://github.com/ggml-org/whis
    ./scripts/make-app.sh
    cp -R build/Kiki.app /Applications/
    ```
-2. Download a model (goes to `~/Library/Application Support/Kiki/models/`):
+2. Launch Kiki and choose a model in **Settings…**. Whisper models can also be downloaded manually to `~/Library/Application Support/Kiki/models/`:
    ```bash
    ./scripts/download-model.sh large-v3-turbo   # ~1.6 GB, recommended
    ./scripts/download-model.sh base.en          # ~142 MB, fast but weaker
@@ -60,6 +75,8 @@ Transcribe a file without the mic (useful for testing changes):
 ## Notes on the vendored whisper.cpp
 
 `Vendor/whisper.cpp` is v1.7.2 — the last release with a source-build SwiftPM package. One local patch: the Metal shader resource uses `.copy` instead of `.process` so the project builds with Command Line Tools alone (no Xcode); ggml compiles the shader at runtime instead (see `MetalResources.swift`).
+
+FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet TDT v2/v3 model weights are distributed under CC BY 4.0; Kiki should preserve model attribution in public distributions.
 
 ## Feature ideas
 

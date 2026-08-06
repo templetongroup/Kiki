@@ -42,4 +42,15 @@ enum ModelStore {
         }
         return modelsDirectory.appendingPathComponent(installed[0])
     }
+
+    static func modelURL(for model: TranscriptionModelID) -> URL? {
+        guard let fileName = model.whisperFileName,
+              installedModels().contains(fileName) else { return nil }
+        return modelsDirectory.appendingPathComponent(fileName)
+    }
+
+    static func isWhisperModelInstalled(_ model: TranscriptionModelID) -> Bool {
+        guard let fileName = model.whisperFileName else { return false }
+        return installedModels().contains(fileName)
+    }
 }

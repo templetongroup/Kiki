@@ -2,23 +2,26 @@ import AppKit
 import Carbon.HIToolbox
 
 /// Two activation paths:
-///  - Hold Right Option (⌥): record while held, transcribe on release.
+///  - Hold the configured modifier key: record while held, transcribe on release.
 ///  - ⌃⌥D: toggle recording on/off (better for long dictation).
 ///
 /// The toggle uses a Carbon global hotkey (no permissions needed, swallows the
 /// keystroke). The hold detection uses NSEvent modifier-flag monitors, which
 /// need Accessibility permission to see events in other apps.
 final class HotkeyManager {
-    var onToggle: () -> Void = {}
-    var onHoldStart: () -> Void = {}
-    var onHoldEnd: () -> Void = {}
+    var onToggle: @MainActor () -> Void = {}
+    var onHoldStart: @MainActor () -> Void = {}
+    var onHoldEnd: @MainActor () -> Void = {}
 
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     private var monitors: [Any] = []
-    private var rightOptionDown = false
+    private var triggerDown = false
 
-    private static let rightOptionKeyCode: UInt16 = 61 // kVK_RightOption
+    var dictationShortcut: DictationShortcut = Settings.dictationShortcut {
+        didSet { triggerDown = false }
+    }
+    var activationMode: ActivationMode = Settings.activationMode
 
     func start() {
         registerToggleHotkey()
@@ -46,13 +49,14 @@ final class HotkeyManager {
     }
 
     private func installHoldMonitors() {
+        let mask: NSEvent.EventTypeMask = [.flagsChanged, .keyDown, .keyUp]
         let handle: (NSEvent) -> Void = { [weak self] event in
-            self?.handleFlagsChanged(event)
+            self?.handleTriggerEvent(event)
         }
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: handle) {
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handle) {
             monitors.append(global)
         }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged, handler: { event in
+        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { event in
             handle(event)
             return event
         }) {
@@ -60,15 +64,29 @@ final class HotkeyManager {
         }
     }
 
-    private func handleFlagsChanged(_ event: NSEvent) {
-        guard event.keyCode == Self.rightOptionKeyCode else { return }
-        let isDown = event.modifierFlags.contains(.option)
-        if isDown && !rightOptionDown {
-            rightOptionDown = true
-            DispatchQueue.main.async { self.onHoldStart() }
-        } else if !isDown && rightOptionDown {
-            rightOptionDown = false
-            DispatchQueue.main.async { self.onHoldEnd() }
+    private func handleTriggerEvent(_ event: NSEvent) {
+        let shortcut = dictationShortcut
+        guard event.keyCode == shortcut.keyCode else { return }
+
+        let isDown: Bool
+        if shortcut.isModifierOnly, let flag = DictationShortcut.modifierFlag(for: shortcut.keyCode) {
+            guard event.type == .flagsChanged else { return }
+            isDown = event.modifierFlags.contains(flag)
+        } else {
+            guard event.type == .keyDown || event.type == .keyUp else { return }
+            let relevant: NSEvent.ModifierFlags = [.command, .option, .control, .shift, .function]
+            guard event.modifierFlags.intersection(relevant) == shortcut.modifiers.intersection(relevant) else { return }
+            isDown = event.type == .keyDown
+        }
+
+        if isDown && !triggerDown {
+            triggerDown = true
+            DispatchQueue.main.async {
+                if self.activationMode == .hold { self.onHoldStart() } else { self.onToggle() }
+            }
+        } else if !isDown && triggerDown {
+            triggerDown = false
+            if activationMode == .hold { DispatchQueue.main.async { self.onHoldEnd() } }
         }
     }
 }

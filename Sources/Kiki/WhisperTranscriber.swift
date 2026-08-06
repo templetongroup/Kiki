@@ -1,7 +1,7 @@
 import Foundation
 import whisper
 
-final class WhisperTranscriber {
+final class WhisperTranscriber: @unchecked Sendable {
     private let ctx: OpaquePointer
     private let languageC: UnsafeMutablePointer<CChar>?
 
