@@ -108,6 +108,30 @@ final class DictationController {
             break
         }
 
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            startAuthorizedRecording()
+        case .notDetermined:
+            hud.show("Allow Microphone Access…")
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    if granted {
+                        self.startAuthorizedRecording()
+                    } else {
+                        self.showTransientMessage("Microphone access is required")
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showTransientMessage("Enable Microphone Access in System Settings")
+        @unknown default:
+            showTransientMessage("Microphone access is unavailable")
+        }
+    }
+
+    private func startAuthorizedRecording() {
+        guard state == .idle else { return }
         if Settings.silenceSystemAudioWhileRecording {
             systemAudioSilencer.silence()
         }
