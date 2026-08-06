@@ -30,9 +30,10 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
    ```bash
    xcrun notarytool store-credentials "kiki-notary" \
      --apple-id "YOUR_APPLE_ID" \
-     --team-id "YOUR_TEAM_ID" \
-     --password "YOUR_APP_SPECIFIC_PASSWORD"
+     --team-id "YOUR_TEAM_ID"
    ```
+
+   Enter the app-specific password at the secure prompt. Do not put it directly on the command line, where it could be saved in shell history.
 
    App Store Connect API-key credentials are also supported by `notarytool` and are preferable for CI.
 
