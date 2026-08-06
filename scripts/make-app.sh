@@ -12,6 +12,9 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Kiki"
 
+# App icon.
+cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
+
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.
 cp Vendor/whisper.cpp/ggml/src/ggml-metal.metal "$APP/Contents/Resources/"
 
@@ -32,6 +35,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key>
     <string>Kiki</string>
     <key>CFBundleExecutable</key>
+    <string>Kiki</string>
+    <key>CFBundleIconFile</key>
     <string>Kiki</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
