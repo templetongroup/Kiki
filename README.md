@@ -19,6 +19,7 @@ Built with Swift/AppKit on top of [whisper.cpp](https://github.com/ggml-org/whis
 
 1. Build the app:
    ```bash
+   ./scripts/setup-local-signing.sh  # one-time; keeps macOS permissions stable
    ./scripts/make-app.sh
    cp -R build/Kiki.app /Applications/
    ```
@@ -31,7 +32,9 @@ Built with Swift/AppKit on top of [whisper.cpp](https://github.com/ggml-org/whis
    - **Microphone** — to record you.
    - **Accessibility** — to see the Right-⌥ hotkey globally and to synthesize the ⌘V that inserts text.
 
-   If insertion doesn't work, check System Settings → Privacy & Security → Accessibility and make sure Kiki is enabled. After rebuilding the app you may need to remove and re-add it there (the ad-hoc signature changes).
+   If insertion doesn't work, check System Settings → Privacy & Security → Accessibility and make sure Kiki is enabled. Local builds use a stable self-signed certificate after running the one-time setup command, so permission grants survive rebuilds more reliably.
+
+Public releases must use an Apple-issued Developer ID certificate and notarization. See [Signing and distributing Kiki](DISTRIBUTING.md) for the complete local and GitHub release workflow.
 
 ## How it works
 
