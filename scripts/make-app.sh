@@ -21,6 +21,7 @@ cp "$BIN" "$APP/Contents/MacOS/Kiki"
 
 # App icon.
 cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
+cp Resources/MenuBarIcon.png "$APP/Contents/Resources/MenuBarIcon.png"
 
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.
 cp Vendor/whisper.cpp/ggml/src/ggml-metal.metal "$APP/Contents/Resources/"

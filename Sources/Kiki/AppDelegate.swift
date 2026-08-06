@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = Self.icon("mic")
+        statusItem.button?.image = Self.menuBarIcon()
 
         let menu = NSMenu()
         stateMenuItem.isEnabled = false
@@ -67,25 +67,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch state {
         case .noModel:
-            statusItem.button?.image = Self.icon("mic.slash")
             stateMenuItem.title = "No model — put one in the models folder"
             toggleMenuItem.isEnabled = false
         case .loadingModel:
-            statusItem.button?.image = Self.icon("hourglass")
             stateMenuItem.title = "Loading model…"
             toggleMenuItem.isEnabled = false
         case .idle:
-            statusItem.button?.image = Self.icon("mic")
             stateMenuItem.title = "Idle — hold Right ⌥ or press ⌃⌥D"
             toggleMenuItem.title = "Start Dictation (⌃⌥D)"
             toggleMenuItem.isEnabled = true
         case .recording:
-            statusItem.button?.image = Self.icon("mic.fill")
             stateMenuItem.title = "Recording…"
             toggleMenuItem.title = "Stop && Transcribe (⌃⌥D)"
             toggleMenuItem.isEnabled = true
         case .transcribing:
-            statusItem.button?.image = Self.icon("waveform")
             stateMenuItem.title = "Transcribing…"
             toggleMenuItem.isEnabled = false
         }
@@ -105,9 +100,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(url)
     }
 
-    private static func icon(_ symbolName: String) -> NSImage? {
-        let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Kiki")
-        image?.isTemplate = true
+    private static func menuBarIcon() -> NSImage? {
+        guard let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.size = NSSize(width: 20, height: 20)
+        image.isTemplate = false
+        image.accessibilityDescription = "Kiki"
         return image
     }
 }
