@@ -1,5 +1,9 @@
 # Kiki
 
+<p align="center">
+  <img src="Assets/kiki-portrait.png" alt="Kiki dog portrait" width="560">
+</p>
+
 A personal voice-dictation menu bar app for macOS — hold a key, speak, release, and the transcription is typed into whatever app you're using. Fully local: audio never leaves your Mac.
 
 Built with Swift/AppKit on top of [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (vendored in `Vendor/`, running on the GPU via Metal).
