@@ -9,6 +9,12 @@ BUILD_NUMBER="${KIKI_BUILD_NUMBER:-1}"
 LOCAL_SIGNING_IDENTITY="${KIKI_LOCAL_SIGNING_IDENTITY:-Kiki Local Code Signing}"
 SIGNING_IDENTITY="${KIKI_SIGNING_IDENTITY:-}"
 RELEASE_BUILD="${KIKI_RELEASE:-0}"
+ENTITLEMENTS="${KIKI_ENTITLEMENTS:-Resources/Kiki.entitlements}"
+
+if [[ ! -f "$ENTITLEMENTS" ]]; then
+    echo "error: entitlements file not found: $ENTITLEMENTS" >&2
+    exit 1
+fi
 
 swift build -c release
 
@@ -122,6 +128,7 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
         --force \
         --sign "$SIGNING_IDENTITY" \
         --identifier "$APP_ID" \
+        --entitlements "$ENTITLEMENTS" \
         --options runtime \
         --timestamp \
         "$APP"
@@ -135,6 +142,7 @@ else
         --force \
         --sign "$SIGNING_IDENTITY" \
         --identifier "$APP_ID" \
+        --entitlements "$ENTITLEMENTS" \
         --options runtime \
         --timestamp=none \
         "$APP"
