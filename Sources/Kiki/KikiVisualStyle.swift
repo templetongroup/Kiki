@@ -45,17 +45,21 @@ enum KikiPalette {
         dark: NSColor(red: 0.545, green: 0.535, blue: 0.500, alpha: 1),
         light: NSColor(red: 0.475, green: 0.495, blue: 0.482, alpha: 1)
     )
-    static let electricBlue = adaptive(
-        dark: NSColor(red: 0.310, green: 0.725, blue: 0.610, alpha: 1),
-        light: NSColor(red: 0.045, green: 0.475, blue: 0.380, alpha: 1)
+    static let accent = adaptive(
+        dark: NSColor(red: 1.000, green: 0.620, blue: 0.220, alpha: 1),
+        light: NSColor(red: 0.820, green: 0.310, blue: 0.055, alpha: 1)
     )
     static let onAccentText = adaptive(
-        dark: NSColor(red: 0.055, green: 0.105, blue: 0.090, alpha: 1),
+        dark: NSColor(red: 0.110, green: 0.075, blue: 0.035, alpha: 1),
         light: .white
     )
-    static let cyan = adaptive(
-        dark: NSColor(red: 0.545, green: 0.755, blue: 0.690, alpha: 1),
-        light: NSColor(red: 0.035, green: 0.420, blue: 0.345, alpha: 1)
+    static let accentText = adaptive(
+        dark: NSColor(red: 1.000, green: 0.705, blue: 0.365, alpha: 1),
+        light: NSColor(red: 0.690, green: 0.245, blue: 0.035, alpha: 1)
+    )
+    static let selectionSurface = adaptive(
+        dark: NSColor(red: 0.290, green: 0.235, blue: 0.195, alpha: 1),
+        light: NSColor(red: 0.955, green: 0.850, blue: 0.735, alpha: 1)
     )
     static let violet = adaptive(
         dark: NSColor(red: 0.755, green: 0.665, blue: 0.505, alpha: 1),
@@ -127,7 +131,7 @@ final class KikiBackdropView: NSView {
             ]
             baseGradient.locations = [0, 1]
             softGlow.colors = [
-                KikiPalette.electricBlue.withAlphaComponent(0.035).cgColor,
+                KikiPalette.accent.withAlphaComponent(0.035).cgColor,
                 NSColor.clear.cgColor,
             ]
         }
@@ -179,7 +183,7 @@ class KikiCardView: NSView {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.cornerRadius = 16
             layer?.cornerCurve = .continuous
-            layer?.backgroundColor = (selected ? KikiPalette.elevatedSurface : KikiPalette.surface).cgColor
+            layer?.backgroundColor = (selected ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
             layer?.borderWidth = 1
             layer?.borderColor = (selected ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
@@ -254,7 +258,7 @@ final class KikiNavButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
-                ? KikiPalette.elevatedSurface.cgColor
+                ? KikiPalette.selectionSurface.cgColor
                 : NSColor.clear.cgColor
             layer?.borderWidth = 0
             let color = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
@@ -305,7 +309,7 @@ final class KikiActionButton: NSButton {
             alphaValue = isEnabled ? 1 : 0.48
             switch kind {
             case .primary:
-                layer?.backgroundColor = KikiPalette.electricBlue.cgColor
+                layer?.backgroundColor = KikiPalette.accent.cgColor
                 layer?.borderWidth = 0
                 contentTintColor = KikiPalette.onAccentText
             case .secondary:

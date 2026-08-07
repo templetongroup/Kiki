@@ -24,11 +24,16 @@ enum AppAppearanceMode: String, CaseIterable {
 enum KikiAccentColor: String, CaseIterable {
     case gold, teal, blue, purple, rose, graphite
 
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .gold: "Orange"
+        default: rawValue.capitalized
+        }
+    }
 
     var color: NSColor {
         switch self {
-        case .gold: NSColor(red: 0.92, green: 0.61, blue: 0.16, alpha: 1)
+        case .gold: NSColor(red: 1.00, green: 0.55, blue: 0.12, alpha: 1)
         case .teal: NSColor(red: 0.12, green: 0.68, blue: 0.66, alpha: 1)
         case .blue: .systemBlue
         case .purple: .systemPurple

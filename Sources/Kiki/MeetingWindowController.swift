@@ -78,7 +78,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         icon.wantsLayer = true
         icon.layer?.cornerRadius = 12
         icon.layer?.masksToBounds = true
-        let eyebrow = kikiLabel("MEETING INTELLIGENCE", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let eyebrow = kikiLabel("MEETING INTELLIGENCE", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Capture the room. Keep it private.", size: 27, weight: .bold)
         let subtitle = kikiLabel("Separate local audio tracks, source-labelled transcription, chapters, action-item hints, and caption exports. Headphones give the cleanest separation.", size: 12.5, color: KikiPalette.secondaryText)
         let labels = NSStackView(views: [eyebrow, title, subtitle])
@@ -109,7 +109,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.72)
         textView.textColor = KikiPalette.primaryText
-        textView.insertionPointColor = KikiPalette.cyan
+        textView.insertionPointColor = KikiPalette.accentText
         textView.textContainerInset = NSSize(width: 14, height: 14)
         textView.string = "Your local transcript will appear here after capture stops."
         let scroll = KikiScrollView()

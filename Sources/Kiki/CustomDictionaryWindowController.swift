@@ -44,7 +44,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
             backdrop.topAnchor.constraint(equalTo: content.topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
-        let eyebrow = kikiLabel("VOICE VOCABULARY", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let eyebrow = kikiLabel("VOICE VOCABULARY", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Custom Dictionary", size: 26, weight: .bold)
         let detail = kikiLabel("Teach Kiki names, jargon, and exact spellings. Replacements stay local and apply before paste.", size: 12.5, color: KikiPalette.secondaryText)
 

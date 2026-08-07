@@ -57,13 +57,13 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         icon.layer?.cornerRadius = 17
         icon.layer?.masksToBounds = true
 
-        let badge = kikiLabel("", size: 11, weight: .semibold, color: KikiPalette.cyan)
+        let badge = kikiLabel("", size: 11, weight: .semibold, color: KikiPalette.accentText)
         badge.alignment = .center
         badge.attributedStringValue = NSAttributedString(
             string: "NEW IN \(version)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
-                .foregroundColor: KikiPalette.cyan,
+                .foregroundColor: KikiPalette.accentText,
                 .kern: 1.5,
             ]
         )
@@ -78,7 +78,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         detail.alignment = .center
 
         let features = NSStackView(views: [
-            featureCard(symbol: "waveform", title: "Faster flow", detail: "Live words, zero-wait chaining, and a HUD that stays near your cursor.", tint: KikiPalette.cyan),
+            featureCard(symbol: "waveform", title: "Faster flow", detail: "Live words, zero-wait chaining, and a HUD that stays near your cursor.", tint: KikiPalette.accentText),
             featureCard(symbol: "brain.head.profile", title: "Learns you", detail: "Approved corrections, vocabulary, snippets, and private zones—all local.", tint: KikiPalette.violet),
             featureCard(symbol: "person.2.wave.2", title: "Meeting Mode", detail: "Capture both sides, create chapters, and export clean captions.", tint: KikiPalette.magenta),
         ])

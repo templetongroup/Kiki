@@ -620,7 +620,7 @@ private final class ModelCardView: KikiCardView {
 
         let symbolName = model.isParakeet ? "bolt.horizontal.circle.fill" : "waveform.circle.fill"
         let symbol = NSImageView(image: NSImage(systemSymbolName: symbolName, accessibilityDescription: model.displayName) ?? NSImage())
-        symbol.contentTintColor = model.isParakeet ? KikiPalette.cyan : KikiPalette.violet
+        symbol.contentTintColor = model.isParakeet ? KikiPalette.accentText : KikiPalette.violet
         let symbolShell = KikiCardView()
         symbolShell.selected = true
         symbolShell.addSubview(symbol)
@@ -671,7 +671,7 @@ private final class ModelCardView: KikiCardView {
             button.isEnabled = false
         } else if selected {
             statusLabel.stringValue = "● Currently in use"
-            statusLabel.textColor = KikiPalette.cyan
+            statusLabel.textColor = KikiPalette.accentText
             button.title = "Using"
             button.isEnabled = false
         } else {
@@ -703,7 +703,7 @@ private final class ModelCardView: KikiCardView {
 private final class ModelSectionHeaderView: NSView {
     init(title: String, detail: String) {
         super.init(frame: .zero)
-        let eyebrow = kikiLabel("LOCAL MODELS", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let eyebrow = kikiLabel("LOCAL MODELS", size: 10, weight: .bold, color: KikiPalette.accentText)
         let titleLabel = kikiLabel(title, size: 19, weight: .semibold)
         let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
         detailLabel.maximumNumberOfLines = 0
@@ -731,9 +731,9 @@ private final class FeatureSpotlightView: NSView {
         super.init(frame: .zero)
 
         let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
-        icon.contentTintColor = KikiPalette.cyan
+        icon.contentTintColor = KikiPalette.accentText
 
-        let eyebrowLabel = kikiLabel(eyebrow, size: 10, weight: .bold, color: KikiPalette.cyan)
+        let eyebrowLabel = kikiLabel(eyebrow, size: 10, weight: .bold, color: KikiPalette.accentText)
         let titleLabel = kikiLabel(title, size: 20, weight: .semibold)
         let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
         let labels = NSStackView(views: [eyebrowLabel, titleLabel, detailLabel])

@@ -48,7 +48,7 @@ final class FileTranscriptionWindowController: NSWindowController {
             backdrop.topAnchor.constraint(equalTo: content.topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
-        let eyebrow = kikiLabel("LOCAL TRANSCRIPTION", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let eyebrow = kikiLabel("LOCAL TRANSCRIPTION", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Turn any recording into text.", size: 26, weight: .bold)
         let detail = kikiLabel("Your selected model processes the file entirely on this Mac. Vocabulary and text-only history apply automatically.", size: 12.5, color: KikiPalette.secondaryText)
 
@@ -67,7 +67,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         textView.font = .systemFont(ofSize: 14)
         textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
         textView.textColor = KikiPalette.primaryText
-        textView.insertionPointColor = KikiPalette.cyan
+        textView.insertionPointColor = KikiPalette.accentText
         textView.textContainerInset = NSSize(width: 12, height: 12)
         let outputScroll = NSScrollView()
         outputScroll.documentView = textView
@@ -192,7 +192,7 @@ final class FileDropView: NSView {
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 14, yRadius: 14)
         path.setLineDash([7, 5], count: 2, phase: 0)
         path.lineWidth = 2
-        KikiPalette.electricBlue.withAlphaComponent(0.72).setStroke()
+        KikiPalette.accent.withAlphaComponent(0.72).setStroke()
         KikiPalette.violet.withAlphaComponent(0.10).setFill()
         path.fill()
         path.stroke()
