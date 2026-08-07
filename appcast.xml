@@ -6,6 +6,36 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.4.1</title>
+            <pubDate>Fri, 07 Aug 2026 11:46:03 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.1</link>
+            <sparkle:version>9</sparkle:version>
+            <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.1
+
+This update is a focused interface-polish release.
+
+## Improvements
+
+- Reorganized the menu into clear **Features** and **Library** sections with icons and cleaner labels.
+- Added comfortable padding to action buttons throughout Kiki.
+- Simplified the Models page so its introduction no longer resembles a selectable model.
+- Renamed speech profiles in plain language and added a live explanation for every option.
+- Added clickable information controls explaining each Flow setting.
+- Replaced the boxed “New in Kiki” badge with a cleaner typographic highlight.
+- Brightened primary controls in Dark Mode while preserving accessible contrast.
+
+Transcription speed, model quality, and Kiki’s local-first privacy remain unchanged.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.1/Kiki-0.4.1-macOS.zip" length="6813406" type="application/octet-stream" sparkle:edSignature="bP+6CA6vMiqEIOPwJaOAOEoE8+Bdp+J9qE+I89gTfkOz8rxgKZkeitFVOET+zL4PdD0Q1+H2SrirvxxI1QcxBA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.1/Kiki9-8.delta" sparkle:deltaFrom="8" length="304962" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="uyaMWqZZeu3MtdVx/oua85bCbab/NxUGcO5qeXOg/5E9PvQF8iDrak88mCXFFMeJp88QQHo/ok4VCkwL+boPBg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.1/Kiki9-4.delta" sparkle:deltaFrom="4" length="417338" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ubfprnZyj09I3iksvbsdxZEit08j30IaddZCP+VsktDEEH73zhfbwgp/qpXhtyNIwx6lqE1iN/AJfFDLl0Z3CQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.0</title>
             <pubDate>Fri, 07 Aug 2026 11:21:45 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.0</link>
