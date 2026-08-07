@@ -3,6 +3,7 @@ import AppKit
 /// Small floating pill near the bottom of the screen showing recording state.
 final class HUDPanel {
     private let panel: NSPanel
+    private let effect: NSVisualEffectView
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
@@ -20,7 +21,7 @@ final class HUDPanel {
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let effect = NSVisualEffectView()
+        effect = NSVisualEffectView()
         effect.material = .hudWindow
         effect.state = .active
         effect.wantsLayer = true
@@ -68,6 +69,7 @@ final class HUDPanel {
     }
 
     func show(_ text: String) {
+        applyAppearance()
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -84,8 +86,9 @@ final class HUDPanel {
     }
 
     func showListening(transcript: String? = nil) {
+        applyAppearance()
         statusLabel.stringValue = "●  Listening"
-        statusLabel.textColor = .systemRed
+        statusLabel.textColor = Settings.accentColor.color
         transcriptLabel.stringValue = displayText(transcript)
         transcriptLabel.textColor = transcript == nil ? .secondaryLabelColor : .labelColor
         transcriptLabel.isHidden = false
@@ -93,6 +96,7 @@ final class HUDPanel {
     }
 
     func showTranscribing(transcript: String? = nil) {
+        applyAppearance()
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -118,6 +122,12 @@ final class HUDPanel {
         let limit = 220
         guard transcript.count > limit else { return transcript }
         return "…" + transcript.suffix(limit)
+    }
+
+    private func applyAppearance() {
+        panel.appearance = Settings.appearanceMode.appearance
+        effect.layer?.borderWidth = 1
+        effect.layer?.borderColor = Settings.accentColor.color.withAlphaComponent(0.45).cgColor
     }
 
     func hide() {

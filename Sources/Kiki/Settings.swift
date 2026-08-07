@@ -62,6 +62,45 @@ enum Settings {
         }
         set { UserDefaults.standard.set(newValue, forKey: "showLiveTranscription") }
     }
+
+    static var appearanceMode: AppAppearanceMode {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "appearanceMode") else {
+                return .system
+            }
+            return AppAppearanceMode(rawValue: raw) ?? .system
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "appearanceMode") }
+    }
+
+    static var accentColor: KikiAccentColor {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "accentColor") else {
+                return .gold
+            }
+            return KikiAccentColor(rawValue: raw) ?? .gold
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "accentColor") }
+    }
+
+    static var soundStyle: DictationSoundStyle {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "soundStyle") else {
+                return .subtle
+            }
+            return DictationSoundStyle(rawValue: raw) ?? .subtle
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "soundStyle") }
+    }
+
+    static var saveTranscriptionHistory: Bool {
+        get {
+            let key = "saveTranscriptionHistory"
+            guard UserDefaults.standard.object(forKey: key) != nil else { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "saveTranscriptionHistory") }
+    }
 }
 
 enum ActivationMode: String, CaseIterable {

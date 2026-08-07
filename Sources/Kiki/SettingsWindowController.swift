@@ -4,6 +4,8 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     var onSettingsChange: (@MainActor (DictationShortcut, ActivationMode) -> Void)?
     var onModelChange: (@MainActor (TranscriptionModelID) -> Void)?
+    var onAppearanceChange: (@MainActor () -> Void)?
+    var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
 
     private let shortcutButton = NSButton(title: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
@@ -20,13 +22,31 @@ final class SettingsWindowController: NSWindowController {
         target: nil,
         action: nil
     )
+    private let historyCheckbox = NSButton(
+        checkboxWithTitle: "Save transcription history",
+        target: nil,
+        action: nil
+    )
+    private let launchAtLoginCheckbox = NSButton(
+        checkboxWithTitle: "Launch Kiki at login",
+        target: nil,
+        action: nil
+    )
+    private let automaticUpdatesCheckbox = NSButton(
+        checkboxWithTitle: "Automatically check for signed updates",
+        target: nil,
+        action: nil
+    )
+    private let appearancePopup = NSPopUpButton()
+    private let accentPopup = NSPopUpButton()
+    private let soundPopup = NSPopUpButton()
     private let messageLabel = NSTextField(labelWithString: "")
     private var captureMonitor: Any?
     private var pendingModifierKeyCode: UInt16?
     private var pendingModifierFlags: NSEvent.ModifierFlags = []
 
     init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 700),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "Kiki Settings"
         window.isReleasedWhenClosed = false
@@ -45,6 +65,33 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func buildContent() {
+        let generalTitle = NSTextField(labelWithString: "General")
+        generalTitle.font = .systemFont(ofSize: 20, weight: .semibold)
+        launchAtLoginCheckbox.target = self
+        launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
+        automaticUpdatesCheckbox.target = self
+        automaticUpdatesCheckbox.action = #selector(automaticUpdatesChanged)
+
+        appearancePopup.addItems(withTitles: AppAppearanceMode.allCases.map(\.title))
+        appearancePopup.target = self
+        appearancePopup.action = #selector(appearanceChanged)
+        accentPopup.addItems(withTitles: KikiAccentColor.allCases.map(\.title))
+        accentPopup.target = self
+        accentPopup.action = #selector(accentChanged)
+        soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
+        soundPopup.target = self
+        soundPopup.action = #selector(soundChanged)
+
+        let appearanceRow = NSStackView(views: [
+            NSTextField(labelWithString: "Window:"), appearancePopup,
+            NSTextField(labelWithString: "Color:"), accentPopup,
+        ])
+        appearanceRow.spacing = 10
+        let soundRow = NSStackView(views: [
+            NSTextField(labelWithString: "Dictation sounds:"), soundPopup,
+        ])
+        soundRow.spacing = 10
+
         let title = NSTextField(labelWithString: "Dictation Shortcut")
         title.font = .systemFont(ofSize: 20, weight: .semibold)
         let detail = NSTextField(wrappingLabelWithString: "Choose any modifier key or a keyboard shortcut. Kiki listens globally after Accessibility permission is granted.")
@@ -88,7 +135,8 @@ final class SettingsWindowController: NSWindowController {
 
         silenceAudioCheckbox.target = self
         silenceAudioCheckbox.action = #selector(silenceAudioChanged)
-        let silenceAudioDetail = NSTextField(wrappingLabelWithString: "Prevents music, podcasts, and other playback from reaching the microphone. Kiki restores the previous mute or volume when recording stops.")
+        silenceAudioCheckbox.title = "Mute all Mac audio while recording"
+        let silenceAudioDetail = NSTextField(wrappingLabelWithString: "Mutes the current Mac output device before microphone capture, preventing music, podcasts, meetings, and browser audio from leaking into dictation. Kiki restores the exact previous mute or volume afterward.")
         silenceAudioDetail.textColor = .secondaryLabelColor
         silenceAudioDetail.font = .systemFont(ofSize: 12)
 
@@ -98,22 +146,43 @@ final class SettingsWindowController: NSWindowController {
         liveTranscriptionDetail.textColor = .secondaryLabelColor
         liveTranscriptionDetail.font = .systemFont(ofSize: 12)
 
+        historyCheckbox.target = self
+        historyCheckbox.action = #selector(historyChanged)
+        let historyDetail = NSTextField(wrappingLabelWithString: "Stores transcript text and local processing details on this Mac. Microphone audio is never saved. History can be cleared at any time.")
+        historyDetail.textColor = .secondaryLabelColor
+        historyDetail.font = .systemFont(ofSize: 12)
+
         let divider = NSBox()
         divider.boxType = .separator
-        let stack = NSStackView(views: [title, detail, shortcutRow, messageLabel, modeRow, note, silenceAudioCheckbox, silenceAudioDetail, liveTranscriptionCheckbox, liveTranscriptionDetail, divider, modelTitle, modelRow, modelDetailLabel])
+        let stack = NSStackView(views: [generalTitle, launchAtLoginCheckbox, automaticUpdatesCheckbox, appearanceRow, soundRow, title, detail, shortcutRow, messageLabel, modeRow, note, silenceAudioCheckbox, silenceAudioDetail, liveTranscriptionCheckbox, liveTranscriptionDetail, historyCheckbox, historyDetail, divider, modelTitle, modelRow, modelDetailLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         guard let content = window?.contentView else { return }
-        content.addSubview(stack)
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        let document = NSView()
+        document.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = document
+        content.addSubview(scrollView)
+        document.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 28),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -28),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 26),
+            scrollView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: content.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            document.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
+            stack.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 28),
+            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -28),
+            stack.topAnchor.constraint(equalTo: document.topAnchor, constant: 26),
+            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor, constant: -26),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             silenceAudioDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             liveTranscriptionDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            historyDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             modelDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             divider.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -122,8 +191,15 @@ final class SettingsWindowController: NSWindowController {
 
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
+        launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
+        automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
+            || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
+        appearancePopup.selectItem(at: AppAppearanceMode.allCases.firstIndex(of: Settings.appearanceMode) ?? 0)
+        accentPopup.selectItem(at: KikiAccentColor.allCases.firstIndex(of: Settings.accentColor) ?? 0)
+        soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
         liveTranscriptionCheckbox.state = Settings.showLiveTranscription ? .on : .off
+        historyCheckbox.state = Settings.saveTranscriptionHistory ? .on : .off
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         modelPopup.selectItem(at: TranscriptionModelID.allCases.firstIndex(of: Settings.transcriptionModel) ?? 0)
         updateModelControls()
@@ -182,8 +258,42 @@ final class SettingsWindowController: NSWindowController {
         Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on
     }
 
+    @objc private func launchAtLoginChanged() {
+        do {
+            try LaunchAtLoginController.setEnabled(launchAtLoginCheckbox.state == .on)
+            messageLabel.stringValue = launchAtLoginCheckbox.state == .on
+                ? "Kiki will launch when you log in."
+                : "Launch at login disabled."
+        } catch {
+            messageLabel.stringValue = "Could not change login setting: \(error.localizedDescription)"
+            launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
+        }
+    }
+
+    @objc private func automaticUpdatesChanged() {
+        onAutomaticUpdatesChange?(automaticUpdatesCheckbox.state == .on)
+    }
+
+    @objc private func appearanceChanged() {
+        Settings.appearanceMode = AppAppearanceMode.allCases[appearancePopup.indexOfSelectedItem]
+        onAppearanceChange?()
+    }
+
+    @objc private func accentChanged() {
+        Settings.accentColor = KikiAccentColor.allCases[accentPopup.indexOfSelectedItem]
+        onAppearanceChange?()
+    }
+
+    @objc private func soundChanged() {
+        Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem]
+    }
+
     @objc private func liveTranscriptionChanged() {
         Settings.showLiveTranscription = liveTranscriptionCheckbox.state == .on
+    }
+
+    @objc private func historyChanged() {
+        Settings.saveTranscriptionHistory = historyCheckbox.state == .on
     }
 
     @objc private func modelSelectionChanged() {

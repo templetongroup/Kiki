@@ -18,3 +18,7 @@ Model conversions optimized for Core ML are downloaded through FluidAudio from t
 ## whisper.cpp and Whisper models
 
 Kiki vendors [whisper.cpp](https://github.com/ggml-org/whisper.cpp), copyright Georgi Gerganov and contributors, under the MIT License. Whisper model weights are provided through the whisper.cpp model repository and remain subject to their applicable terms.
+
+## Sparkle
+
+Kiki uses [Sparkle](https://github.com/sparkle-project/Sparkle), copyright the Sparkle contributors, under its permissive license, for cryptographically signed application updates.

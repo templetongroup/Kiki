@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let controller = DictationController()
     private let hotkeys = HotkeyManager()
+    private let updateController = UpdateController()
     private lazy var settingsWindow: SettingsWindowController = {
         let controller = SettingsWindowController()
         controller.onSettingsChange = { [weak self] shortcut, mode in
@@ -16,14 +17,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onModelChange = { [weak self] model in
             self?.controller.selectModel(model)
         }
+        controller.onAppearanceChange = {
+            AppearanceController.apply()
+        }
+        controller.onAutomaticUpdatesChange = { [weak self] enabled in
+            self?.updateController.automaticallyChecksForUpdates = enabled
+        }
         return controller
+    }()
+    private lazy var dictionaryWindow = CustomDictionaryWindowController()
+    private lazy var historyWindow = HistoryWindowController()
+    private lazy var fileTranscriptionWindow: FileTranscriptionWindowController = {
+        let window = FileTranscriptionWindowController()
+        window.onTranscribe = { [weak self] url in
+            guard let self else { throw KikiError("Kiki is unavailable.") }
+            return try await self.controller.transcribeFile(at: url)
+        }
+        return window
     }()
 
     private let stateMenuItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     private let modelMenuItem = NSMenuItem(title: "Model: none", action: nil, keyEquivalent: "")
     private let toggleMenuItem = NSMenuItem(title: "Start Dictation", action: #selector(toggleDictation), keyEquivalent: "")
+    private lazy var updateMenuItem: NSMenuItem = {
+        let item = NSMenuItem(title: "Check for Updates…", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
+        item.target = updateController
+        return item
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppearanceController.apply()
+        updateController.onUpdateAvailable = { [weak self] available in
+            self?.updateMenuItem.title = available ? "Update Available…" : "Check for Updates…"
+        }
         setupStatusItem()
         requestPermissions()
 
@@ -60,6 +86,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        let historyItem = NSMenuItem(title: "History…", action: #selector(openHistory), keyEquivalent: "")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
+        let dictionaryItem = NSMenuItem(title: "Dictionary…", action: #selector(openDictionary), keyEquivalent: "")
+        dictionaryItem.target = self
+        menu.addItem(dictionaryItem)
+
+        let fileItem = NSMenuItem(title: "Transcribe File…", action: #selector(openFileTranscription), keyEquivalent: "")
+        fileItem.target = self
+        menu.addItem(fileItem)
+
         let modelsItem = NSMenuItem(title: "Open Models Folder", action: #selector(openModelsFolder), keyEquivalent: "")
         modelsItem.target = self
         menu.addItem(modelsItem)
@@ -71,6 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let microphoneItem = NSMenuItem(title: "Open Microphone Settings", action: #selector(openMicrophoneSettings), keyEquivalent: "")
         microphoneItem.target = self
         menu.addItem(microphoneItem)
+
+        menu.addItem(updateMenuItem)
 
         menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit Kiki", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -117,6 +157,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         settingsWindow.show()
+    }
+
+    @objc private func openHistory() {
+        historyWindow.show()
+    }
+
+    @objc private func openDictionary() {
+        dictionaryWindow.show()
+    }
+
+    @objc private func openFileTranscription() {
+        fileTranscriptionWindow.show()
     }
 
     @objc private func openModelsFolder() {

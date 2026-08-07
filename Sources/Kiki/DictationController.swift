@@ -21,6 +21,7 @@ final class DictationController {
 
     private let recorder = AudioRecorder()
     private let systemAudioSilencer = SystemAudioSilencer()
+    private let soundPlayer = DictationSoundPlayer()
     private var whisperTranscriber: WhisperTranscriber?
     private var parakeetTranscriber: ParakeetTranscriber?
     private let transcribeQueue = DispatchQueue(label: "kiki.transcribe", qos: .userInitiated)
@@ -31,6 +32,8 @@ final class DictationController {
     private var liveAudioFeed: AudioSampleFeed?
     private var livePreviewSession: ParakeetLiveSession?
     private var lastLiveTranscript: String?
+    private var lastRecordingDuration: TimeInterval = 0
+    private var recordingContext: String?
 
     var activeModelName: String? {
         Settings.transcriptionModel.displayName
@@ -81,6 +84,41 @@ final class DictationController {
         guard model.isCompatible else { return }
         Settings.transcriptionModel = model
         prepare()
+    }
+
+    func transcribeFile(at url: URL) async throws -> String {
+        guard state == .idle else { throw KikiError("Kiki is busy with another transcription.") }
+        state = .transcribing
+        defer { state = .idle }
+
+        let samples = try await Task.detached(priority: .userInitiated) {
+            try AudioFileLoader.load16kMono(url: url)
+        }.value
+        let duration = Double(samples.count) / AudioRecorder.sampleRate
+        guard duration >= 0.3 else { throw KikiError("The selected file contains too little audio.") }
+
+        let rawText: String
+        if let parakeetTranscriber {
+            rawText = await parakeetTranscriber.transcribe(samples)
+        } else if let whisperTranscriber {
+            rawText = await withCheckedContinuation { continuation in
+                transcribeQueue.async {
+                    continuation.resume(returning: whisperTranscriber.transcribe(samples))
+                }
+            }
+        } else {
+            throw KikiError("The selected transcription model is not ready.")
+        }
+
+        let text = CustomDictionaryStore.shared.apply(to: rawText)
+        TranscriptionHistoryStore.shared.add(
+            text: text,
+            duration: duration,
+            modelName: Settings.transcriptionModel.displayName,
+            source: .file,
+            context: url.lastPathComponent
+        )
+        return text
     }
 
     func toggleRecording() {
@@ -136,6 +174,7 @@ final class DictationController {
 
     private func startAuthorizedRecording() {
         guard state == .idle else { return }
+        soundPlayer.playRecordingStarted()
         if Settings.silenceSystemAudioWhileRecording {
             systemAudioSilencer.silence()
         }
@@ -143,6 +182,7 @@ final class DictationController {
             beginLivePreviewIfAvailable()
             try recorder.start()
             recordingStartedAt = Date()
+            recordingContext = NSWorkspace.shared.frontmostApplication?.localizedName
             state = .recording
             hud.showListening()
         } catch {
@@ -162,6 +202,7 @@ final class DictationController {
         let livePreviewCleanup = stopLivePreview()
         systemAudioSilencer.restore()
         let duration = Double(samples.count) / AudioRecorder.sampleRate
+        lastRecordingDuration = duration
         recordingStartedAt = nil
 
         // A sub-0.3s press is almost certainly accidental.
@@ -226,7 +267,16 @@ final class DictationController {
         if text.isEmpty {
             showTransientMessage("No speech detected")
         } else {
-            switch TextInserter.insert(text) {
+            let finalText = CustomDictionaryStore.shared.apply(to: text)
+            TranscriptionHistoryStore.shared.add(
+                text: finalText,
+                duration: lastRecordingDuration,
+                modelName: Settings.transcriptionModel.displayName,
+                source: .dictation,
+                context: recordingContext
+            )
+            soundPlayer.playTranscriptionCompleted()
+            switch TextInserter.insert(finalText) {
             case .inserted:
                 hud.hide()
             case .copiedNeedsAccessibility:
@@ -235,6 +285,8 @@ final class DictationController {
                 showTransientMessage("Paste failed — text left on clipboard")
             }
         }
+        lastRecordingDuration = 0
+        recordingContext = nil
         state = .idle
     }
 

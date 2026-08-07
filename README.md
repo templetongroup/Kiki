@@ -22,13 +22,29 @@ Choose and download a model from **Settings…**. All inference stays on your Ma
 
 Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on Intel. Models download only when selected and can be changed later.
 
+## Features
+
+- Fully local dictation with a choice of Parakeet and Whisper models
+- Low-latency live transcript in Kiki's branded listening window with Parakeet
+- Customizable global shortcut with hold-to-dictate and press-to-toggle modes
+- Launch at login, signed automatic updates, light/dark/system appearance, brand colors, and dictation sounds
+- Custom dictionary for names, jargon, abbreviations, and exact spellings
+- Text-only transcription history with app/source, model, duration, and an explicit local-processing indicator
+- Drag-and-drop local audio-file transcription with editable, copyable, and exportable results
+- Automatic Mac output muting during recording, with the previous mute or volume restored afterward
+
+Kiki does not upload recordings, transcripts, dictionary entries, or history. Microphone audio is used in memory for transcription and is not added to history.
+
 ## Usage
 
 - **Hold Right ⌥ (Option)** — record while held, transcribe and insert on release. Change the hold key in Settings.
 - **⌃⌥D** — toggle mode: press to start, press again to stop and insert.
 - System audio is silenced while recording by default, then restored exactly when recording stops. This can be disabled in Settings.
 - A branded HUD shows Listening / Transcribing and, with Parakeet, a low-latency live transcript. The preview can be disabled in Settings.
-- The Kiki menu bar icon provides status and controls (settings, model info, models folder, quit).
+- Use **Dictionary…** to teach Kiki your preferred spellings and replacements.
+- Use **History…** to review, copy, or delete locally stored transcript text.
+- Use **Transcribe File…** to drop an audio file, edit the result, copy it, or save it as plain text.
+- The Kiki menu bar icon provides status, settings, model controls, update checks, and local transcription tools.
 
 ## Setup
 
@@ -51,9 +67,11 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 
 Public releases must use an Apple-issued Developer ID certificate and notarization. See [Signing and distributing Kiki](DISTRIBUTING.md) for the complete local and GitHub release workflow.
 
+Kiki uses [Sparkle](https://sparkle-project.org/) for cryptographically signed automatic updates. Contributors can install the pinned Sparkle framework and publishing tools with `./scripts/setup-sparkle.sh`; release maintainers then update the signed feed with `./scripts/update-appcast.sh` after creating a notarized archive. The private update key remains in the maintainer's macOS Keychain and is never committed.
+
 ## How it works
 
-`HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `ParakeetTranscriber` (FluidAudio/Core ML) or `WhisperTranscriber` (whisper.cpp/Metal) → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
+`HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `ParakeetTranscriber` (FluidAudio/Core ML) or `WhisperTranscriber` (whisper.cpp/Metal) → custom dictionary → optional text-only history → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
 
 Parakeet also receives a short-window stream while recording so the HUD can show an immediate, provisional transcript. Kiki discards that preview when recording ends and runs the normal full-audio pass for the text it inserts.
 
@@ -83,7 +101,10 @@ FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet
 ## Feature ideas
 
 - Press Esc while recording to cancel
-- Custom vocabulary / initial prompt for names and jargon
-- AI cleanup pass (punctuation, filler-word removal) before insertion
-- Per-app formatting rules; history window of past dictations
-- Launch at login; configurable hotkeys UI
+- Correction memory that proposes dictionary entries from repeated edits
+- Private-app exclusions that never retain history from selected applications
+- Dual-model verification that highlights uncertain words without sending audio off-device
+- Speaker-labelled file transcription with Markdown, SRT, and VTT export
+- Shareable glossary packs for teams, clients, industries, and accessibility needs
+- Offline meeting mode with system-audio capture, speakers, chapters, and action items
+- Optional local cleanup pass for formatting, punctuation, and filler-word removal
