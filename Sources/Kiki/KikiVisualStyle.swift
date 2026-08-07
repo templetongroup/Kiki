@@ -193,24 +193,45 @@ class KikiCardView: NSView {
 @MainActor
 final class KikiNavButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
+    private let symbolView = NSImageView()
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let contentStack = NSStackView()
 
     init(title: String, symbol: String, target: AnyObject?, action: Selector?) {
         super.init(frame: .zero)
-        self.title = title
-        image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
-        imagePosition = .imageLeading
-        imageHugsTitle = true
-        alignment = .left
-        font = .systemFont(ofSize: 13.5, weight: .medium)
+        self.title = ""
         isBordered = false
         focusRingType = .none
         self.target = target
         self.action = action
+        setAccessibilityLabel(title)
+        toolTip = title
+
+        symbolView.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
+        symbolView.imageScaling = .scaleProportionallyDown
+        symbolView.setContentHuggingPriority(.required, for: .horizontal)
+        titleLabel.stringValue = title
+        titleLabel.font = .systemFont(ofSize: 13.5, weight: .medium)
+        titleLabel.lineBreakMode = .byTruncatingTail
+
+        contentStack.setViews([symbolView, titleLabel], in: .leading)
+        contentStack.orientation = .horizontal
+        contentStack.alignment = .centerY
+        contentStack.spacing = 8
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(contentStack)
+
         wantsLayer = true
         layer?.cornerRadius = 10
         layer?.cornerCurve = .continuous
-        contentTintColor = KikiPalette.secondaryText
         heightAnchor.constraint(equalToConstant: 42).isActive = true
+        NSLayoutConstraint.activate([
+            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            contentStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
+            contentStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            symbolView.widthAnchor.constraint(equalToConstant: 16),
+            symbolView.heightAnchor.constraint(equalToConstant: 16),
+        ])
         updateStyle()
     }
 
@@ -221,13 +242,24 @@ final class KikiNavButton: NSButton {
         updateStyle()
     }
 
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: ceil(contentStack.fittingSize.width) + 28, height: 42)
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
+        return self
+    }
+
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
                 ? KikiPalette.elevatedSurface.cgColor
                 : NSColor.clear.cgColor
             layer?.borderWidth = 0
-            contentTintColor = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
+            let color = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
+            symbolView.contentTintColor = color
+            titleLabel.textColor = color
         }
     }
 }

@@ -145,6 +145,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         navigation.orientation = .vertical
         navigation.alignment = .width
         navigation.spacing = 6
+        navButtons.forEach {
+            $0.widthAnchor.constraint(equalTo: navigation.widthAnchor).isActive = true
+        }
         let privacy = kikiLabel("Nothing in this studio leaves your Mac.", size: 11.5, color: KikiPalette.secondaryText)
         privacy.maximumNumberOfLines = 3
         let stack = NSStackView(views: [brand, navigation, NSView(), privacy])
@@ -154,6 +157,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.translatesAutoresizingMaskIntoConstraints = false
         sidebar.addSubview(stack)
         NSLayoutConstraint.activate([
+            navigation.widthAnchor.constraint(equalTo: stack.widthAnchor),
             icon.widthAnchor.constraint(equalToConstant: 44),
             icon.heightAnchor.constraint(equalToConstant: 44),
             stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 18),

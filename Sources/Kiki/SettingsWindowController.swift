@@ -161,6 +161,9 @@ final class SettingsWindowController: NSWindowController {
         navigation.orientation = .vertical
         navigation.alignment = .width
         navigation.spacing = 6
+        navButtons.forEach {
+            $0.widthAnchor.constraint(equalTo: navigation.widthAnchor).isActive = true
+        }
 
         let localDot = NSView()
         localDot.wantsLayer = true
@@ -183,6 +186,7 @@ final class SettingsWindowController: NSWindowController {
         stack.translatesAutoresizingMaskIntoConstraints = false
         sidebar.addSubview(stack)
         NSLayoutConstraint.activate([
+            navigation.widthAnchor.constraint(equalTo: stack.widthAnchor),
             icon.widthAnchor.constraint(equalToConstant: 46),
             icon.heightAnchor.constraint(equalToConstant: 46),
             localDot.widthAnchor.constraint(equalToConstant: 8),
