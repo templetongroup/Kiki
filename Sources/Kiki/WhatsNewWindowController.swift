@@ -19,7 +19,6 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        window.appearance = NSAppearance(named: .darkAqua)
         super.init(window: window)
         window.delegate = self
         buildContent()
@@ -150,4 +149,3 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func closePressed() { close() }
 }
-

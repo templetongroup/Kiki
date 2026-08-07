@@ -61,7 +61,6 @@ final class SettingsWindowController: NSWindowController {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.appearance = NSAppearance(named: .darkAqua)
         window.minSize = NSSize(width: 900, height: 680)
         window.isReleasedWhenClosed = false
         super.init(window: window)
@@ -264,7 +263,8 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeGeneralPage() -> NSView {
-        let appearanceRow = labeledRow("Accent color", controls: [accentPopup])
+        let appearanceRow = labeledRow("Appearance", controls: [appearancePopup])
+        let accentRow = labeledRow("Accent color", controls: [accentPopup])
         let soundRow = labeledRow("Dictation sounds", controls: [soundPopup])
         return page(with: [
             SettingsCard(
@@ -274,8 +274,8 @@ final class SettingsWindowController: NSWindowController {
             ),
             SettingsCard(
                 title: "Look & Sound",
-                subtitle: "Personalize Kiki’s signature dark interface and feedback sounds.",
-                views: [appearanceRow, soundRow]
+                subtitle: "Choose a calm light or dark workspace that stays easy to read.",
+                views: [appearanceRow, accentRow, soundRow]
             ),
         ])
     }

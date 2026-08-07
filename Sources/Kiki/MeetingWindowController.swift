@@ -30,7 +30,6 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.appearance = NSAppearance(named: .darkAqua)
         window.minSize = NSSize(width: 820, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)

@@ -25,7 +25,6 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.appearance = NSAppearance(named: .darkAqua)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()

@@ -39,7 +39,6 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.appearance = NSAppearance(named: .darkAqua)
         window.minSize = NSSize(width: 900, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)

@@ -22,7 +22,6 @@ final class HUDPanel {
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.appearance = NSAppearance(named: .darkAqua)
 
         effect = NSVisualEffectView()
         effect.material = .hudWindow
@@ -31,12 +30,7 @@ final class HUDPanel {
         effect.layer?.cornerRadius = 14
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
-        gradient.colors = [
-            KikiPalette.electricBlue.withAlphaComponent(0.22).cgColor,
-            KikiPalette.violet.withAlphaComponent(0.16).cgColor,
-            KikiPalette.canvas.withAlphaComponent(0.88).cgColor,
-        ]
-        gradient.locations = [0, 0.5, 1]
+        gradient.locations = [0, 1]
         gradient.startPoint = CGPoint(x: 0, y: 1)
         gradient.endPoint = CGPoint(x: 1, y: 0)
         effect.layer?.addSublayer(gradient)
@@ -156,12 +150,18 @@ final class HUDPanel {
     }
 
     private func applyAppearance() {
-        panel.appearance = NSAppearance(named: .darkAqua)
-        effect.layer?.borderWidth = 1
-        effect.layer?.borderColor = KikiPalette.electricBlue.withAlphaComponent(0.62).cgColor
-        effect.layer?.shadowColor = KikiPalette.electricBlue.cgColor
-        effect.layer?.shadowOpacity = 0.16
-        effect.layer?.shadowRadius = 18
+        panel.appearance = Settings.appearanceMode.appearance
+        panel.effectiveAppearance.performAsCurrentDrawingAppearance {
+            gradient.colors = [
+                KikiPalette.elevatedSurface.withAlphaComponent(0.97).cgColor,
+                KikiPalette.canvas.withAlphaComponent(0.97).cgColor,
+            ]
+            effect.layer?.borderWidth = 1
+            effect.layer?.borderColor = KikiPalette.strongStroke.cgColor
+            effect.layer?.shadowColor = NSColor.black.cgColor
+            effect.layer?.shadowOpacity = 0.18
+            effect.layer?.shadowRadius = 16
+        }
     }
 
     func hide() {
