@@ -67,17 +67,20 @@ final class ParakeetLiveSession: @unchecked Sendable {
     ) {
         previewTask = Task { [manager] in
             var accumulated: [Float] = []
-            var nextPreviewAt = Int(AudioRecorder.sampleRate * 1.2)
+            // A normal dictation is often only one or two seconds long. Waiting
+            // more than a second before starting inference means the user can
+            // release the shortcut before the first preview is ready.
+            var nextPreviewAt = Int(AudioRecorder.sampleRate * 0.5)
 
             for await chunk in audio {
                 guard !Task.isCancelled else { return }
                 accumulated.append(contentsOf: chunk)
                 guard accumulated.count >= nextPreviewAt else { continue }
 
-                // Update about once a second for short dictations. Back off for
-                // longer passages so the preview never competes heavily with capture.
+                // Refresh quickly at the start so short dictations get visible
+                // text, then back off for longer passages to limit inference work.
                 let duration = Double(accumulated.count) / AudioRecorder.sampleRate
-                let interval = duration < 15 ? 1.0 : (duration < 30 ? 2.0 : 3.0)
+                let interval = duration < 8 ? 0.65 : (duration < 20 ? 1.0 : (duration < 40 ? 2.0 : 3.0))
                 nextPreviewAt = accumulated.count + Int(AudioRecorder.sampleRate * interval)
 
                 do {

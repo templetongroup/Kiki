@@ -21,12 +21,15 @@ if args.count >= 3, args[1] == "--transcribe-live-file" {
             fputs("Loading model: \(selectedModel.displayName)\n", stderr)
             let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
             let feed = AudioSampleFeed()
+            let startedAt = Date()
             let session = transcriber.makeLiveSession(audio: feed.stream) { text in
-                print("PARTIAL: \(text)")
+                let elapsed = Date().timeIntervalSince(startedAt)
+                print(String(format: "PARTIAL +%.2fs: %@", elapsed, text))
             }
             let chunkSize = 1600
             for start in stride(from: 0, to: samples.count, by: chunkSize) {
                 feed.yield(Array(samples[start..<min(start + chunkSize, samples.count)]))
+                try await Task.sleep(for: .milliseconds(100))
             }
             feed.finish()
             await session.finish()
