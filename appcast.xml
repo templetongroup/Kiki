@@ -6,6 +6,38 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.4.2</title>
+            <pubDate>Fri, 07 Aug 2026 12:23:57 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.2</link>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.2
+
+This release brings a focused product-polish pass and true live transcription to Meeting Intelligence.
+
+## What’s improved
+
+- Meeting Intelligence now displays a live local transcript while capture is running, then replaces it with the complete source-labelled transcript after processing.
+- Unified Meeting controls around one consistent accent color and button system.
+- Removed heavy green outlines and glow effects from navigation and selected cards.
+- Reworked the Intelligence introduction into a clean, unboxed header.
+- Increased button height and horizontal spacing throughout Kiki.
+- Rebuilt Personalization Studio surfaces for clear, readable Dark and Light Mode contrast.
+- Replaced the Learning page’s harsh split divider with balanced, separated panels.
+- Made adaptive panels and transcript surfaces resolve their colors correctly whenever appearance changes.
+
+Transcription and personalization remain fully local to your Mac.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.2/Kiki-0.4.2-macOS.zip" length="6824273" type="application/octet-stream" sparkle:edSignature="0RQga047EDl0ekNbfvvfgvm7m7BdLtVvaLJ7A8ZM2XvYAf/ciA/RM1GRO+GNXsNpZac+U+KZa6z5pcFWBqYVAA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.2/Kiki10-9.delta" sparkle:deltaFrom="9" length="297574" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="07/eLclciwVEmVBoAg0xgHXR8dVry46O6z7FQBhWhcFrm2JurNshEuZ55t7hI1OqFftryoR3EEXD2LL7NN3SCQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.2/Kiki10-8.delta" sparkle:deltaFrom="8" length="322354" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="exC068VPX2k0vyiL5wyS9E/BiBmMYZT65he+cS0tpzZ3TY6cI4PyRhNL7vlD0hf0udwPUe/kuKxRslfTi1ALAw=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.2/Kiki10-4.delta" sparkle:deltaFrom="4" length="424530" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="cpJvcaaf9l7g/m6yaIpXATrXbvxhW2Jd5B21UUBz97noAtncgSKfHT3EwEcU+AWLMRf4cURmsf2JCRxqNZYGDA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.1</title>
             <pubDate>Fri, 07 Aug 2026 11:46:03 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.1</link>
