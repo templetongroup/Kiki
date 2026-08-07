@@ -143,7 +143,10 @@ final class SettingsWindowController: NSWindowController {
 
         let title = kikiLabel("Kiki", size: 21, weight: .bold)
         let subtitle = kikiLabel("VOICE INTELLIGENCE", size: 9.5, weight: .semibold, color: KikiPalette.tertiaryText)
-        let labels = NSStackView(views: [title, subtitle])
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        let versionLabel = kikiLabel("Version \(version) · Build \(build)", size: 10.5, weight: .medium, color: KikiPalette.secondaryText)
+        let labels = NSStackView(views: [title, subtitle, versionLabel])
         labels.orientation = .vertical
         labels.alignment = .leading
         labels.spacing = 2
