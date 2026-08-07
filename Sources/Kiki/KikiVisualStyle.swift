@@ -250,8 +250,17 @@ final class KikiNavButton: NSButton {
         NSSize(width: ceil(contentStack.fittingSize.width) + 28, height: 42)
     }
 
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        guard isEnabled, let action else { return }
+        NSApp.sendAction(action, to: target, from: self)
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
+        guard !isHidden, alphaValue > 0.01, frame.contains(point) else { return nil }
         return self
     }
 
@@ -298,6 +307,10 @@ final class KikiActionButton: NSButton {
         let base = super.intrinsicContentSize
         return NSSize(width: ceil(base.width) + 40, height: max(42, ceil(base.height) + 18))
     }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
@@ -391,6 +404,10 @@ final class KikiInfoButton: NSButton {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
