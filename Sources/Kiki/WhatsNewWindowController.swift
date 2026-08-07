@@ -71,7 +71,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         let title = kikiLabel("Your voice has a new home.", size: 30, weight: .bold)
         title.alignment = .center
         let detail = kikiLabel(
-            "A calmer, clearer Kiki—designed around speed, privacy, and the way you actually work.",
+            "Designed around speed, privacy, and the way you actually work.",
             size: 14,
             color: KikiPalette.secondaryText
         )
