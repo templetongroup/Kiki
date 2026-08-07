@@ -6,6 +6,34 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.4.0</title>
+            <pubDate>Fri, 07 Aug 2026 11:21:45 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.0</link>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.0
+
+Kiki now has a complete visual workspace built around speed, clarity, and local voice intelligence.
+
+## What’s new
+
+- A redesigned Settings experience with persistent sidebar navigation and clear model cards.
+- Adaptive Dark, Light, and Follow System appearances with accessible contrast.
+- Explicit **Use Model** and **Download & Use** actions for every transcription model.
+- A redesigned Personalization Studio, Meeting Mode, transcription history, dictionary, file transcription, and listening HUD.
+- A new What’s New experience for discovering major features.
+- Live transcription, local intelligence, correction learning, snippets, private apps, meeting capture, chapters, action-item hints, and caption export.
+
+All transcription and personalization data remain local to your Mac.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.0/Kiki-0.4.0-macOS.zip" length="6803800" type="application/octet-stream" sparkle:edSignature="DaTqR9WMZaCNr1H4hfWrPMv432rschpUJFNrhxouNAzuATvbqo+Yo+ry8oEFyrW1ntIb3mhFZDnYjeLA9x+vDw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.0/Kiki8-4.delta" sparkle:deltaFrom="4" length="395082" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Qop0PISPhfCqSMWtMEMVkiBQNcfqanHGMIdhIcVYtz2bC0VVnM+Wy8h5YtV0HqZvETKgI5o4CMkKTW2rj7FFCg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.3.0</title>
             <pubDate>Fri, 07 Aug 2026 10:40:23 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.3.0</link>
