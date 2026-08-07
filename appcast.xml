@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Kiki Updates</title>
+        <link>https://github.com/templetongroup/Kiki</link>
+        <description>Developer ID signed and notarized updates for Kiki.</description>
+        <language>en</language>
+        <item>
+            <title>0.3.0</title>
+            <pubDate>Fri, 07 Aug 2026 10:40:23 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.3.0</link>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.3.0/Kiki-0.3.0-macOS.zip" length="6757596" type="application/octet-stream" sparkle:edSignature="zQ+4mtNZoIoQArA1M8CXzjGxdCEe93x5q42rbdbP4foS1ABf6nOHN2zDjUuhD5QSVYokZitMwhWefusngL0QCQ=="/>
+        </item>
+    </channel>
+</rss>
