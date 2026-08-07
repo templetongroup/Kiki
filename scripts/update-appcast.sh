@@ -32,5 +32,12 @@ fi
     --maximum-versions 5 \
     "$WORK_DIR"
 
+# generate_appcast applies the newest download prefix to every retained archive.
+# Restore each full archive's own release tag so older fallback downloads stay valid.
+perl -0pi -e '
+    s{releases/download/v[^/]+/Kiki-([0-9]+\.[0-9]+\.[0-9]+)-macOS\.zip}
+     {releases/download/v$1/Kiki-$1-macOS.zip}gx
+' "$WORK_DIR/appcast.xml"
+
 cp "$WORK_DIR/appcast.xml" appcast.xml
 echo "Updated appcast.xml for Kiki ${VERSION}"
