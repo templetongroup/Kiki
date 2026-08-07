@@ -2,7 +2,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 @MainActor
-final class MeetingWindowController: NSWindowController {
+final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     var onCaptureStateChange: ((Bool) -> Void)?
     var onTranscribe: ((MeetingAudioCapture, String) async throws -> MeetingTranscript)?
 
@@ -30,6 +30,7 @@ final class MeetingWindowController: NSWindowController {
         window.minSize = NSSize(width: 760, height: 600)
         window.isReleasedWhenClosed = false
         super.init(window: window)
+        window.delegate = self
         buildContent()
     }
 
@@ -44,6 +45,12 @@ final class MeetingWindowController: NSWindowController {
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard isRecording else { return true }
+        statusLabel.stringValue = "Stop and transcribe the meeting before closing this window."
+        return false
     }
 
     private func buildContent() {
@@ -131,13 +138,13 @@ final class MeetingWindowController: NSWindowController {
     private func startCapture() {
         recordButton.isEnabled = false
         statusLabel.stringValue = "Starting local microphone and system-audio capture…"
+        onCaptureStateChange?(true)
         Task { [weak self] in
             guard let self else { return }
             do {
                 try await captureSession.start()
                 isRecording = true
                 startedAt = Date()
-                onCaptureStateChange?(true)
                 recordButton.title = "Stop & Transcribe"
                 recordButton.isEnabled = true
                 timerLabel.textColor = .systemRed
@@ -145,6 +152,7 @@ final class MeetingWindowController: NSWindowController {
                     ?? "Recording locally — microphone is labelled You; Mac audio is labelled Others."
                 startTimer()
             } catch {
+                onCaptureStateChange?(false)
                 recordButton.isEnabled = true
                 statusLabel.stringValue = "Could not start Meeting Mode: \(error.localizedDescription)"
             }
@@ -155,13 +163,13 @@ final class MeetingWindowController: NSWindowController {
         guard isRecording else { return }
         isRecording = false
         stopTimer()
-        onCaptureStateChange?(false)
         recordButton.title = "Start Meeting Capture"
         recordButton.isEnabled = false
         statusLabel.stringValue = "Finalizing local audio…"
         let title = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         Task { [weak self] in
             guard let self else { return }
+            defer { onCaptureStateChange?(false) }
             let capture = await captureSession.stop()
             var archiveMessage = ""
             if Settings.saveMeetingAudio {

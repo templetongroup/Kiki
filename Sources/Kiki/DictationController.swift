@@ -164,9 +164,9 @@ final class DictationController {
         guard state == .idle, !processingJob, pendingJobs.isEmpty else {
             throw KikiError("Finish current dictations before processing the meeting.")
         }
-        meetingCaptureActive = false
         state = .transcribing
         defer {
+            meetingCaptureActive = false
             state = .idle
             hud.hide()
         }
