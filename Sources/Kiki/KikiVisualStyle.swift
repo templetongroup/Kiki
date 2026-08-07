@@ -336,6 +336,12 @@ final class KikiScrollView: NSScrollView {
         super.init(frame: frameRect)
         drawsBackground = false
         borderType = .noBorder
+        autohidesScrollers = true
+        scrollerStyle = .overlay
+        horizontalScrollElasticity = .none
+        verticalScrollElasticity = .none
+        automaticallyAdjustsContentInsets = false
+        contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         wantsLayer = true
         layer?.cornerRadius = 12
         layer?.cornerCurve = .continuous
@@ -354,6 +360,8 @@ final class KikiScrollView: NSScrollView {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.54).cgColor
             layer?.borderColor = KikiPalette.stroke.cgColor
+            let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            scrollerKnobStyle = isDark ? .light : .dark
         }
     }
 }

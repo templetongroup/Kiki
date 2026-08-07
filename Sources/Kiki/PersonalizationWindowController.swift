@@ -180,9 +180,11 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private func configure(_ table: NSTableView, columns: [(String, String, CGFloat)]) {
         table.dataSource = self
         table.delegate = self
-        table.usesAlternatingRowBackgroundColors = true
-        table.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.48)
+        table.usesAlternatingRowBackgroundColors = false
+        table.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.20)
         table.gridColor = KikiPalette.stroke
+        table.gridStyleMask = [.solidHorizontalGridLineMask]
+        table.intercellSpacing = NSSize(width: 0, height: 0)
         table.rowHeight = 32
         table.allowsMultipleSelection = false
         for (identifier, title, width) in columns {
@@ -288,6 +290,10 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.alignment = .width
         stack.distribution = .fillEqually
         stack.spacing = 14
+        NSLayoutConstraint.activate([
+            top.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            bottom.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
         return stack
     }
 
