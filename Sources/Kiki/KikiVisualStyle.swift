@@ -46,8 +46,12 @@ enum KikiPalette {
         light: NSColor(red: 0.475, green: 0.495, blue: 0.482, alpha: 1)
     )
     static let electricBlue = adaptive(
-        dark: NSColor(red: 0.035, green: 0.430, blue: 0.345, alpha: 1),
+        dark: NSColor(red: 0.310, green: 0.725, blue: 0.610, alpha: 1),
         light: NSColor(red: 0.045, green: 0.475, blue: 0.380, alpha: 1)
+    )
+    static let onAccentText = adaptive(
+        dark: NSColor(red: 0.055, green: 0.105, blue: 0.090, alpha: 1),
+        light: .white
     )
     static let cyan = adaptive(
         dark: NSColor(red: 0.545, green: 0.755, blue: 0.690, alpha: 1),
@@ -246,13 +250,19 @@ final class KikiActionButton: NSButton {
         wantsLayer = true
         layer?.cornerRadius = 9
         layer?.cornerCurve = .continuous
-        heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
+        alignment = .center
+        heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
         updateStyle()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override var isEnabled: Bool { didSet { updateStyle() } }
+
+    override var intrinsicContentSize: NSSize {
+        let base = super.intrinsicContentSize
+        return NSSize(width: ceil(base.width) + 28, height: max(38, ceil(base.height) + 14))
+    }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
@@ -267,7 +277,7 @@ final class KikiActionButton: NSButton {
                 layer?.backgroundColor = KikiPalette.electricBlue.cgColor
                 layer?.borderWidth = 1
                 layer?.borderColor = KikiPalette.cyan.withAlphaComponent(0.52).cgColor
-                contentTintColor = .white
+                contentTintColor = KikiPalette.onAccentText
             case .secondary:
                 layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                 layer?.borderWidth = 1
@@ -283,6 +293,67 @@ final class KikiActionButton: NSButton {
                 contentTintColor = .white
             }
         }
+    }
+}
+
+@MainActor
+final class KikiInfoButton: NSButton {
+    private let infoTitle: String
+    private let infoDetail: String
+    private var infoPopover: NSPopover?
+
+    init(title: String, detail: String) {
+        infoTitle = title
+        infoDetail = detail
+        super.init(frame: .zero)
+        self.title = ""
+        image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "More about \(title)")
+        imagePosition = .imageOnly
+        isBordered = false
+        focusRingType = .none
+        contentTintColor = KikiPalette.secondaryText
+        toolTip = detail
+        target = self
+        action = #selector(showInfo)
+        setAccessibilityLabel("More about \(title)")
+        widthAnchor.constraint(equalToConstant: 22).isActive = true
+        heightAnchor.constraint(equalToConstant: 22).isActive = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        contentTintColor = KikiPalette.secondaryText
+    }
+
+    @objc private func showInfo() {
+        let titleLabel = kikiLabel(infoTitle, size: 14, weight: .semibold)
+        let detailLabel = kikiLabel(infoDetail, size: 12.5, color: KikiPalette.secondaryText)
+        detailLabel.maximumNumberOfLines = 0
+        let stack = NSStackView(views: [titleLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 7
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let viewController = NSViewController()
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 320, height: 116))
+        content.addSubview(stack)
+        viewController.view = content
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
+            stack.centerYAnchor.constraint(equalTo: content.centerYAnchor),
+            detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.contentSize = content.frame.size
+        popover.contentViewController = viewController
+        infoPopover = popover
+        popover.show(relativeTo: bounds, of: self, preferredEdge: .maxX)
     }
 }
 

@@ -15,6 +15,7 @@ final class SettingsWindowController: NSWindowController {
     private let accentPopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
     private let messageLabel = NSTextField(labelWithString: "")
+    private let speechProfileDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
     private let pageHost = NSView()
     private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
     private let pageSubtitleLabel = kikiLabel(
@@ -35,10 +36,10 @@ final class SettingsWindowController: NSWindowController {
     private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
     private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
     private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
-    private let liveTranscriptionCheckbox = NSButton(checkboxWithTitle: "Show live transcription while speaking", target: nil, action: nil)
-    private let caretHUDCheckbox = NSButton(checkboxWithTitle: "Place the listening window beside the text cursor", target: nil, action: nil)
-    private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Let me begin another dictation immediately", target: nil, action: nil)
-    private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join quick successive dictations naturally", target: nil, action: nil)
+    private let liveTranscriptionCheckbox = NSButton(checkboxWithTitle: "Show words while I speak", target: nil, action: nil)
+    private let caretHUDCheckbox = NSButton(checkboxWithTitle: "Keep the listening window near my cursor", target: nil, action: nil)
+    private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
+    private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
     private let learningCheckbox = NSButton(checkboxWithTitle: "Notice corrections and suggest what Kiki should learn", target: nil, action: nil)
     private let contextCheckbox = NSButton(checkboxWithTitle: "Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
     private let confidenceCheckbox = NSButton(checkboxWithTitle: "Audit results with a background Whisper model", target: nil, action: nil)
@@ -260,6 +261,7 @@ final class SettingsWindowController: NSWindowController {
         shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
         messageLabel.textColor = KikiPalette.secondaryText
         messageLabel.font = .systemFont(ofSize: 12)
+        speechProfileDescriptionLabel.maximumNumberOfLines = 0
     }
 
     private func makeGeneralPage() -> NSView {
@@ -284,7 +286,7 @@ final class SettingsWindowController: NSWindowController {
         let reset = KikiActionButton("Restore Default", kind: .secondary, target: self, action: #selector(resetShortcut))
         let shortcutRow = labeledRow("Shortcut", controls: [shortcutButton, reset])
         let behaviorRow = labeledRow("Behavior", controls: [modePopup])
-        let profileRow = labeledRow("Speech profile", controls: [speechProfilePopup])
+        let profileRow = labeledRow("Transcription style", controls: [speechProfilePopup])
         return page(with: [
             SettingsCard(
                 title: "Activation",
@@ -293,13 +295,39 @@ final class SettingsWindowController: NSWindowController {
             ),
             SettingsCard(
                 title: "Flow",
-                subtitle: "These features work around transcription, never in front of it.",
-                views: [zeroWaitCheckbox, continuationsCheckbox, liveTranscriptionCheckbox, caretHUDCheckbox]
+                subtitle: "Optional conveniences that never change the speed or accuracy of your final transcription.",
+                views: [
+                    informativeToggle(
+                        zeroWaitCheckbox,
+                        title: "Start another dictation immediately",
+                        detail: "Starts a fresh recording while the previous clip finishes transcribing. Your first result still pastes normally."
+                    ),
+                    informativeToggle(
+                        continuationsCheckbox,
+                        title: "Join back-to-back dictations",
+                        detail: "When you dictate again within a few seconds, Kiki joins the thoughts with natural spacing instead of treating them as unrelated."
+                    ),
+                    informativeToggle(
+                        liveTranscriptionCheckbox,
+                        title: "Show words while I speak",
+                        detail: "Shows partial words in the listening window as you speak. Your final text still comes from the complete local transcription."
+                    ),
+                    informativeToggle(
+                        caretHUDCheckbox,
+                        title: "Keep the listening window near my cursor",
+                        detail: "Places the listening window beside the insertion point when Kiki can detect it. Otherwise, it appears near the bottom of the screen."
+                    ),
+                ]
             ),
             SettingsCard(
-                title: "Audio & Accessibility",
-                subtitle: "Protect microphone quality and adapt Kiki to the way you speak.",
-                views: [silenceAudioCheckbox, profileRow, secondaryLabel(Settings.speechProfile.detail)]
+                title: "Audio",
+                subtitle: "Protect microphone quality while Kiki is listening.",
+                views: [silenceAudioCheckbox]
+            ),
+            SettingsCard(
+                title: "Speech Style",
+                subtitle: "Choose how closely Kiki should follow your spoken words. This changes text after transcription unless you choose Quiet Voice.",
+                views: [profileRow, speechProfileDescriptionLabel]
             ),
         ])
     }
@@ -310,13 +338,11 @@ final class SettingsWindowController: NSWindowController {
             card.onUse = { [weak self] model in self?.use(model: model) }
             return card
         }
-        let spotlight = FeatureSpotlightView(
-            eyebrow: "LOCAL MODELS",
+        let introduction = ModelSectionHeaderView(
             title: "Choose speed, range, or a second opinion.",
-            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and optional confidence checks.",
-            symbol: "waveform.badge.sparkles"
+            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and optional confidence checks."
         )
-        return page(with: [spotlight] + modelCards)
+        return page(with: [introduction] + modelCards)
     }
 
     private func makeIntelligencePage() -> NSView {
@@ -399,6 +425,16 @@ final class SettingsWindowController: NSWindowController {
         kikiLabel(text, size: 13, color: KikiPalette.secondaryText)
     }
 
+    private func informativeToggle(_ checkbox: NSButton, title: String, detail: String) -> NSView {
+        let info = KikiInfoButton(title: title, detail: detail)
+        let row = NSStackView(views: [checkbox, info])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
+        checkbox.setContentHuggingPriority(.required, for: .horizontal)
+        return row
+    }
+
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
@@ -409,6 +445,7 @@ final class SettingsWindowController: NSWindowController {
         soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
+        speechProfileDescriptionLabel.stringValue = Settings.speechProfile.detail
         silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
         liveTranscriptionCheckbox.state = Settings.showLiveTranscription ? .on : .off
         caretHUDCheckbox.state = Settings.showHUDNearCaret ? .on : .off
@@ -659,13 +696,39 @@ private final class ModelCardView: KikiCardView {
 }
 
 @MainActor
+private final class ModelSectionHeaderView: NSView {
+    init(title: String, detail: String) {
+        super.init(frame: .zero)
+        let eyebrow = kikiLabel("LOCAL MODELS", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let titleLabel = kikiLabel(title, size: 19, weight: .semibold)
+        let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
+        detailLabel.maximumNumberOfLines = 0
+        let stack = NSStackView(views: [eyebrow, titleLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
 private final class FeatureSpotlightView: KikiCardView {
     init(eyebrow: String, title: String, detail: String, symbol: String) {
         super.init(frame: .zero)
         selected = true
 
         let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
-        icon.contentTintColor = .white
+        icon.contentTintColor = KikiPalette.onAccentText
         let iconShell = NSView()
         iconShell.wantsLayer = true
         iconShell.layer?.backgroundColor = KikiPalette.electricBlue.withAlphaComponent(0.86).cgColor

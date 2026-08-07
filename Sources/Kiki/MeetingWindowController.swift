@@ -94,7 +94,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         recordButton.action = #selector(toggleRecording)
         recordButton.isBordered = false
         recordButton.font = .systemFont(ofSize: 13.5, weight: .semibold)
-        recordButton.contentTintColor = .white
+        recordButton.contentTintColor = KikiPalette.onAccentText
         recordButton.wantsLayer = true
         recordButton.layer?.backgroundColor = KikiPalette.electricBlue.cgColor
         recordButton.layer?.borderColor = KikiPalette.cyan.withAlphaComponent(0.48).cgColor

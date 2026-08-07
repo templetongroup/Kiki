@@ -67,15 +67,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let modelMenuItem = NSMenuItem(title: "Model: none", action: nil, keyEquivalent: "")
     private let toggleMenuItem = NSMenuItem(title: "Start Dictation", action: #selector(toggleDictation), keyEquivalent: "")
     private lazy var updateMenuItem: NSMenuItem = {
-        let item = NSMenuItem(title: "Check for Updates…", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
+        let item = NSMenuItem(title: "Check for Updates", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
         item.target = updateController
+        item.image = menuIcon("arrow.triangle.2.circlepath")
         return item
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceController.apply()
         updateController.onUpdateAvailable = { [weak self] available in
-            self?.updateMenuItem.title = available ? "Update Available…" : "Check for Updates…"
+            self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }
         setupStatusItem()
         requestPermissions()
@@ -113,45 +114,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(toggleMenuItem)
         menu.addItem(.separator())
 
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
-        settingsItem.target = self
-        menu.addItem(settingsItem)
+        menu.addItem(menuSection("Features"))
+        menu.addItem(menuItem("Meeting Mode", symbol: "person.2.wave.2", action: #selector(openMeetingMode)))
+        menu.addItem(menuItem("Transcribe Audio File", symbol: "waveform.badge.magnifyingglass", action: #selector(openFileTranscription)))
+        menu.addItem(menuItem("Personalization Studio", symbol: "brain.head.profile", action: #selector(openPersonalization)))
 
-        let historyItem = NSMenuItem(title: "History…", action: #selector(openHistory), keyEquivalent: "")
-        historyItem.target = self
-        menu.addItem(historyItem)
+        menu.addItem(.separator())
+        menu.addItem(menuSection("Library"))
+        menu.addItem(menuItem("History", symbol: "clock.arrow.circlepath", action: #selector(openHistory)))
+        menu.addItem(menuItem("Dictionary", symbol: "text.book.closed", action: #selector(openDictionary)))
 
-        let whatsNewItem = NSMenuItem(title: "What’s New…", action: #selector(openWhatsNew), keyEquivalent: "")
-        whatsNewItem.target = self
-        menu.addItem(whatsNewItem)
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Settings", symbol: "gearshape", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(menuItem("What’s New in Kiki", symbol: "sparkles", action: #selector(openWhatsNew)))
+        menu.addItem(menuItem("Models Folder", symbol: "folder", action: #selector(openModelsFolder)))
 
-        let dictionaryItem = NSMenuItem(title: "Dictionary…", action: #selector(openDictionary), keyEquivalent: "")
-        dictionaryItem.target = self
-        menu.addItem(dictionaryItem)
-
-        let personalizationItem = NSMenuItem(title: "Personalization Studio…", action: #selector(openPersonalization), keyEquivalent: "")
-        personalizationItem.target = self
-        menu.addItem(personalizationItem)
-
-        let fileItem = NSMenuItem(title: "Transcribe File…", action: #selector(openFileTranscription), keyEquivalent: "")
-        fileItem.target = self
-        menu.addItem(fileItem)
-
-        let meetingItem = NSMenuItem(title: "Meeting Mode…", action: #selector(openMeetingMode), keyEquivalent: "")
-        meetingItem.target = self
-        menu.addItem(meetingItem)
-
-        let modelsItem = NSMenuItem(title: "Open Models Folder", action: #selector(openModelsFolder), keyEquivalent: "")
-        modelsItem.target = self
-        menu.addItem(modelsItem)
-
-        let permissionsItem = NSMenuItem(title: "Open Accessibility Settings", action: #selector(openAccessibilitySettings), keyEquivalent: "")
-        permissionsItem.target = self
-        menu.addItem(permissionsItem)
-
-        let microphoneItem = NSMenuItem(title: "Open Microphone Settings", action: #selector(openMicrophoneSettings), keyEquivalent: "")
-        microphoneItem.target = self
-        menu.addItem(microphoneItem)
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Accessibility Settings", symbol: "accessibility", action: #selector(openAccessibilitySettings)))
+        menu.addItem(menuItem("Microphone Settings", symbol: "mic", action: #selector(openMicrophoneSettings)))
 
         menu.addItem(updateMenuItem)
 
@@ -161,6 +141,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.autoenablesItems = false
         statusItem.menu = menu
+    }
+
+    private func menuItem(
+        _ title: String,
+        symbol: String,
+        action: Selector,
+        keyEquivalent: String = ""
+    ) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: keyEquivalent)
+        item.target = self
+        item.image = menuIcon(symbol)
+        return item
+    }
+
+    private func menuSection(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title.uppercased(), action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(
+            string: title.uppercased(),
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .kern: 0.7,
+            ]
+        )
+        return item
+    }
+
+    private func menuIcon(_ symbol: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        image?.size = NSSize(width: 15, height: 15)
+        image?.isTemplate = true
+        return image
     }
 
     private func requestPermissions() {

@@ -9,18 +9,18 @@ enum SpeechProfile: String, CaseIterable {
     var title: String {
         switch self {
         case .standard: "Standard"
-        case .disfluencyAssist: "Disfluency Assist"
-        case .verbatim: "Preserve Every Word"
-        case .softSpeech: "Soft Speech"
+        case .disfluencyAssist: "Polished Speech"
+        case .verbatim: "Every Word"
+        case .softSpeech: "Quiet Voice"
         }
     }
 
     var detail: String {
         switch self {
-        case .standard: "Fast, unchanged local transcription."
-        case .disfluencyAssist: "Removes common fillers, repeated words, and phrases before “scratch that.”"
-        case .verbatim: "Avoids speech cleanup while retaining your approved spelling rules."
-        case .softSpeech: "Normalizes quiet microphone input before transcription."
+        case .standard: "Keeps your wording intact and applies your approved spelling and vocabulary rules."
+        case .disfluencyAssist: "Removes filler sounds like “um,” repeated words, and anything you replace with “scratch that.”"
+        case .verbatim: "Keeps fillers and repeated words exactly as spoken while still applying approved spellings."
+        case .softSpeech: "Boosts quiet microphone input before transcription without rewriting what you said."
         }
     }
 }

@@ -9,7 +9,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 590),
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 610),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -57,18 +57,21 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         icon.layer?.cornerRadius = 17
         icon.layer?.masksToBounds = true
 
-        let badge = kikiLabel("NEW IN KIKI \(version)", size: 10.5, weight: .bold, color: KikiPalette.cyan)
+        let badge = kikiLabel("", size: 11, weight: .semibold, color: KikiPalette.cyan)
         badge.alignment = .center
-        badge.wantsLayer = true
-        badge.layer?.backgroundColor = KikiPalette.electricBlue.withAlphaComponent(0.16).cgColor
-        badge.layer?.borderColor = KikiPalette.electricBlue.withAlphaComponent(0.38).cgColor
-        badge.layer?.borderWidth = 1
-        badge.layer?.cornerRadius = 9
+        badge.attributedStringValue = NSAttributedString(
+            string: "NEW IN \(version)",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: KikiPalette.cyan,
+                .kern: 1.5,
+            ]
+        )
 
         let title = kikiLabel("Your voice has a new home.", size: 30, weight: .bold)
         title.alignment = .center
         let detail = kikiLabel(
-            "A more vivid Kiki—designed around speed, privacy, and the way you actually work.",
+            "A calmer, clearer Kiki—designed around speed, privacy, and the way you actually work.",
             size: 14,
             color: KikiPalette.secondaryText
         )
@@ -94,14 +97,17 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         let stack = NSStackView(views: [icon, badge, title, detail, features, actions])
         stack.orientation = .vertical
         stack.alignment = .centerX
-        stack.spacing = 14
+        stack.spacing = 12
+        stack.setCustomSpacing(20, after: icon)
+        stack.setCustomSpacing(12, after: badge)
+        stack.setCustomSpacing(8, after: title)
+        stack.setCustomSpacing(24, after: detail)
+        stack.setCustomSpacing(22, after: features)
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
         NSLayoutConstraint.activate([
             icon.widthAnchor.constraint(equalToConstant: 68),
             icon.heightAnchor.constraint(equalToConstant: 68),
-            badge.widthAnchor.constraint(greaterThanOrEqualToConstant: 126),
-            badge.heightAnchor.constraint(equalToConstant: 26),
             detail.widthAnchor.constraint(equalToConstant: 510),
             features.widthAnchor.constraint(equalToConstant: 640),
             features.heightAnchor.constraint(equalToConstant: 158),
