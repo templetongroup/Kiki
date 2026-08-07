@@ -180,12 +180,12 @@ class KikiCardView: NSView {
             layer?.cornerRadius = 16
             layer?.cornerCurve = .continuous
             layer?.backgroundColor = (selected ? KikiPalette.elevatedSurface : KikiPalette.surface).cgColor
-            layer?.borderWidth = selected ? 1.5 : 1
-            layer?.borderColor = (selected ? KikiPalette.electricBlue.withAlphaComponent(0.78) : KikiPalette.stroke).cgColor
-            layer?.shadowColor = (selected ? KikiPalette.electricBlue : NSColor.black).cgColor
-            layer?.shadowOpacity = selected ? 0.18 : 0.12
-            layer?.shadowRadius = selected ? 20 : 12
-            layer?.shadowOffset = CGSize(width: 0, height: -5)
+            layer?.borderWidth = 1
+            layer?.borderColor = (selected ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
+            layer?.shadowColor = NSColor.black.cgColor
+            layer?.shadowOpacity = selected ? 0.15 : 0.10
+            layer?.shadowRadius = selected ? 14 : 10
+            layer?.shadowOffset = CGSize(width: 0, height: -4)
         }
     }
 }
@@ -224,10 +224,9 @@ final class KikiNavButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
-                ? KikiPalette.electricBlue.withAlphaComponent(0.18).cgColor
+                ? KikiPalette.elevatedSurface.cgColor
                 : NSColor.clear.cgColor
-            layer?.borderWidth = isSelectedPage ? 1 : 0
-            layer?.borderColor = KikiPalette.electricBlue.withAlphaComponent(0.35).cgColor
+            layer?.borderWidth = 0
             contentTintColor = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
         }
     }
@@ -248,10 +247,10 @@ final class KikiActionButton: NSButton {
         focusRingType = .none
         font = .systemFont(ofSize: 13, weight: .semibold)
         wantsLayer = true
-        layer?.cornerRadius = 9
+        layer?.cornerRadius = 10
         layer?.cornerCurve = .continuous
         alignment = .center
-        heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        heightAnchor.constraint(greaterThanOrEqualToConstant: 42).isActive = true
         updateStyle()
     }
 
@@ -261,7 +260,7 @@ final class KikiActionButton: NSButton {
 
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
-        return NSSize(width: ceil(base.width) + 28, height: max(38, ceil(base.height) + 14))
+        return NSSize(width: ceil(base.width) + 40, height: max(42, ceil(base.height) + 18))
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -275,8 +274,7 @@ final class KikiActionButton: NSButton {
             switch kind {
             case .primary:
                 layer?.backgroundColor = KikiPalette.electricBlue.cgColor
-                layer?.borderWidth = 1
-                layer?.borderColor = KikiPalette.cyan.withAlphaComponent(0.52).cgColor
+                layer?.borderWidth = 0
                 contentTintColor = KikiPalette.onAccentText
             case .secondary:
                 layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
@@ -292,6 +290,34 @@ final class KikiActionButton: NSButton {
                 layer?.borderWidth = 0
                 contentTintColor = .white
             }
+        }
+    }
+}
+
+@MainActor
+final class KikiScrollView: NSScrollView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        drawsBackground = false
+        borderType = .noBorder
+        wantsLayer = true
+        layer?.cornerRadius = 12
+        layer?.cornerCurve = .continuous
+        layer?.borderWidth = 1
+        updateStyle()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateStyle()
+    }
+
+    private func updateStyle() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.54).cgColor
+            layer?.borderColor = KikiPalette.stroke.cgColor
         }
     }
 }

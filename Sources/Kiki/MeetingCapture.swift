@@ -58,6 +58,10 @@ final class MeetingCaptureSession {
     private var startedAt: Date?
     private(set) var systemAudioWarning: String?
 
+    func setMicrophoneSamplesHandler(_ handler: (([Float]) -> Void)?) {
+        microphone.setSamplesHandler(handler)
+    }
+
     func start() async throws {
         guard startedAt == nil else { throw KikiError("A meeting capture is already running.") }
         systemAudioWarning = nil
@@ -76,6 +80,7 @@ final class MeetingCaptureSession {
     }
 
     func stop() async -> MeetingAudioCapture {
+        microphone.setSamplesHandler(nil)
         let microphoneSamples = microphone.stop()
         let systemSamples = await systemAudio.stop()
         let duration = Date().timeIntervalSince(startedAt ?? Date())

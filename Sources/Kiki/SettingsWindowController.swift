@@ -722,20 +722,12 @@ private final class ModelSectionHeaderView: NSView {
 }
 
 @MainActor
-private final class FeatureSpotlightView: KikiCardView {
+private final class FeatureSpotlightView: NSView {
     init(eyebrow: String, title: String, detail: String, symbol: String) {
         super.init(frame: .zero)
-        selected = true
 
         let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
-        icon.contentTintColor = KikiPalette.onAccentText
-        let iconShell = NSView()
-        iconShell.wantsLayer = true
-        iconShell.layer?.backgroundColor = KikiPalette.electricBlue.withAlphaComponent(0.86).cgColor
-        iconShell.layer?.cornerRadius = 14
-        iconShell.layer?.cornerCurve = .continuous
-        iconShell.addSubview(icon)
-        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.contentTintColor = KikiPalette.cyan
 
         let eyebrowLabel = kikiLabel(eyebrow, size: 10, weight: .bold, color: KikiPalette.cyan)
         let titleLabel = kikiLabel(title, size: 20, weight: .semibold)
@@ -744,23 +736,19 @@ private final class FeatureSpotlightView: KikiCardView {
         labels.orientation = .vertical
         labels.alignment = .leading
         labels.spacing = 6
-        let row = NSStackView(views: [iconShell, labels])
+        let row = NSStackView(views: [icon, labels])
         row.orientation = .horizontal
         row.alignment = .top
-        row.spacing = 18
+        row.spacing = 14
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
-            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 22),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -22),
-            iconShell.widthAnchor.constraint(equalToConstant: 50),
-            iconShell.heightAnchor.constraint(equalToConstant: 50),
-            icon.widthAnchor.constraint(equalToConstant: 25),
-            icon.heightAnchor.constraint(equalToConstant: 25),
-            icon.centerXAnchor.constraint(equalTo: iconShell.centerXAnchor),
-            icon.centerYAnchor.constraint(equalTo: iconShell.centerYAnchor),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            icon.widthAnchor.constraint(equalToConstant: 28),
+            icon.heightAnchor.constraint(equalToConstant: 28),
             detailLabel.widthAnchor.constraint(equalTo: labels.widthAnchor),
         ])
     }

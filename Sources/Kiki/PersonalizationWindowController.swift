@@ -190,10 +190,10 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func makeLearningPage() -> NSView {
-        let learnGlobal = NSButton(title: "Learn Everywhere", target: self, action: #selector(approveGlobal))
-        let learnApp = NSButton(title: "Learn for This App", target: self, action: #selector(approveForApp))
-        let ignore = NSButton(title: "Ignore", target: self, action: #selector(rejectSuggestion))
-        let remove = NSButton(title: "Forget Selected Rule", target: self, action: #selector(removeCorrection))
+        let learnGlobal = KikiActionButton("Learn Everywhere", kind: .primary, target: self, action: #selector(approveGlobal))
+        let learnApp = KikiActionButton("Learn for This App", kind: .secondary, target: self, action: #selector(approveForApp))
+        let ignore = KikiActionButton("Ignore", kind: .quiet, target: self, action: #selector(rejectSuggestion))
+        let remove = KikiActionButton("Forget Selected Rule", kind: .secondary, target: self, action: #selector(removeCorrection))
         return splitPage(
             topTitle: "Suggestions from your recent edits",
             topTable: suggestionsTable,
@@ -206,11 +206,11 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     private func makeVocabularyPage() -> NSView {
         manualTermField.placeholderString = "Add a name, company, acronym, or project term"
-        let add = NSButton(title: "Add Term", target: self, action: #selector(addManualTerm))
-        let contacts = NSButton(title: "Import Contacts", target: self, action: #selector(importContacts))
-        let calendar = NSButton(title: "Import Upcoming Calendar", target: self, action: #selector(importCalendar))
-        let project = NSButton(title: "Import Project Folder…", target: self, action: #selector(importProject))
-        let remove = NSButton(title: "Remove Selected", target: self, action: #selector(removeVocabularyTerm))
+        let add = KikiActionButton("Add Term", kind: .primary, target: self, action: #selector(addManualTerm))
+        let contacts = KikiActionButton("Import Contacts", kind: .secondary, target: self, action: #selector(importContacts))
+        let calendar = KikiActionButton("Import Calendar", kind: .secondary, target: self, action: #selector(importCalendar))
+        let project = KikiActionButton("Import Project Folder…", kind: .secondary, target: self, action: #selector(importProject))
+        let remove = KikiActionButton("Remove Selected", kind: .quiet, target: self, action: #selector(removeVocabularyTerm))
         let input = NSStackView(views: [manualTermField, add])
         input.orientation = .horizontal
         input.spacing = 8
@@ -227,8 +227,8 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private func makeSnippetsPage() -> NSView {
         snippetTriggerField.placeholderString = "Spoken trigger, e.g. insert my scheduling link"
         snippetTemplateField.placeholderString = "Template; supports {{date}}, {{time}}, and {{clipboard}}"
-        let add = NSButton(title: "Save Snippet", target: self, action: #selector(addSnippet))
-        let remove = NSButton(title: "Remove Selected", target: self, action: #selector(removeSnippet))
+        let add = KikiActionButton("Save Snippet", kind: .primary, target: self, action: #selector(addSnippet))
+        let remove = KikiActionButton("Remove Selected", kind: .quiet, target: self, action: #selector(removeSnippet))
         return tablePage(
             title: "Voice snippets",
             detail: "If a dictation exactly matches a trigger, Kiki inserts the template instantly without an AI pass.",
@@ -240,9 +240,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     private func makePrivateAppsPage() -> NSView {
         privateBundleField.placeholderString = "com.company.application"
-        let add = NSButton(title: "Add Bundle ID", target: self, action: #selector(addPrivateBundle))
-        let current = NSButton(title: "Add App I Was Using", target: self, action: #selector(addOpeningApp))
-        let remove = NSButton(title: "Remove Selected", target: self, action: #selector(removePrivateBundle))
+        let add = KikiActionButton("Add Bundle ID", kind: .primary, target: self, action: #selector(addPrivateBundle))
+        let current = KikiActionButton("Add App I Was Using", kind: .secondary, target: self, action: #selector(addOpeningApp))
+        let remove = KikiActionButton("Remove Selected", kind: .quiet, target: self, action: #selector(removePrivateBundle))
         let input = NSStackView(views: [privateBundleField, add])
         input.orientation = .horizontal
         input.spacing = 8
@@ -257,9 +257,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func makeConfidencePage() -> NSView {
-        let copy = NSButton(title: "Copy Whisper Alternative", target: self, action: #selector(copyAlternate))
-        let remove = NSButton(title: "Dismiss", target: self, action: #selector(removeConfidenceReview))
-        let clear = NSButton(title: "Clear All", target: self, action: #selector(clearConfidenceReviews))
+        let copy = KikiActionButton("Copy Whisper Alternative", kind: .primary, target: self, action: #selector(copyAlternate))
+        let remove = KikiActionButton("Dismiss", kind: .secondary, target: self, action: #selector(removeConfidenceReview))
+        let clear = KikiActionButton("Clear All", kind: .quiet, target: self, action: #selector(clearConfidenceReviews))
         return tablePage(
             title: "Confidence reviews",
             detail: "Only strong disagreements appear here. The primary transcription is never delayed or silently replaced.",
@@ -279,12 +279,12 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     ) -> NSView {
         let top = tableSection(title: topTitle, table: topTable, buttons: topButtons)
         let bottom = tableSection(title: bottomTitle, table: bottomTable, buttons: bottomButtons)
-        let split = NSSplitView()
-        split.isVertical = false
-        split.dividerStyle = .thin
-        split.addArrangedSubview(top)
-        split.addArrangedSubview(bottom)
-        return split
+        let stack = NSStackView(views: [top, bottom])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.distribution = .fillEqually
+        stack.spacing = 14
+        return stack
     }
 
     private func tablePage(title: String, detail: String, table: NSTableView, above: [NSView], buttons: [NSView]) -> NSView {
@@ -299,13 +299,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.alignment = .leading
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let container = NSView()
-        container.wantsLayer = true
-        container.layer?.backgroundColor = KikiPalette.surface.cgColor
-        container.layer?.borderColor = KikiPalette.stroke.cgColor
-        container.layer?.borderWidth = 1
-        container.layer?.cornerRadius = 16
-        container.layer?.cornerCurve = .continuous
+        let container = KikiCardView()
         container.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
@@ -329,13 +323,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.alignment = .leading
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = KikiPalette.surface.cgColor
-        view.layer?.borderColor = KikiPalette.stroke.cgColor
-        view.layer?.borderWidth = 1
-        view.layer?.cornerRadius = 14
-        view.layer?.cornerCurve = .continuous
+        let view = KikiCardView()
         view.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
@@ -348,14 +336,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func scrollView(for table: NSTableView) -> NSScrollView {
-        let scroll = NSScrollView()
+        let scroll = KikiScrollView()
         scroll.documentView = table
         scroll.hasVerticalScroller = true
-        scroll.borderType = .noBorder
-        scroll.wantsLayer = true
-        scroll.layer?.cornerRadius = 10
-        scroll.layer?.borderWidth = 1
-        scroll.layer?.borderColor = KikiPalette.stroke.cgColor
         scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
         return scroll
     }

@@ -4,11 +4,12 @@ import UniformTypeIdentifiers
 @MainActor
 final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     var onCaptureStateChange: ((Bool) -> Void)?
+    var onBeginLiveTranscription: (((@escaping @MainActor (String) -> Void)) -> MeetingLiveTranscription?)?
     var onTranscribe: ((MeetingAudioCapture, String) async throws -> MeetingTranscript)?
 
     private let captureSession = MeetingCaptureSession()
     private let titleField = NSTextField()
-    private let recordButton = NSButton(title: "Start Meeting Capture", target: nil, action: nil)
+    private lazy var recordButton = KikiActionButton("Start Meeting Capture", kind: .primary, target: self, action: #selector(toggleRecording))
     private let timerLabel = NSTextField(labelWithString: "00:00:00")
     private let statusLabel = NSTextField(wrappingLabelWithString: "Ready — microphone and system audio stay on this Mac.")
     private let textView = NSTextView()
@@ -18,6 +19,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private var timer: Timer?
     private var startedAt: Date?
     private var transcript: MeetingTranscript?
+    private var liveTranscription: MeetingLiveTranscription?
 
     init() {
         let window = NSWindow(
@@ -90,17 +92,6 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
         titleField.placeholderString = "Meeting title"
         titleField.font = .systemFont(ofSize: 14, weight: .medium)
-        recordButton.target = self
-        recordButton.action = #selector(toggleRecording)
-        recordButton.isBordered = false
-        recordButton.font = .systemFont(ofSize: 13.5, weight: .semibold)
-        recordButton.contentTintColor = KikiPalette.onAccentText
-        recordButton.wantsLayer = true
-        recordButton.layer?.backgroundColor = KikiPalette.electricBlue.cgColor
-        recordButton.layer?.borderColor = KikiPalette.cyan.withAlphaComponent(0.48).cgColor
-        recordButton.layer?.borderWidth = 1
-        recordButton.layer?.cornerRadius = 10
-        recordButton.layer?.cornerCurve = .continuous
         timerLabel.font = .monospacedDigitSystemFont(ofSize: 19, weight: .semibold)
         timerLabel.textColor = KikiPalette.secondaryText
         statusLabel.textColor = KikiPalette.secondaryText
@@ -121,15 +112,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         textView.insertionPointColor = KikiPalette.cyan
         textView.textContainerInset = NSSize(width: 14, height: 14)
         textView.string = "Your local transcript will appear here after capture stops."
-        let scroll = NSScrollView()
+        let scroll = KikiScrollView()
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
-        scroll.borderType = .noBorder
-        scroll.wantsLayer = true
-        scroll.layer?.cornerRadius = 14
-        scroll.layer?.cornerCurve = .continuous
-        scroll.layer?.borderWidth = 1
-        scroll.layer?.borderColor = KikiPalette.stroke.cgColor
 
         formatPopup.addItems(withTitles: ["Markdown", "Plain Text", "SRT Captions", "WebVTT Captions"])
         formatPopup.controlSize = .large
@@ -175,16 +160,31 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         Task { [weak self] in
             guard let self else { return }
             do {
+                let preview = onBeginLiveTranscription? { [weak self] text in
+                    guard let self, self.isRecording else { return }
+                    self.textView.string = "LIVE DRAFT · YOU\n\n\(text)"
+                }
+                liveTranscription = preview
+                captureSession.setMicrophoneSamplesHandler { [weak preview] samples in
+                    preview?.yield(samples)
+                }
                 try await captureSession.start()
                 isRecording = true
                 startedAt = Date()
                 recordButton.title = "Stop & Transcribe"
                 recordButton.isEnabled = true
                 timerLabel.textColor = .systemRed
+                textView.string = preview == nil
+                    ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
+                    : "LIVE DRAFT · YOU\n\nListening…"
                 statusLabel.stringValue = captureSession.systemAudioWarning
-                    ?? "Recording locally — microphone is labelled You; Mac audio is labelled Others."
+                    ?? "Recording locally — live draft shows You; the final transcript labels You and Others."
                 startTimer()
             } catch {
+                captureSession.setMicrophoneSamplesHandler(nil)
+                let preview = liveTranscription
+                liveTranscription = nil
+                Task { await preview?.stop() }
                 onCaptureStateChange?(false)
                 recordButton.isEnabled = true
                 statusLabel.stringValue = "Could not start Meeting Mode: \(error.localizedDescription)"
@@ -199,6 +199,10 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         recordButton.title = "Start Meeting Capture"
         recordButton.isEnabled = false
         statusLabel.stringValue = "Finalizing local audio…"
+        captureSession.setMicrophoneSamplesHandler(nil)
+        let preview = liveTranscription
+        liveTranscription = nil
+        Task { await preview?.stop() }
         let title = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         Task { [weak self] in
             guard let self else { return }

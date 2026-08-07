@@ -43,6 +43,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.onCaptureStateChange = { [weak self] active in
             self?.controller.setMeetingCaptureActive(active)
         }
+        window.onBeginLiveTranscription = { [weak self] onUpdate in
+            self?.controller.makeMeetingLiveTranscription(onUpdate: onUpdate)
+        }
         window.onTranscribe = { [weak self] capture, title in
             guard let self else { throw KikiError("Kiki is unavailable.") }
             return try await self.controller.transcribeMeeting(

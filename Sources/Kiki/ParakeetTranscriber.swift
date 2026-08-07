@@ -52,6 +52,25 @@ final class AudioSampleFeed: @unchecked Sendable {
     func finish() { continuation.finish() }
 }
 
+/// Owns the streaming bridge used by long-running surfaces such as Meeting Mode.
+/// Final transcription still uses the complete recording for maximum accuracy.
+final class MeetingLiveTranscription: @unchecked Sendable {
+    private let feed: AudioSampleFeed
+    private let session: ParakeetLiveSession
+
+    init(feed: AudioSampleFeed, session: ParakeetLiveSession) {
+        self.feed = feed
+        self.session = session
+    }
+
+    func yield(_ samples: [Float]) { feed.yield(samples) }
+
+    func stop() async {
+        feed.finish()
+        await session.stop()
+    }
+}
+
 final class ParakeetLiveSession: @unchecked Sendable {
     private static let logger = Logger(subsystem: "com.tonyricciardi.kiki", category: "LiveTranscription")
     private let manager: AsrManager
@@ -94,6 +113,8 @@ final class ParakeetLiveSession: @unchecked Sendable {
                     guard !Task.isCancelled else { return }
                     let text = WhisperTranscriber.cleaned(result.text)
                     if !text.isEmpty { await onUpdate(text) }
+                } catch is CancellationError {
+                    return
                 } catch {
                     Self.logger.error("Live preview failed: \(error.localizedDescription, privacy: .public)")
                 }

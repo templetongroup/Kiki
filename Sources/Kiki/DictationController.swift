@@ -155,6 +155,15 @@ final class DictationController {
         meetingCaptureActive = active
     }
 
+    func makeMeetingLiveTranscription(
+        onUpdate: @escaping @MainActor (String) -> Void
+    ) -> MeetingLiveTranscription? {
+        guard let parakeetTranscriber else { return nil }
+        let feed = AudioSampleFeed()
+        let session = parakeetTranscriber.makeLiveSession(audio: feed.stream, onUpdate: onUpdate)
+        return MeetingLiveTranscription(feed: feed, session: session)
+    }
+
     func transcribeMeeting(
         microphoneSamples: [Float],
         systemSamples: [Float],
