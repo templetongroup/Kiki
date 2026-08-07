@@ -10,11 +10,15 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
     init() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 440),
-            styleMask: [.titled, .closable, .resizable],
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki Dictionary"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -31,10 +35,19 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
     }
 
     private func buildContent() {
-        let title = NSTextField(labelWithString: "Custom Dictionary")
-        title.font = .systemFont(ofSize: 22, weight: .semibold)
-        let detail = NSTextField(wrappingLabelWithString: "Teach Kiki names, jargon, and exact spellings. Replacements are applied locally to both Parakeet and Whisper results before paste.")
-        detail.textColor = .secondaryLabelColor
+        guard let content = window?.contentView else { return }
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(backdrop)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+        let eyebrow = kikiLabel("VOICE VOCABULARY", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let title = kikiLabel("Custom Dictionary", size: 26, weight: .bold)
+        let detail = kikiLabel("Teach Kiki names, jargon, and exact spellings. Replacements stay local and apply before paste.", size: 12.5, color: KikiPalette.secondaryText)
 
         let heardColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("heard"))
         heardColumn.title = "Heard as"
@@ -48,32 +61,37 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         tableView.delegate = self
         tableView.dataSource = self
         tableView.allowsMultipleSelection = false
+        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
+        tableView.usesAlternatingRowBackgroundColors = true
 
         let scrollView = NSScrollView()
         scrollView.documentView = tableView
         scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        scrollView.borderType = .noBorder
+        scrollView.wantsLayer = true
+        scrollView.layer?.cornerRadius = 12
+        scrollView.layer?.borderColor = KikiPalette.stroke.cgColor
+        scrollView.layer?.borderWidth = 1
 
         spokenField.placeholderString = "What the model hears"
         replacementField.placeholderString = "Exact replacement"
-        let addButton = NSButton(title: "Add or Replace", target: self, action: #selector(addEntry))
-        let deleteButton = NSButton(title: "Delete Selected", target: self, action: #selector(deleteSelected))
+        let addButton = KikiActionButton("Add or Replace", kind: .primary, target: self, action: #selector(addEntry))
+        let deleteButton = KikiActionButton("Delete Selected", kind: .secondary, target: self, action: #selector(deleteSelected))
         let entryRow = NSStackView(views: [spokenField, replacementField, addButton])
         entryRow.spacing = 10
         let footer = NSStackView(views: [countLabel, NSView(), deleteButton])
         footer.spacing = 10
 
-        let stack = NSStackView(views: [title, detail, entryRow, scrollView, footer])
+        let stack = NSStackView(views: [eyebrow, title, detail, entryRow, scrollView, footer])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
-        guard let content = window?.contentView else { return }
         content.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 22),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             entryRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -116,6 +134,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         let entry = CustomDictionaryStore.shared.entries[row]
         let text = tableColumn?.identifier.rawValue == "heard" ? entry.spoken : entry.replacement
         let field = NSTextField(labelWithString: text)
+        field.textColor = KikiPalette.primaryText
         field.lineBreakMode = .byTruncatingTail
         return field
     }

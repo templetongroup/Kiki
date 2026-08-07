@@ -2,14 +2,18 @@ import AppKit
 
 @MainActor
 final class PersonalizationWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
-    private let pageControl = NSSegmentedControl(
-        labels: ["Learning", "Vocabulary", "Snippets", "Private Apps", "Confidence"],
-        trackingMode: .selectOne,
-        target: nil,
-        action: nil
-    )
     private let host = NSView()
     private let statusLabel = NSTextField(labelWithString: "")
+    private let pageTitleLabel = kikiLabel("Learning", size: 27, weight: .bold)
+    private let pageSubtitleLabel = kikiLabel("Approve what Kiki learns from your edits.", size: 13.5, color: KikiPalette.secondaryText)
+    private var navButtons: [KikiNavButton] = []
+    private let pageMetadata: [(String, String, String)] = [
+        ("Learning", "Approve what Kiki learns from your edits.", "brain.head.profile"),
+        ("Vocabulary", "Give distinctive names and terms the spelling they deserve.", "textformat.abc"),
+        ("Snippets", "Turn a spoken trigger into a complete reusable response.", "quote.bubble"),
+        ("Private Apps", "Choose where Kiki should leave no memory behind.", "hand.raised.fill"),
+        ("Confidence", "Review only the transcriptions where local models strongly disagree.", "checkmark.seal"),
+    ]
     private let suggestionsTable = NSTableView()
     private let correctionsTable = NSTableView()
     private let vocabularyTable = NSTableView()
@@ -26,13 +30,17 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 860, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki Personalization Studio"
-        window.minSize = NSSize(width: 740, height: 580)
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.minSize = NSSize(width: 900, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -47,7 +55,6 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         openingContext = context
         reloadAll()
         if let page, pages.indices.contains(page) {
-            pageControl.selectedSegment = page
             showPage(page)
         }
         showWindow(nil)
@@ -58,50 +65,40 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     private func buildContent() {
         guard let content = window?.contentView else { return }
-        let icon = NSImageView()
-        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
-            icon.image = NSImage(contentsOf: url)
-        }
-        icon.imageScaling = .scaleProportionallyUpOrDown
-        let title = NSTextField(labelWithString: "Personalization Studio")
-        title.font = .systemFont(ofSize: 24, weight: .bold)
-        let subtitle = NSTextField(labelWithString: "Teach Kiki your world without sending it anywhere.")
-        subtitle.textColor = .secondaryLabelColor
-        let labels = NSStackView(views: [title, subtitle])
-        labels.orientation = .vertical
-        labels.alignment = .leading
-        labels.spacing = 3
-        let header = NSStackView(views: [icon, labels])
-        header.orientation = .horizontal
-        header.alignment = .centerY
-        header.spacing = 14
-        header.translatesAutoresizingMaskIntoConstraints = false
-
-        pageControl.target = self
-        pageControl.action = #selector(pageChanged)
-        pageControl.selectedSegment = 0
-        pageControl.controlSize = .large
-        pageControl.translatesAutoresizingMaskIntoConstraints = false
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        let sidebar = makeSidebar()
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+        let heading = NSStackView(views: [pageTitleLabel, pageSubtitleLabel])
+        heading.orientation = .vertical
+        heading.alignment = .leading
+        heading.spacing = 5
+        heading.translatesAutoresizingMaskIntoConstraints = false
         host.translatesAutoresizingMaskIntoConstraints = false
-        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.textColor = KikiPalette.secondaryText
         statusLabel.font = .systemFont(ofSize: 12)
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        content.addSubview(header)
-        content.addSubview(pageControl)
+        content.addSubview(backdrop)
+        content.addSubview(sidebar)
+        content.addSubview(heading)
         content.addSubview(host)
         content.addSubview(statusLabel)
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 48),
-            icon.heightAnchor.constraint(equalToConstant: 48),
-            header.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 26),
-            header.topAnchor.constraint(equalTo: content.topAnchor, constant: 22),
-            pageControl.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 18),
-            pageControl.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            host.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
-            host.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
-            host.topAnchor.constraint(equalTo: pageControl.bottomAnchor, constant: 16),
-            statusLabel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 26),
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            sidebar.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.widthAnchor.constraint(equalToConstant: 220),
+            heading.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 32),
+            heading.topAnchor.constraint(equalTo: content.topAnchor, constant: 52),
+            host.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 32),
+            host.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -28),
+            host.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 20),
+            statusLabel.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 32),
             statusLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -26),
             statusLabel.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -14),
             host.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -10),
@@ -118,6 +115,56 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         showPage(0)
     }
 
+    private func makeSidebar() -> NSView {
+        let sidebar = KikiSidebarView()
+        let icon = NSImageView()
+        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
+            icon.image = NSImage(contentsOf: url)
+        }
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.wantsLayer = true
+        icon.layer?.cornerRadius = 11
+        icon.layer?.masksToBounds = true
+        let title = kikiLabel("Studio", size: 20, weight: .bold)
+        let subtitle = kikiLabel("PERSONAL · PRIVATE", size: 9.5, weight: .semibold, color: KikiPalette.tertiaryText)
+        let labels = NSStackView(views: [title, subtitle])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 2
+        let brand = NSStackView(views: [icon, labels])
+        brand.orientation = .horizontal
+        brand.alignment = .centerY
+        brand.spacing = 12
+
+        navButtons = pageMetadata.enumerated().map { index, item in
+            let button = KikiNavButton(title: item.0, symbol: item.2, target: self, action: #selector(navigationChanged(_:)))
+            button.tag = index
+            button.isSelectedPage = index == 0
+            return button
+        }
+        let navigation = NSStackView(views: navButtons)
+        navigation.orientation = .vertical
+        navigation.alignment = .width
+        navigation.spacing = 6
+        let privacy = kikiLabel("Nothing in this studio leaves your Mac.", size: 11.5, color: KikiPalette.secondaryText)
+        privacy.maximumNumberOfLines = 3
+        let stack = NSStackView(views: [brand, navigation, NSView(), privacy])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 26
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(stack)
+        NSLayoutConstraint.activate([
+            icon.widthAnchor.constraint(equalToConstant: 44),
+            icon.heightAnchor.constraint(equalToConstant: 44),
+            stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 52),
+            stack.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -24),
+        ])
+        return sidebar
+    }
+
     private func configureTables() {
         configure(suggestionsTable, columns: [("heard", "Kiki heard", 220), ("replacement", "You changed it to", 220), ("scope", "App", 160)])
         configure(correctionsTable, columns: [("heard", "Heard", 220), ("replacement", "Use", 220), ("scope", "Scope", 160)])
@@ -131,7 +178,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         table.dataSource = self
         table.delegate = self
         table.usesAlternatingRowBackgroundColors = true
-        table.rowHeight = 28
+        table.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.48)
+        table.gridColor = KikiPalette.stroke
+        table.rowHeight = 32
         table.allowsMultipleSelection = false
         for (identifier, title, width) in columns {
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(identifier))
@@ -240,10 +289,8 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func tablePage(title: String, detail: String, table: NSTableView, above: [NSView], buttons: [NSView]) -> NSView {
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
-        let detailLabel = NSTextField(wrappingLabelWithString: detail)
-        detailLabel.textColor = .secondaryLabelColor
+        let titleLabel = kikiLabel(title, size: 17, weight: .semibold)
+        let detailLabel = kikiLabel(detail, size: 12.5, color: KikiPalette.secondaryText)
         let scroll = scrollView(for: table)
         let buttonRow = NSStackView(views: buttons)
         buttonRow.orientation = .horizontal
@@ -254,12 +301,18 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         let container = NSView()
+        container.wantsLayer = true
+        container.layer?.backgroundColor = KikiPalette.surface.cgColor
+        container.layer?.borderColor = KikiPalette.stroke.cgColor
+        container.layer?.borderWidth = 1
+        container.layer?.cornerRadius = 16
+        container.layer?.cornerCurve = .continuous
         container.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: container.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 17),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -17),
             detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -267,8 +320,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func tableSection(title: String, table: NSTableView, buttons: [NSView]) -> NSView {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 15, weight: .semibold)
+        let label = kikiLabel(title, size: 15, weight: .semibold)
         let scroll = scrollView(for: table)
         let row = NSStackView(views: buttons)
         row.orientation = .horizontal
@@ -279,12 +331,18 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         let view = NSView()
+        view.wantsLayer = true
+        view.layer?.backgroundColor = KikiPalette.surface.cgColor
+        view.layer?.borderColor = KikiPalette.stroke.cgColor
+        view.layer?.borderWidth = 1
+        view.layer?.cornerRadius = 14
+        view.layer?.cornerCurve = .continuous
         view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
+            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
         return view
@@ -294,15 +352,22 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         let scroll = NSScrollView()
         scroll.documentView = table
         scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
+        scroll.borderType = .noBorder
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 10
+        scroll.layer?.borderWidth = 1
+        scroll.layer?.borderColor = KikiPalette.stroke.cgColor
         scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
         return scroll
     }
 
-    @objc private func pageChanged() { showPage(pageControl.selectedSegment) }
+    @objc private func navigationChanged(_ sender: KikiNavButton) { showPage(sender.tag) }
     private func showPage(_ index: Int) {
         host.subviews.forEach { $0.removeFromSuperview() }
-        guard pages.indices.contains(index) else { return }
+        guard pages.indices.contains(index), pageMetadata.indices.contains(index) else { return }
+        pageTitleLabel.stringValue = pageMetadata[index].0
+        pageSubtitleLabel.stringValue = pageMetadata[index].1
+        navButtons.enumerated().forEach { $0.element.isSelectedPage = $0.offset == index }
         let page = pages[index]
         page.translatesAutoresizingMaskIntoConstraints = false
         host.addSubview(page)
@@ -367,6 +432,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         } else { return nil }
 
         let cell = NSTextField(labelWithString: value)
+        cell.textColor = KikiPalette.primaryText
         cell.lineBreakMode = .byTruncatingTail
         cell.toolTip = value
         return cell
@@ -467,4 +533,3 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
     @objc private func clearConfidenceReviews() { ConfidenceReviewStore.shared.clear() }
 }
-

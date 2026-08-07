@@ -5,6 +5,7 @@ import AppKit
 final class HUDPanel {
     private let panel: NSPanel
     private let effect: NSVisualEffectView
+    private let gradient = CAGradientLayer()
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
@@ -21,13 +22,24 @@ final class HUDPanel {
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.appearance = NSAppearance(named: .darkAqua)
 
         effect = NSVisualEffectView()
         effect.material = .hudWindow
         effect.state = .active
         effect.wantsLayer = true
         effect.layer?.cornerRadius = 14
+        effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
+        gradient.colors = [
+            KikiPalette.electricBlue.withAlphaComponent(0.22).cgColor,
+            KikiPalette.violet.withAlphaComponent(0.16).cgColor,
+            KikiPalette.canvas.withAlphaComponent(0.88).cgColor,
+        ]
+        gradient.locations = [0, 0.5, 1]
+        gradient.startPoint = CGPoint(x: 0, y: 1)
+        gradient.endPoint = CGPoint(x: 1, y: 0)
+        effect.layer?.addSublayer(gradient)
 
         logoView = NSImageView()
         logoView.imageScaling = .scaleProportionallyUpOrDown
@@ -78,6 +90,7 @@ final class HUDPanel {
         let width = max(180, statusLabel.intrinsicContentSize.width + logoWidth + 54)
         let frame = positionedFrame(width: width, height: 54)
         panel.setFrame(frame, display: true)
+        gradient.frame = effect.bounds
         panel.orderFrontRegardless()
     }
 
@@ -105,6 +118,7 @@ final class HUDPanel {
         let width: CGFloat = 440
         let frame = positionedFrame(width: width, height: 82)
         panel.setFrame(frame, display: true)
+        gradient.frame = effect.bounds
         panel.orderFrontRegardless()
     }
 
@@ -142,9 +156,12 @@ final class HUDPanel {
     }
 
     private func applyAppearance() {
-        panel.appearance = Settings.appearanceMode.appearance
+        panel.appearance = NSAppearance(named: .darkAqua)
         effect.layer?.borderWidth = 1
-        effect.layer?.borderColor = Settings.accentColor.color.withAlphaComponent(0.45).cgColor
+        effect.layer?.borderColor = KikiPalette.electricBlue.withAlphaComponent(0.62).cgColor
+        effect.layer?.shadowColor = KikiPalette.electricBlue.cgColor
+        effect.layer?.shadowOpacity = 0.16
+        effect.layer?.shadowRadius = 18
     }
 
     func hide() {

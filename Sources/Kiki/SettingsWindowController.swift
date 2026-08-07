@@ -15,13 +15,22 @@ final class SettingsWindowController: NSWindowController {
     private let accentPopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
     private let messageLabel = NSTextField(labelWithString: "")
-    private let pageControl = NSSegmentedControl(
-        labels: ["General", "Dictation", "Models", "Intelligence", "Privacy"],
-        trackingMode: .selectOne,
-        target: nil,
-        action: nil
-    )
     private let pageHost = NSView()
+    private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
+    private let pageSubtitleLabel = kikiLabel(
+        "Shape how Kiki looks, sounds, and starts.",
+        size: 13.5,
+        color: KikiPalette.secondaryText
+    )
+    private var navButtons: [KikiNavButton] = []
+
+    private let pageMetadata: [(title: String, subtitle: String, symbol: String)] = [
+        ("General", "Shape how Kiki looks, sounds, and starts.", "slider.horizontal.3"),
+        ("Dictation", "Tune the way Kiki listens and keeps up with you.", "waveform"),
+        ("Models", "Choose the local engine that fits your voice and workflow.", "cpu"),
+        ("Intelligence", "Make Kiki more accurate without slowing down transcription.", "sparkles"),
+        ("Privacy", "Control exactly what Kiki remembers—and where it remembers nothing.", "lock.shield"),
+    ]
 
     private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
     private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
@@ -43,15 +52,17 @@ final class SettingsWindowController: NSWindowController {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki Settings"
+        window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unified
-        window.minSize = NSSize(width: 720, height: 640)
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.minSize = NSSize(width: 900, height: 680)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -69,29 +80,37 @@ final class SettingsWindowController: NSWindowController {
 
     private func buildContent() {
         guard let content = window?.contentView else { return }
-        content.wantsLayer = true
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        let sidebar = makeSidebar()
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
 
-        let header = makeHeader()
-        pageControl.target = self
-        pageControl.action = #selector(pageChanged)
-        pageControl.selectedSegment = 0
-        pageControl.controlSize = .large
-        pageControl.translatesAutoresizingMaskIntoConstraints = false
+        let headingStack = NSStackView(views: [pageTitleLabel, pageSubtitleLabel])
+        headingStack.orientation = .vertical
+        headingStack.alignment = .leading
+        headingStack.spacing = 5
+        headingStack.translatesAutoresizingMaskIntoConstraints = false
         pageHost.translatesAutoresizingMaskIntoConstraints = false
 
-        content.addSubview(header)
-        content.addSubview(pageControl)
+        content.addSubview(backdrop)
+        content.addSubview(sidebar)
+        content.addSubview(headingStack)
         content.addSubview(pageHost)
         NSLayoutConstraint.activate([
-            header.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            header.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            header.topAnchor.constraint(equalTo: content.topAnchor),
-            header.heightAnchor.constraint(equalToConstant: 126),
-            pageControl.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 16),
-            pageControl.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            pageHost.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            sidebar.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.widthAnchor.constraint(equalToConstant: 220),
+            headingStack.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 34),
+            headingStack.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -34),
+            headingStack.topAnchor.constraint(equalTo: content.topAnchor, constant: 54),
+            pageHost.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 6),
             pageHost.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            pageHost.topAnchor.constraint(equalTo: pageControl.bottomAnchor, constant: 12),
+            pageHost.topAnchor.constraint(equalTo: headingStack.bottomAnchor, constant: 18),
             pageHost.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
 
@@ -107,13 +126,8 @@ final class SettingsWindowController: NSWindowController {
         refresh()
     }
 
-    private func makeHeader() -> NSView {
-        let effect = NSVisualEffectView()
-        effect.material = .sidebar
-        effect.blendingMode = .behindWindow
-        effect.state = .active
-        effect.translatesAutoresizingMaskIntoConstraints = false
-
+    private func makeSidebar() -> NSView {
+        let sidebar = KikiSidebarView()
         let icon = NSImageView()
         icon.imageScaling = .scaleProportionallyUpOrDown
         if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
@@ -122,36 +136,80 @@ final class SettingsWindowController: NSWindowController {
             icon.image = NSImage(named: NSImage.applicationIconName)
         }
         icon.wantsLayer = true
-        icon.layer?.cornerRadius = 16
+        icon.layer?.cornerRadius = 12
         icon.layer?.masksToBounds = true
 
-        let title = NSTextField(labelWithString: "Kiki")
-        title.font = .systemFont(ofSize: 30, weight: .bold)
-        let subtitle = NSTextField(labelWithString: "Fast, private dictation that learns how you communicate.")
-        subtitle.font = .systemFont(ofSize: 14, weight: .regular)
-        subtitle.textColor = .secondaryLabelColor
+        let title = kikiLabel("Kiki", size: 21, weight: .bold)
+        let subtitle = kikiLabel("VOICE INTELLIGENCE", size: 9.5, weight: .semibold, color: KikiPalette.tertiaryText)
         let labels = NSStackView(views: [title, subtitle])
         labels.orientation = .vertical
         labels.alignment = .leading
-        labels.spacing = 4
+        labels.spacing = 2
 
-        let row = NSStackView(views: [icon, labels])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 18
-        row.translatesAutoresizingMaskIntoConstraints = false
-        effect.addSubview(row)
+        let brand = NSStackView(views: [icon, labels])
+        brand.orientation = .horizontal
+        brand.alignment = .centerY
+        brand.spacing = 12
+
+        navButtons = pageMetadata.enumerated().map { index, item in
+            let button = KikiNavButton(title: item.title, symbol: item.symbol, target: self, action: #selector(navigationChanged(_:)))
+            button.tag = index
+            button.isSelectedPage = index == 0
+            return button
+        }
+        let navigation = NSStackView(views: navButtons)
+        navigation.orientation = .vertical
+        navigation.alignment = .width
+        navigation.spacing = 6
+
+        let localDot = NSView()
+        localDot.wantsLayer = true
+        localDot.layer?.backgroundColor = KikiPalette.success.cgColor
+        localDot.layer?.cornerRadius = 4
+        let localLabel = kikiLabel("100% local", size: 11.5, weight: .medium, color: KikiPalette.secondaryText)
+        let localRow = NSStackView(views: [localDot, localLabel])
+        localRow.orientation = .horizontal
+        localRow.alignment = .centerY
+        localRow.spacing = 8
+        let footer = KikiCardView()
+        footer.translatesAutoresizingMaskIntoConstraints = false
+        footer.addSubview(localRow)
+        localRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView(views: [brand, navigation, NSView(), footer])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 26
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(stack)
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 64),
-            icon.heightAnchor.constraint(equalToConstant: 64),
-            row.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 32),
-            row.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -32),
-            row.bottomAnchor.constraint(equalTo: effect.bottomAnchor, constant: -18),
+            icon.widthAnchor.constraint(equalToConstant: 46),
+            icon.heightAnchor.constraint(equalToConstant: 46),
+            localDot.widthAnchor.constraint(equalToConstant: 8),
+            localDot.heightAnchor.constraint(equalToConstant: 8),
+            localRow.leadingAnchor.constraint(equalTo: footer.leadingAnchor, constant: 14),
+            localRow.trailingAnchor.constraint(lessThanOrEqualTo: footer.trailingAnchor, constant: -14),
+            localRow.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            footer.heightAnchor.constraint(equalToConstant: 45),
+            stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 52),
+            stack.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -22),
         ])
-        return effect
+        return sidebar
     }
 
     private func configureControls() {
+        let checkboxes = [
+            launchAtLoginCheckbox, automaticUpdatesCheckbox, silenceAudioCheckbox,
+            liveTranscriptionCheckbox, caretHUDCheckbox, zeroWaitCheckbox,
+            continuationsCheckbox, learningCheckbox, contextCheckbox,
+            confidenceCheckbox, historyCheckbox,
+        ]
+        checkboxes.forEach {
+            $0.font = .systemFont(ofSize: 13)
+        }
+
         launchAtLoginCheckbox.target = self
         launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
         automaticUpdatesCheckbox.target = self
@@ -191,16 +249,22 @@ final class SettingsWindowController: NSWindowController {
         speechProfilePopup.target = self
         speechProfilePopup.action = #selector(speechProfileChanged)
 
+        [appearancePopup, accentPopup, soundPopup, modePopup, speechProfilePopup].forEach {
+            $0.controlSize = .large
+            $0.font = .systemFont(ofSize: 12.5, weight: .medium)
+        }
+
         shortcutButton.target = self
         shortcutButton.action = #selector(beginCapture)
-        shortcutButton.bezelStyle = .rounded
+        shortcutButton.bezelStyle = .texturedRounded
+        shortcutButton.controlSize = .large
         shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
-        messageLabel.textColor = .secondaryLabelColor
+        messageLabel.textColor = KikiPalette.secondaryText
         messageLabel.font = .systemFont(ofSize: 12)
     }
 
     private func makeGeneralPage() -> NSView {
-        let appearanceRow = labeledRow("Appearance", controls: [appearancePopup, accentPopup])
+        let appearanceRow = labeledRow("Accent color", controls: [accentPopup])
         let soundRow = labeledRow("Dictation sounds", controls: [soundPopup])
         return page(with: [
             SettingsCard(
@@ -210,14 +274,14 @@ final class SettingsWindowController: NSWindowController {
             ),
             SettingsCard(
                 title: "Look & Sound",
-                subtitle: "Make the listening experience feel at home on your Mac.",
+                subtitle: "Personalize Kiki’s signature dark interface and feedback sounds.",
                 views: [appearanceRow, soundRow]
             ),
         ])
     }
 
     private func makeDictationPage() -> NSView {
-        let reset = NSButton(title: "Restore Default", target: self, action: #selector(resetShortcut))
+        let reset = KikiActionButton("Restore Default", kind: .secondary, target: self, action: #selector(resetShortcut))
         let shortcutRow = labeledRow("Shortcut", controls: [shortcutButton, reset])
         let behaviorRow = labeledRow("Behavior", controls: [modePopup])
         let profileRow = labeledRow("Speech profile", controls: [speechProfilePopup])
@@ -246,15 +310,24 @@ final class SettingsWindowController: NSWindowController {
             card.onUse = { [weak self] model in self?.use(model: model) }
             return card
         }
-        let intro = secondaryLabel("Pick by capability—there is no hidden menu. Parakeet delivers the fastest live experience on Apple Silicon; Whisper remains available for compatibility and verification.")
-        return page(with: [intro] + modelCards)
+        let spotlight = FeatureSpotlightView(
+            eyebrow: "LOCAL MODELS",
+            title: "Choose speed, range, or a second opinion.",
+            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and optional confidence checks.",
+            symbol: "waveform.badge.sparkles"
+        )
+        return page(with: [spotlight] + modelCards)
     }
 
     private func makeIntelligencePage() -> NSView {
-        let manage = NSButton(title: "Open Personalization Studio…", target: self, action: #selector(openPersonalization))
-        manage.bezelStyle = .rounded
-        manage.controlSize = .large
+        let manage = KikiActionButton("Open Personalization Studio", kind: .primary, target: self, action: #selector(openPersonalization))
         return page(with: [
+            FeatureSpotlightView(
+                eyebrow: "PERSONAL, NOT CLOUD",
+                title: "A voice model of you—not a profile about you.",
+                detail: "Kiki notices the corrections, names, phrases, and rhythms that make your writing yours. Every rule stays on this Mac and remains under your control.",
+                symbol: "person.crop.circle.badge.checkmark"
+            ),
             SettingsCard(
                 title: "Kiki Learns You",
                 subtitle: "Everything stays on this Mac. Suggestions require your approval before becoming permanent.",
@@ -269,7 +342,7 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makePrivacyPage() -> NSView {
-        let manage = NSButton(title: "Manage Private Apps…", target: self, action: #selector(openPersonalization))
+        let manage = KikiActionButton("Manage Private Apps", kind: .secondary, target: self, action: #selector(openPersonalization))
         return page(with: [
             SettingsCard(
                 title: "Local History",
@@ -290,7 +363,7 @@ final class SettingsWindowController: NSWindowController {
         stack.alignment = .leading
         stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let document = NSView()
+        let document = KikiFlippedView()
         document.translatesAutoresizingMaskIntoConstraints = false
         document.addSubview(stack)
         let scroll = NSScrollView()
@@ -302,8 +375,8 @@ final class SettingsWindowController: NSWindowController {
             document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
             stack.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 28),
             stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -28),
-            stack.topAnchor.constraint(equalTo: document.topAnchor, constant: 14),
-            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor, constant: -28),
+            stack.topAnchor.constraint(equalTo: document.topAnchor, constant: 8),
+            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor, constant: -34),
         ])
         for view in views {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
@@ -312,8 +385,7 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func labeledRow(_ title: String, controls: [NSView]) -> NSView {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13, weight: .medium)
+        let label = kikiLabel(title, size: 13, weight: .medium, color: KikiPalette.secondaryText)
         label.setContentHuggingPriority(.required, for: .horizontal)
         let spacer = NSView()
         let row = NSStackView(views: [label, spacer] + controls)
@@ -324,10 +396,7 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func secondaryLabel(_ text: String) -> NSTextField {
-        let label = NSTextField(wrappingLabelWithString: text)
-        label.textColor = .secondaryLabelColor
-        label.font = .systemFont(ofSize: 13)
-        return label
+        kikiLabel(text, size: 13, color: KikiPalette.secondaryText)
     }
 
     private func refresh() {
@@ -352,11 +421,16 @@ final class SettingsWindowController: NSWindowController {
         modelCards.forEach { $0.refresh() }
     }
 
-    @objc private func pageChanged() { showPage(index: pageControl.selectedSegment) }
+    @objc private func navigationChanged(_ sender: KikiNavButton) {
+        showPage(index: sender.tag)
+    }
 
     private func showPage(index: Int) {
         pageHost.subviews.forEach { $0.removeFromSuperview() }
-        guard pages.indices.contains(index) else { return }
+        guard pages.indices.contains(index), pageMetadata.indices.contains(index) else { return }
+        pageTitleLabel.stringValue = pageMetadata[index].title
+        pageSubtitleLabel.stringValue = pageMetadata[index].subtitle
+        navButtons.enumerated().forEach { $0.element.isSelectedPage = $0.offset == index }
         let page = pages[index]
         pageHost.addSubview(page)
         page.translatesAutoresizingMaskIntoConstraints = false
@@ -468,20 +542,12 @@ final class SettingsWindowController: NSWindowController {
     @objc private func openPersonalization() { onOpenPersonalization?() }
 }
 @MainActor
-private final class SettingsCard: NSView {
+private final class SettingsCard: KikiCardView {
     init(title: String, subtitle: String, views: [NSView]) {
         super.init(frame: .zero)
-        wantsLayer = true
-        layer?.cornerRadius = 14
-        layer?.borderWidth = 1
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.65).cgColor
-        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.72).cgColor
 
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        let subtitleLabel = NSTextField(wrappingLabelWithString: subtitle)
-        subtitleLabel.font = .systemFont(ofSize: 12.5)
-        subtitleLabel.textColor = .secondaryLabelColor
+        let titleLabel = kikiLabel(title, size: 16.5, weight: .semibold)
+        let subtitleLabel = kikiLabel(subtitle, size: 12.5, color: KikiPalette.secondaryText)
         let stack = NSStackView(views: [titleLabel, subtitleLabel] + views)
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -489,10 +555,10 @@ private final class SettingsCard: NSView {
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 18),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 20),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
             subtitleLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
         for view in views { view.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor).isActive = true }
@@ -501,37 +567,35 @@ private final class SettingsCard: NSView {
 }
 
 @MainActor
-private final class ModelCardView: NSView {
+private final class ModelCardView: KikiCardView {
     let model: TranscriptionModelID
     var onUse: ((TranscriptionModelID) -> Void)?
     private let statusLabel = NSTextField(labelWithString: "")
-    private let button = NSButton(title: "Use Model", target: nil, action: nil)
+    private let button = KikiActionButton("Use Model", kind: .primary, target: nil, action: nil)
 
     init(model: TranscriptionModelID) {
         self.model = model
         super.init(frame: .zero)
-        wantsLayer = true
-        layer?.cornerRadius = 14
-        layer?.borderWidth = 1
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.65).cgColor
-        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.72).cgColor
 
-        let title = NSTextField(labelWithString: model.displayName)
-        title.font = .systemFont(ofSize: 16, weight: .semibold)
-        let detail = NSTextField(wrappingLabelWithString: model.detail)
-        detail.font = .systemFont(ofSize: 13)
-        detail.textColor = .secondaryLabelColor
+        let symbolName = model.isParakeet ? "bolt.horizontal.circle.fill" : "waveform.circle.fill"
+        let symbol = NSImageView(image: NSImage(systemSymbolName: symbolName, accessibilityDescription: model.displayName) ?? NSImage())
+        symbol.contentTintColor = model.isParakeet ? KikiPalette.cyan : KikiPalette.violet
+        let symbolShell = KikiCardView()
+        symbolShell.selected = true
+        symbolShell.addSubview(symbol)
+        symbol.translatesAutoresizingMaskIntoConstraints = false
+
+        let title = kikiLabel(model.displayName, size: 16.5, weight: .semibold)
+        let detail = kikiLabel(model.detail, size: 12.5, color: KikiPalette.secondaryText)
         statusLabel.font = .systemFont(ofSize: 12, weight: .medium)
         button.target = self
         button.action = #selector(useModel)
-        button.bezelStyle = .rounded
-        button.controlSize = .large
 
         let labels = NSStackView(views: [title, detail, statusLabel])
         labels.orientation = .vertical
         labels.alignment = .leading
         labels.spacing = 5
-        let row = NSStackView(views: [labels, NSView(), button])
+        let row = NSStackView(views: [symbolShell, labels, NSView(), button])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 18
@@ -540,9 +604,15 @@ private final class ModelCardView: NSView {
         NSLayoutConstraint.activate([
             row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 17),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -17),
-            detail.widthAnchor.constraint(lessThanOrEqualToConstant: 520),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 18),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
+            symbolShell.widthAnchor.constraint(equalToConstant: 48),
+            symbolShell.heightAnchor.constraint(equalToConstant: 48),
+            symbol.widthAnchor.constraint(equalToConstant: 23),
+            symbol.heightAnchor.constraint(equalToConstant: 23),
+            symbol.centerXAnchor.constraint(equalTo: symbolShell.centerXAnchor),
+            symbol.centerYAnchor.constraint(equalTo: symbolShell.centerYAnchor),
+            detail.widthAnchor.constraint(lessThanOrEqualToConstant: 460),
         ])
         refresh()
     }
@@ -551,20 +621,21 @@ private final class ModelCardView: NSView {
 
     func refresh() {
         let selected = Settings.transcriptionModel == model
+        self.selected = selected
         let installed = model.isParakeet || ModelStore.isWhisperModelInstalled(model)
         if !model.isCompatible {
             statusLabel.stringValue = "Unavailable on this Mac"
-            statusLabel.textColor = .tertiaryLabelColor
+            statusLabel.textColor = KikiPalette.tertiaryText
             button.title = "Unavailable"
             button.isEnabled = false
         } else if selected {
             statusLabel.stringValue = "● Currently in use"
-            statusLabel.textColor = Settings.accentColor.color
+            statusLabel.textColor = KikiPalette.cyan
             button.title = "Using"
             button.isEnabled = false
         } else {
             statusLabel.stringValue = installed ? "Installed" : "Downloads when selected"
-            statusLabel.textColor = .secondaryLabelColor
+            statusLabel.textColor = KikiPalette.secondaryText
             button.title = installed ? "Use Model" : "Download & Use"
             button.isEnabled = true
         }
@@ -585,4 +656,51 @@ private final class ModelCardView: NSView {
     }
 
     @objc private func useModel() { onUse?(model) }
+}
+
+@MainActor
+private final class FeatureSpotlightView: KikiCardView {
+    init(eyebrow: String, title: String, detail: String, symbol: String) {
+        super.init(frame: .zero)
+        selected = true
+
+        let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
+        icon.contentTintColor = .white
+        let iconShell = NSView()
+        iconShell.wantsLayer = true
+        iconShell.layer?.backgroundColor = KikiPalette.electricBlue.withAlphaComponent(0.86).cgColor
+        iconShell.layer?.cornerRadius = 14
+        iconShell.layer?.cornerCurve = .continuous
+        iconShell.addSubview(icon)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+
+        let eyebrowLabel = kikiLabel(eyebrow, size: 10, weight: .bold, color: KikiPalette.cyan)
+        let titleLabel = kikiLabel(title, size: 20, weight: .semibold)
+        let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
+        let labels = NSStackView(views: [eyebrowLabel, titleLabel, detailLabel])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 6
+        let row = NSStackView(views: [iconShell, labels])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 18
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 22),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -22),
+            iconShell.widthAnchor.constraint(equalToConstant: 50),
+            iconShell.heightAnchor.constraint(equalToConstant: 50),
+            icon.widthAnchor.constraint(equalToConstant: 25),
+            icon.heightAnchor.constraint(equalToConstant: 25),
+            icon.centerXAnchor.constraint(equalTo: iconShell.centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: iconShell.centerYAnchor),
+            detailLabel.widthAnchor.constraint(equalTo: labels.widthAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }

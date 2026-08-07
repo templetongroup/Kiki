@@ -17,11 +17,15 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     init() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 820, height: 540),
-            styleMask: [.titled, .closable, .resizable],
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki History"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -49,6 +53,17 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     private func buildContent() {
+        guard let content = window?.contentView else { return }
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(backdrop)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
         let dateColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("date"))
         dateColumn.title = "Date"
         dateColumn.width = 145
@@ -65,20 +80,24 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.dataSource = self
         tableView.headerView = NSTableHeaderView()
         tableView.allowsMultipleSelection = false
+        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
+        tableView.usesAlternatingRowBackgroundColors = true
 
         let tableScroll = NSScrollView()
         tableScroll.documentView = tableView
         tableScroll.hasVerticalScroller = true
-        tableScroll.borderType = .bezelBorder
+        tableScroll.borderType = .noBorder
 
         textView.isEditable = false
         textView.isSelectable = true
         textView.font = .systemFont(ofSize: 14)
+        textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
+        textView.textColor = KikiPalette.primaryText
         textView.textContainerInset = NSSize(width: 10, height: 10)
         let textScroll = NSScrollView()
         textScroll.documentView = textView
         textScroll.hasVerticalScroller = true
-        textScroll.borderType = .bezelBorder
+        textScroll.borderType = .noBorder
 
         let split = NSSplitView()
         split.isVertical = true
@@ -87,10 +106,10 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         split.addArrangedSubview(textScroll)
 
         let privacy = NSTextField(labelWithString: "Text only • stored locally • no microphone audio saved")
-        privacy.textColor = .secondaryLabelColor
-        let copyButton = NSButton(title: "Copy", target: self, action: #selector(copySelected))
-        let deleteButton = NSButton(title: "Delete", target: self, action: #selector(deleteSelected))
-        let clearButton = NSButton(title: "Clear All…", target: self, action: #selector(clearAll))
+        privacy.textColor = KikiPalette.secondaryText
+        let copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
+        let deleteButton = KikiActionButton("Delete", kind: .secondary, target: self, action: #selector(deleteSelected))
+        let clearButton = KikiActionButton("Clear All", kind: .danger, target: self, action: #selector(clearAll))
         let footer = NSStackView(views: [countLabel, privacy, NSView(), copyButton, deleteButton, clearButton])
         footer.spacing = 10
 
@@ -99,12 +118,11 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         stack.alignment = .leading
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
-        guard let content = window?.contentView else { return }
         content.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 18),
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -18),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 18),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 44),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18),
             split.widthAnchor.constraint(equalTo: stack.widthAnchor),
             split.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
@@ -171,6 +189,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         default: text = record.text.replacingOccurrences(of: "\n", with: " ")
         }
         let field = NSTextField(labelWithString: text)
+        field.textColor = KikiPalette.primaryText
         field.lineBreakMode = .byTruncatingTail
         return field
     }

@@ -33,6 +33,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var dictionaryWindow = CustomDictionaryWindowController()
     private lazy var historyWindow = HistoryWindowController()
     private lazy var personalizationWindow = PersonalizationWindowController()
+    private lazy var whatsNewWindow: WhatsNewWindowController = {
+        let window = WhatsNewWindowController()
+        window.onExplore = { [weak self] in self?.settingsWindow.show() }
+        return window
+    }()
     private lazy var meetingWindow: MeetingWindowController = {
         let window = MeetingWindowController()
         window.onCaptureStateChange = { [weak self] active in
@@ -85,6 +90,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys.start()
 
         controller.prepare()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            self?.whatsNewWindow.showIfNeeded()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -112,6 +120,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let historyItem = NSMenuItem(title: "History…", action: #selector(openHistory), keyEquivalent: "")
         historyItem.target = self
         menu.addItem(historyItem)
+
+        let whatsNewItem = NSMenuItem(title: "What’s New…", action: #selector(openWhatsNew), keyEquivalent: "")
+        whatsNewItem.target = self
+        menu.addItem(whatsNewItem)
 
         let dictionaryItem = NSMenuItem(title: "Dictionary…", action: #selector(openDictionary), keyEquivalent: "")
         dictionaryItem.target = self
@@ -196,6 +208,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openHistory() {
         historyWindow.show()
+    }
+
+    @objc private func openWhatsNew() {
+        whatsNewWindow.showIfNeeded(force: true)
     }
 
     @objc private func openDictionary() {

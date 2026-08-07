@@ -9,17 +9,21 @@ final class FileTranscriptionWindowController: NSWindowController {
     private let statusLabel = NSTextField(labelWithString: "Drop an audio file or choose one below")
     private let progressIndicator = NSProgressIndicator()
     private let textView = NSTextView()
-    private let copyButton = NSButton(title: "Copy", target: nil, action: nil)
-    private let saveButton = NSButton(title: "Save Text…", target: nil, action: nil)
+    private let copyButton = KikiActionButton("Copy", kind: .secondary, target: nil, action: nil)
+    private let saveButton = KikiActionButton("Save Text", kind: .primary, target: nil, action: nil)
 
     init() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 760, height: 600),
-            styleMask: [.titled, .closable, .resizable],
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Transcribe a File with Kiki"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -35,29 +39,45 @@ final class FileTranscriptionWindowController: NSWindowController {
     }
 
     private func buildContent() {
-        let title = NSTextField(labelWithString: "Local File Transcription")
-        title.font = .systemFont(ofSize: 22, weight: .semibold)
-        let detail = NSTextField(wrappingLabelWithString: "Audio is processed by your selected model entirely on this Mac. Custom dictionary replacements and text-only history apply automatically.")
-        detail.textColor = .secondaryLabelColor
+        guard let content = window?.contentView else { return }
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(backdrop)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+        let eyebrow = kikiLabel("LOCAL TRANSCRIPTION", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let title = kikiLabel("Turn any recording into text.", size: 26, weight: .bold)
+        let detail = kikiLabel("Your selected model processes the file entirely on this Mac. Vocabulary and text-only history apply automatically.", size: 12.5, color: KikiPalette.secondaryText)
 
         dropView.onFile = { [weak self] url in self?.startTranscription(url) }
-        let chooseButton = NSButton(title: "Choose Audio File…", target: self, action: #selector(chooseFile))
+        let chooseButton = KikiActionButton("Choose Audio File", kind: .primary, target: self, action: #selector(chooseFile))
 
         progressIndicator.style = .spinning
         progressIndicator.controlSize = .small
         progressIndicator.isDisplayedWhenStopped = false
-        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.textColor = KikiPalette.secondaryText
         let statusRow = NSStackView(views: [progressIndicator, statusLabel, NSView(), chooseButton])
         statusRow.spacing = 10
 
         textView.isEditable = true
         textView.isRichText = false
         textView.font = .systemFont(ofSize: 14)
+        textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
+        textView.textColor = KikiPalette.primaryText
+        textView.insertionPointColor = KikiPalette.cyan
         textView.textContainerInset = NSSize(width: 12, height: 12)
         let outputScroll = NSScrollView()
         outputScroll.documentView = textView
         outputScroll.hasVerticalScroller = true
-        outputScroll.borderType = .bezelBorder
+        outputScroll.borderType = .noBorder
+        outputScroll.wantsLayer = true
+        outputScroll.layer?.cornerRadius = 12
+        outputScroll.layer?.borderColor = KikiPalette.stroke.cgColor
+        outputScroll.layer?.borderWidth = 1
 
         copyButton.target = self
         copyButton.action = #selector(copyText)
@@ -66,21 +86,20 @@ final class FileTranscriptionWindowController: NSWindowController {
         copyButton.isEnabled = false
         saveButton.isEnabled = false
         let privacy = NSTextField(labelWithString: "Local proof: no network used for transcription")
-        privacy.textColor = .secondaryLabelColor
+        privacy.textColor = KikiPalette.secondaryText
         let actions = NSStackView(views: [privacy, NSView(), copyButton, saveButton])
         actions.spacing = 10
 
-        let stack = NSStackView(views: [title, detail, dropView, statusRow, outputScroll, actions])
+        let stack = NSStackView(views: [eyebrow, title, detail, dropView, statusRow, outputScroll, actions])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
-        guard let content = window?.contentView else { return }
         content.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 22),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             dropView.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -158,7 +177,7 @@ final class FileDropView: NSView {
         registerForDraggedTypes([.fileURL])
         wantsLayer = true
         label.font = .systemFont(ofSize: 16, weight: .medium)
-        label.textColor = .secondaryLabelColor
+        label.textColor = KikiPalette.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([
@@ -174,8 +193,8 @@ final class FileDropView: NSView {
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 14, yRadius: 14)
         path.setLineDash([7, 5], count: 2, phase: 0)
         path.lineWidth = 2
-        Settings.accentColor.color.withAlphaComponent(0.75).setStroke()
-        Settings.accentColor.color.withAlphaComponent(0.06).setFill()
+        KikiPalette.electricBlue.withAlphaComponent(0.72).setStroke()
+        KikiPalette.violet.withAlphaComponent(0.10).setFill()
         path.fill()
         path.stroke()
     }

@@ -21,13 +21,17 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 740),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki Meeting Mode"
-        window.minSize = NSSize(width: 760, height: 600)
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.minSize = NSSize(width: 820, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
@@ -55,19 +59,31 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
     private func buildContent() {
         guard let content = window?.contentView else { return }
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(backdrop)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
         let icon = NSImageView()
         if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
             icon.image = NSImage(contentsOf: url)
         }
         icon.imageScaling = .scaleProportionallyUpOrDown
-        let title = NSTextField(labelWithString: "Offline Meeting Mode")
-        title.font = .systemFont(ofSize: 25, weight: .bold)
-        let subtitle = NSTextField(labelWithString: "Local capture, source-labelled transcript, chapters, action-item hints, and caption exports. Headphones give the cleanest source separation.")
-        subtitle.textColor = .secondaryLabelColor
-        let labels = NSStackView(views: [title, subtitle])
+        icon.wantsLayer = true
+        icon.layer?.cornerRadius = 12
+        icon.layer?.masksToBounds = true
+        let eyebrow = kikiLabel("MEETING INTELLIGENCE", size: 10, weight: .bold, color: KikiPalette.cyan)
+        let title = kikiLabel("Capture the room. Keep it private.", size: 27, weight: .bold)
+        let subtitle = kikiLabel("Separate local audio tracks, source-labelled transcription, chapters, action-item hints, and caption exports. Headphones give the cleanest separation.", size: 12.5, color: KikiPalette.secondaryText)
+        let labels = NSStackView(views: [eyebrow, title, subtitle])
         labels.orientation = .vertical
         labels.alignment = .leading
-        labels.spacing = 3
+        labels.spacing = 5
         let header = NSStackView(views: [icon, labels])
         header.orientation = .horizontal
         header.alignment = .centerY
@@ -77,11 +93,18 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         titleField.font = .systemFont(ofSize: 14, weight: .medium)
         recordButton.target = self
         recordButton.action = #selector(toggleRecording)
-        recordButton.bezelStyle = .rounded
-        recordButton.controlSize = .large
+        recordButton.isBordered = false
+        recordButton.font = .systemFont(ofSize: 13.5, weight: .semibold)
+        recordButton.contentTintColor = .white
+        recordButton.wantsLayer = true
+        recordButton.layer?.backgroundColor = KikiPalette.electricBlue.cgColor
+        recordButton.layer?.borderColor = KikiPalette.cyan.withAlphaComponent(0.48).cgColor
+        recordButton.layer?.borderWidth = 1
+        recordButton.layer?.cornerRadius = 10
+        recordButton.layer?.cornerCurve = .continuous
         timerLabel.font = .monospacedDigitSystemFont(ofSize: 19, weight: .semibold)
-        timerLabel.textColor = .secondaryLabelColor
-        statusLabel.textColor = .secondaryLabelColor
+        timerLabel.textColor = KikiPalette.secondaryText
+        statusLabel.textColor = KikiPalette.secondaryText
         statusLabel.font = .systemFont(ofSize: 12.5)
         saveAudioCheckbox.target = self
         saveAudioCheckbox.action = #selector(saveAudioChanged)
@@ -94,16 +117,25 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         textView.isEditable = true
         textView.isRichText = false
         textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.72)
+        textView.textColor = KikiPalette.primaryText
+        textView.insertionPointColor = KikiPalette.cyan
         textView.textContainerInset = NSSize(width: 14, height: 14)
         textView.string = "Your local transcript will appear here after capture stops."
         let scroll = NSScrollView()
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
+        scroll.borderType = .noBorder
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 14
+        scroll.layer?.cornerCurve = .continuous
+        scroll.layer?.borderWidth = 1
+        scroll.layer?.borderColor = KikiPalette.stroke.cgColor
 
         formatPopup.addItems(withTitles: ["Markdown", "Plain Text", "SRT Captions", "WebVTT Captions"])
-        let export = NSButton(title: "Export…", target: self, action: #selector(exportTranscript))
-        let copy = NSButton(title: "Copy", target: self, action: #selector(copyTranscript))
+        formatPopup.controlSize = .large
+        let export = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
+        let copy = KikiActionButton("Copy", kind: .secondary, target: self, action: #selector(copyTranscript))
         let footer = NSStackView(views: [formatPopup, export, copy, NSView()])
         footer.orientation = .horizontal
         footer.alignment = .centerY
@@ -118,10 +150,12 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         NSLayoutConstraint.activate([
             icon.widthAnchor.constraint(equalToConstant: 50),
             icon.heightAnchor.constraint(equalToConstant: 50),
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 26),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -26),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 24),
-            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
+            recordButton.heightAnchor.constraint(equalToConstant: 42),
+            recordButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -32),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
             titleField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             controls.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -205,7 +239,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
-        timerLabel.textColor = .secondaryLabelColor
+        timerLabel.textColor = KikiPalette.secondaryText
         updateTimer()
     }
 
