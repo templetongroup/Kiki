@@ -260,7 +260,7 @@ final class KikiNavButton: NSButton {
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0.01, frame.contains(point) else { return nil }
+        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
         return self
     }
 
@@ -312,6 +312,16 @@ final class KikiActionButton: NSButton {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    override func mouseDown(with event: NSEvent) {
+        guard isEnabled, let action else { return }
+        NSApp.sendAction(action, to: target, from: self)
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
+        return self
+    }
+
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateStyle()
@@ -319,7 +329,21 @@ final class KikiActionButton: NSButton {
 
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            alphaValue = isEnabled ? 1 : 0.48
+            if !isEnabled {
+                alphaValue = 0.78
+                switch kind {
+                case .quiet:
+                    layer?.backgroundColor = NSColor.clear.cgColor
+                    layer?.borderWidth = 0
+                default:
+                    layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+                    layer?.borderWidth = 1
+                    layer?.borderColor = KikiPalette.stroke.cgColor
+                }
+                contentTintColor = KikiPalette.tertiaryText
+                return
+            }
+            alphaValue = 1
             switch kind {
             case .primary:
                 layer?.backgroundColor = KikiPalette.accent.cgColor

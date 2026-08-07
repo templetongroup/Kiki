@@ -8,10 +8,18 @@ let hasLocalSparkle = FileManager.default.fileExists(atPath: localSparklePath)
 var packageDependencies: [Package.Dependency] = [
     .package(path: "Vendor/whisper.cpp"),
     .package(url: "https://github.com/FluidInference/FluidAudio.git", exact: "0.15.5"),
+    .package(
+        url: "https://github.com/Blaizzy/mlx-audio-swift.git",
+        revision: "4266f988d170a83017d1e82e2e4654602f277f1d"
+    ),
+    .package(url: "https://github.com/ml-explore/mlx-swift.git", exact: "0.31.6"),
 ]
 var kikiDependencies: [Target.Dependency] = [
     .product(name: "whisper", package: "whisper.cpp"),
     .product(name: "FluidAudio", package: "FluidAudio"),
+    .product(name: "MLXAudioCore", package: "mlx-audio-swift"),
+    .product(name: "MLXAudioTTS", package: "mlx-audio-swift"),
+    .product(name: "MLX", package: "mlx-swift"),
 ]
 var packageTargets: [Target] = []
 

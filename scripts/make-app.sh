@@ -19,6 +19,7 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
 fi
 
 swift build -c release
+./scripts/fetch-mlx-metallib.sh
 
 APP="build/Kiki.app"
 BIN=".build/release/Kiki"
@@ -26,6 +27,7 @@ BIN=".build/release/Kiki"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN" "$APP/Contents/MacOS/Kiki"
+cp build/MLX/mlx.metallib "$APP/Contents/MacOS/mlx.metallib"
 
 if [[ -d ".build/release/Sparkle.framework" ]]; then
     ditto ".build/release/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
@@ -150,6 +152,13 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
 
     codesign \
         --force \
+        --sign "$SIGNING_IDENTITY" \
+        --options runtime \
+        --timestamp \
+        "$APP/Contents/MacOS/mlx.metallib"
+
+    codesign \
+        --force \
         --deep \
         --sign "$SIGNING_IDENTITY" \
         --options runtime \
@@ -169,6 +178,12 @@ else
         echo "warning: no local signing identity found; using an ad-hoc signature" >&2
         echo "Run ./scripts/setup-local-signing.sh once for stable permission grants." >&2
     fi
+
+    codesign \
+        --force \
+        --sign "$SIGNING_IDENTITY" \
+        --timestamp=none \
+        "$APP/Contents/MacOS/mlx.metallib"
 
     codesign \
         --force \

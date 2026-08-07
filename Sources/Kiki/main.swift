@@ -7,11 +7,67 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 3, args[1] == "--create-local-voice-profile" {
+    do {
+        let source = URL(fileURLWithPath: args[2])
+        let samples = try AudioFileLoader.load16kMono(url: source)
+        let quality = VoiceProfileStore.recordingQuality(samples: samples)
+        guard quality.canSave else { throw KikiError(quality.message) }
+        let profile = try VoiceProfileStore.save(samples: samples, name: args.count >= 4 ? args[3] : "My Voice")
+        print("Saved \(profile.name) at \(VoiceProfileStore.referenceAudioURL.path)")
+        exit(0)
+    } catch {
+        fputs("Error: \(error)\n", stderr)
+        exit(1)
+    }
+}
+
+if args.count >= 2, args[1] == "--download-local-voice-model" {
+    Task { @MainActor in
+        do {
+            var lastPercent = -1
+            try await VoiceModelStore.download { progress in
+                let percent = Int((progress.fraction * 100).rounded())
+                if percent >= lastPercent + 5 || (percent == 100 && lastPercent != 100) {
+                    lastPercent = percent
+                    print("Local voice model: \(percent)%")
+                }
+            }
+            print("Local voice model ready at \(VoiceModelStore.directory.path)")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
+}
+
+if args.count >= 3, args[1] == "--synthesize-local-voice" {
+    Task { @MainActor in
+        do {
+            guard let profile = VoiceProfileStore.load() else {
+                throw KikiError("No local Kiki voice profile is installed.")
+            }
+            let engine = LocalVoiceSynthesisEngine()
+            let output = try await engine.synthesize(text: args[2], profile: profile) { progress in
+                print("Generated section \(progress.completedChunks)/\(progress.totalChunks)")
+            }
+            print(output.path)
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
+}
+
 if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: learning, snippets, context, meetings, boundaries")
+            print("Kiki feature diagnostics passed: learning, snippets, context, meetings, boundaries, voice studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)

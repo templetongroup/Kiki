@@ -4,7 +4,7 @@
   <img src="Assets/kiki-portrait.png" alt="Kiki dog portrait" width="560">
 </p>
 
-A personal voice-dictation menu bar app for macOS — hold a key, speak, release, and the transcription is typed into whatever app you're using. Fully local: audio never leaves your Mac.
+A personal voice-intelligence menu bar app for macOS — dictate anywhere, capture meetings, and create speech in your own voice. Fully local: audio never leaves your Mac.
 
 Built with Swift/AppKit, [FluidAudio](https://github.com/FluidInference/FluidAudio), and [whisper.cpp](https://github.com/ggml-org/whisper.cpp). Parakeet runs through Core ML on Apple Silicon; Whisper runs through Metal and remains available as a compatibility fallback.
 
@@ -41,6 +41,7 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - Standard, disfluency-assist, verbatim, and soft-speech accessibility profiles
 - Optional background confidence verification using an installed Whisper model after the primary result is pasted
 - Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, chapters, action-item hints, and Markdown/TXT/SRT/WebVTT export
+- Voice Studio with guided voice enrollment, a fully local Qwen3-TTS engine, on-device text-to-speech, playback, and WAV/M4A export
 
 Kiki does not upload recordings, transcripts, dictionary entries, or history. Microphone audio is used in memory for transcription and is not added to history.
 
@@ -57,6 +58,7 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Mi
 - Use **History…** to review, copy, or delete locally stored transcript text.
 - Use **Transcribe File…** to drop an audio file, edit the result, copy it, or save it as plain text.
 - Use **Meeting Mode…** for longer local sessions. Microphone speech is labelled “You” and Mac system audio is labelled “Others”; headphones produce the cleanest source separation.
+- Use **Voice Studio…** to record one private reference passage, download the optional 2 GB local voice engine, and turn typed text into speech in your voice. Generation works offline after the one-time model download.
 - The Kiki menu bar icon provides status, settings, model controls, update checks, and local transcription tools.
 
 ### Performance design

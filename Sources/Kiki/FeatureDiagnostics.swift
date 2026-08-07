@@ -8,6 +8,7 @@ enum FeatureDiagnostics {
         try checkContextVocabulary()
         try checkMeetingExports()
         try checkPhraseBoundaries()
+        try checkVoiceStudio()
     }
 
     static func benchmarkPostProcessing(iterations: Int = 100) -> TimeInterval {
@@ -73,6 +74,22 @@ enum FeatureDiagnostics {
     private static func checkPhraseBoundaries() throws {
         guard WholePhraseReplacer.replace("Ann", with: "Anne", in: "Ann met Annabelle") == "Anne met Annabelle"
         else { throw failure("phrase boundaries") }
+    }
+
+    private static func checkVoiceStudio() throws {
+        let sampleCount = Int(21 * AudioRecorder.sampleRate)
+        let clean = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.08, count: sampleCount))
+        let quiet = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.001, count: sampleCount))
+        let button = KikiActionButton("Diagnostic", target: nil, action: nil)
+        button.frame = NSRect(x: 60, y: 40, width: 180, height: 42)
+        guard clean.canSave,
+              !quiet.canSave,
+              quiet.isTooQuiet,
+              VoiceProfileStore.enrollmentScript.count > 250,
+              VoiceModelStore.manifestSize == VoiceModelStore.downloadSize,
+              button.hitTest(NSPoint(x: 20, y: 20)) === button,
+              button.hitTest(NSPoint(x: 200, y: 20)) == nil
+        else { throw failure("voice studio enrollment and model manifest") }
     }
 
     private static func temporaryFile(_ name: String) -> URL {

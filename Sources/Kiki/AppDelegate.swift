@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var personalizationWindow = PersonalizationWindowController()
     private lazy var whatsNewWindow: WhatsNewWindowController = {
         let window = WhatsNewWindowController()
-        window.onExplore = { [weak self] in self?.settingsWindow.show() }
+        window.onExplore = { [weak self] in self?.voiceStudioWindow.show() }
         return window
     }()
     private lazy var meetingWindow: MeetingWindowController = {
@@ -54,6 +54,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 duration: capture.duration,
                 title: title
             )
+        }
+        return window
+    }()
+    private lazy var voiceStudioWindow: VoiceStudioWindowController = {
+        let window = VoiceStudioWindowController()
+        window.onCaptureStateChange = { [weak self] active in
+            self?.controller.setMeetingCaptureActive(active)
         }
         return window
     }()
@@ -94,8 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys.start()
 
         controller.prepare()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
-            self?.whatsNewWindow.showIfNeeded()
+        if ProcessInfo.processInfo.environment["KIKI_OPEN_VOICE_STUDIO"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.openVoiceStudio()
+            }
+        }
+        if ProcessInfo.processInfo.environment["KIKI_SUPPRESS_WHATS_NEW"] != "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+                self?.whatsNewWindow.showIfNeeded()
+            }
         }
     }
 
@@ -119,6 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(menuSection("Features"))
         menu.addItem(menuItem("Meeting Mode", symbol: "person.2.wave.2", action: #selector(openMeetingMode)))
+        menu.addItem(menuItem("Voice Studio", symbol: "waveform.badge.mic", action: #selector(openVoiceStudio)))
         menu.addItem(menuItem("Transcribe Audio File", symbol: "waveform.badge.magnifyingglass", action: #selector(openFileTranscription)))
         menu.addItem(menuItem("Personalization Studio", symbol: "brain.head.profile", action: #selector(openPersonalization)))
 
@@ -244,6 +259,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openMeetingMode() {
         meetingWindow.show()
+    }
+
+    @objc private func openVoiceStudio() {
+        voiceStudioWindow.show()
     }
 
     @objc private func openModelsFolder() {

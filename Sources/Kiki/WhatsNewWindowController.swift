@@ -68,26 +68,26 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
             ]
         )
 
-        let title = kikiLabel("Your voice has a new home.", size: 30, weight: .bold)
+        let title = kikiLabel("Meet Kiki Voice Studio.", size: 30, weight: .bold)
         title.alignment = .center
         let detail = kikiLabel(
-            "Designed around speed, privacy, and the way you actually work.",
+            "Create speech in your own voice—fully local, private, and ready to export.",
             size: 14,
             color: KikiPalette.secondaryText
         )
         detail.alignment = .center
 
         let features = NSStackView(views: [
-            featureCard(symbol: "waveform", title: "Faster flow", detail: "Live words, zero-wait chaining, and a HUD that stays near your cursor.", tint: KikiPalette.accentText),
-            featureCard(symbol: "brain.head.profile", title: "Learns you", detail: "Approved corrections, vocabulary, snippets, and private zones—all local.", tint: KikiPalette.violet),
-            featureCard(symbol: "person.2.wave.2", title: "Meeting Mode", detail: "Capture both sides, create chapters, and export clean captions.", tint: KikiPalette.magenta),
+            featureCard(symbol: "mic.badge.plus", title: "Create your voice", detail: "Read one guided passage. Recording-quality checks help capture a clean private reference.", tint: KikiPalette.accentText),
+            featureCard(symbol: "text.bubble", title: "Write and listen", detail: "Turn short notes or long scripts into natural speech without sending text or audio anywhere.", tint: KikiPalette.violet),
+            featureCard(symbol: "square.and.arrow.up", title: "Export anywhere", detail: "Play the result in Kiki or save a polished WAV or M4A audio file.", tint: KikiPalette.magenta),
         ])
         features.orientation = .horizontal
         features.alignment = .top
         features.distribution = .fillEqually
         features.spacing = 12
 
-        let explore = KikiActionButton("Explore the new Kiki", kind: .primary, target: self, action: #selector(explorePressed))
+        let explore = KikiActionButton("Open Voice Studio", kind: .primary, target: self, action: #selector(explorePressed))
         let later = KikiActionButton("Not now", kind: .quiet, target: self, action: #selector(closePressed))
         let actions = NSStackView(views: [explore, later])
         actions.orientation = .vertical
