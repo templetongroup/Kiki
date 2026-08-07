@@ -6,6 +6,38 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.4.4</title>
+            <pubDate>Fri, 07 Aug 2026 14:27:49 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.4</link>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.4.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.4
+
+This release fixes the table and card layout defects in Personalization Studio.
+
+## What’s improved
+
+- Removed the dark rectangle that appeared beside table headers across Studio pages.
+- Replaced reserved legacy scrollbar space with clean overlay scrollbars.
+- Made both Learning panels consistently span the full content width.
+- Restored all Learning table columns instead of clipping them into narrow cards.
+- Simplified empty tables by removing heavy alternating bands.
+- Made scrollbar contrast adapt correctly in Dark and Light Mode.
+
+Transcription speed, quality, and Kiki’s fully local privacy model remain unchanged.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki-0.4.4-macOS.zip" length="6826444" type="application/octet-stream" sparkle:edSignature="EMcoLZ7FRH6wBWHbu+y5CGWrFNm0Wo4pbI5ZsrYe29zTTEOOu9EqNp9uICJNRnMW13+AKoC/5ff3b7cP4n5LCw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki12-11.delta" sparkle:deltaFrom="11" length="201566" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="zhLu0o9EIAU9nt5vDwTo+XpTMro0QzLJJxTnBQpy+EEu00EEh6Krfs4HUCYCv3ww7NoAWHLayw46rSqEU+QzAA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki12-10.delta" sparkle:deltaFrom="10" length="259146" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="dgywXcKIZSCD9gjzdjXttzAn2n2oSPH5TzhNsAcNM+M6aBKv/KAKzTDJ5unP9WBOczcr5YQlFksdszHS/I+3CQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki12-9.delta" sparkle:deltaFrom="9" length="314578" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="o6KnSN3okd/DtPwlfY5hGMFAyZkstRTn4DZT/0Ls3yebxx8bmrB2wQzIZII1aW7UNQlEhvAquZN/H45mkW9IAg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki12-8.delta" sparkle:deltaFrom="8" length="345582" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="iYQwnDrbTZefNGRy0EorY0o9I2QJjR9rfGpeHFvLyfiokLdyT2ZR2Dc5SHOI4skAmWTZ24sRQmvsNWcdYV4VBA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.4/Kiki12-4.delta" sparkle:deltaFrom="4" length="441926" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="kfNemOFyphLXwhBqCystNKd6y/f9v3yr/B9SgUDxMHhA4J1fVTpfBX1wuuOTH/KRYRFpFXxbchF/AcyfqVfoAA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.3</title>
             <pubDate>Fri, 07 Aug 2026 13:55:15 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.3</link>
@@ -125,16 +157,6 @@ All transcription and personalization data remain local to your Mac.
             <sparkle:deltas>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.0/Kiki8-4.delta" sparkle:deltaFrom="4" length="395082" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Qop0PISPhfCqSMWtMEMVkiBQNcfqanHGMIdhIcVYtz2bC0VVnM+Wy8h5YtV0HqZvETKgI5o4CMkKTW2rj7FFCg=="/>
             </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.3.0</title>
-            <pubDate>Fri, 07 Aug 2026 10:40:23 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.3.0</link>
-            <sparkle:version>4</sparkle:version>
-            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.3.0/Kiki-0.3.0-macOS.zip" length="6757596" type="application/octet-stream" sparkle:edSignature="zQ+4mtNZoIoQArA1M8CXzjGxdCEe93x5q42rbdbP4foS1ABf6nOHN2zDjUuhD5QSVYokZitMwhWefusngL0QCQ=="/>
         </item>
     </channel>
 </rss>
