@@ -12,9 +12,10 @@ final class SettingsWindowController: NSWindowController {
     private let modePopup = NSPopUpButton()
     private let speechProfilePopup = NSPopUpButton()
     private let appearancePopup = NSPopUpButton()
-    private let accentPopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
     private let messageLabel = NSTextField(labelWithString: "")
+    private let startupStatusLabel = NSTextField(labelWithString: "")
+    private let lookAndSoundStatusLabel = NSTextField(labelWithString: "")
     private let speechProfileDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
     private let pageHost = NSView()
     private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
@@ -50,6 +51,7 @@ final class SettingsWindowController: NSWindowController {
     private var captureMonitor: Any?
     private var pendingModifierKeyCode: UInt16?
     private var pendingModifierFlags: NSEvent.ModifierFlags = []
+    private let soundPreview = DictationSoundPlayer()
 
     init() {
         let window = NSWindow(
@@ -240,9 +242,6 @@ final class SettingsWindowController: NSWindowController {
         appearancePopup.addItems(withTitles: AppAppearanceMode.allCases.map(\.title))
         appearancePopup.target = self
         appearancePopup.action = #selector(appearanceChanged)
-        accentPopup.addItems(withTitles: KikiAccentColor.allCases.map(\.title))
-        accentPopup.target = self
-        accentPopup.action = #selector(accentChanged)
         soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
         soundPopup.target = self
         soundPopup.action = #selector(soundChanged)
@@ -253,9 +252,12 @@ final class SettingsWindowController: NSWindowController {
         speechProfilePopup.target = self
         speechProfilePopup.action = #selector(speechProfileChanged)
 
-        [appearancePopup, accentPopup, soundPopup, modePopup, speechProfilePopup].forEach {
+        [appearancePopup, soundPopup, modePopup, speechProfilePopup].forEach {
             $0.controlSize = .large
             $0.font = .systemFont(ofSize: 12.5, weight: .medium)
+        }
+        [appearancePopup, soundPopup].forEach {
+            $0.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         }
 
         shortcutButton.target = self
@@ -265,23 +267,27 @@ final class SettingsWindowController: NSWindowController {
         shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
         messageLabel.textColor = KikiPalette.secondaryText
         messageLabel.font = .systemFont(ofSize: 12)
+        [startupStatusLabel, lookAndSoundStatusLabel].forEach {
+            $0.textColor = KikiPalette.secondaryText
+            $0.font = .systemFont(ofSize: 12)
+            $0.maximumNumberOfLines = 2
+        }
         speechProfileDescriptionLabel.maximumNumberOfLines = 0
     }
 
     private func makeGeneralPage() -> NSView {
         let appearanceRow = labeledRow("Appearance", controls: [appearancePopup])
-        let accentRow = labeledRow("Accent color", controls: [accentPopup])
         let soundRow = labeledRow("Dictation sounds", controls: [soundPopup])
         return page(with: [
             SettingsCard(
                 title: "Startup & Updates",
                 subtitle: "Keep Kiki ready and securely up to date.",
-                views: [launchAtLoginCheckbox, automaticUpdatesCheckbox]
+                views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, startupStatusLabel]
             ),
             SettingsCard(
                 title: "Look & Sound",
                 subtitle: "Choose a calm light or dark workspace that stays easy to read.",
-                views: [appearanceRow, accentRow, soundRow]
+                views: [appearanceRow, soundRow, lookAndSoundStatusLabel]
             ),
         ])
     }
@@ -445,7 +451,6 @@ final class SettingsWindowController: NSWindowController {
         automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
             || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
         appearancePopup.selectItem(at: AppAppearanceMode.allCases.firstIndex(of: Settings.appearanceMode) ?? 0)
-        accentPopup.selectItem(at: KikiAccentColor.allCases.firstIndex(of: Settings.accentColor) ?? 0)
         soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
@@ -561,16 +566,35 @@ final class SettingsWindowController: NSWindowController {
     }
     @objc private func launchAtLoginChanged() {
         do {
-            try LaunchAtLoginController.setEnabled(launchAtLoginCheckbox.state == .on)
+            let enabled = launchAtLoginCheckbox.state == .on
+            try LaunchAtLoginController.setEnabled(enabled)
+            startupStatusLabel.stringValue = enabled
+                ? "Kiki will open automatically when you log in."
+                : "Kiki will no longer open automatically."
         } catch {
-            messageLabel.stringValue = "Could not change login setting: \(error.localizedDescription)"
+            startupStatusLabel.stringValue = "Could not change login setting: \(error.localizedDescription)"
             launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
         }
     }
-    @objc private func automaticUpdatesChanged() { onAutomaticUpdatesChange?(automaticUpdatesCheckbox.state == .on) }
-    @objc private func appearanceChanged() { Settings.appearanceMode = AppAppearanceMode.allCases[appearancePopup.indexOfSelectedItem]; onAppearanceChange?() }
-    @objc private func accentChanged() { Settings.accentColor = KikiAccentColor.allCases[accentPopup.indexOfSelectedItem]; onAppearanceChange?() }
-    @objc private func soundChanged() { Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem] }
+    @objc private func automaticUpdatesChanged() {
+        let enabled = automaticUpdatesCheckbox.state == .on
+        onAutomaticUpdatesChange?(enabled)
+        startupStatusLabel.stringValue = enabled
+            ? "Kiki will automatically check for signed updates."
+            : "Automatic update checks are off. You can still check from the menu."
+    }
+    @objc private func appearanceChanged() {
+        Settings.appearanceMode = AppAppearanceMode.allCases[appearancePopup.indexOfSelectedItem]
+        onAppearanceChange?()
+        lookAndSoundStatusLabel.stringValue = "Appearance changed to \(Settings.appearanceMode.title)."
+    }
+    @objc private func soundChanged() {
+        Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem]
+        soundPreview.playRecordingStarted()
+        lookAndSoundStatusLabel.stringValue = Settings.soundStyle == .off
+            ? "Dictation sounds are off."
+            : "Previewing \(Settings.soundStyle.title.lowercased()) sounds."
+    }
     @objc private func silenceAudioChanged() { Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on }
     @objc private func liveTranscriptionChanged() { Settings.showLiveTranscription = liveTranscriptionCheckbox.state == .on }
     @objc private func caretHUDChanged() { Settings.showHUDNearCaret = caretHUDCheckbox.state == .on }
