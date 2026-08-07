@@ -6,6 +6,37 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.4.3</title>
+            <pubDate>Fri, 07 Aug 2026 13:55:15 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.3</link>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>0.4.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.3
+
+This release sharpens Kiki’s visual identity and makes navigation clearer in both appearances.
+
+## What’s improved
+
+- Orange is now Kiki’s primary interaction color across buttons, feature accents, selection states, and transcription surfaces.
+- Light Mode selections use a stronger warm highlight that is easy to distinguish from the surrounding interface.
+- Dark Mode selections use a coordinated warm surface with clear contrast.
+- Sidebar navigation now spans the full available row and uses deliberate horizontal padding around every icon and label.
+- The welcome screen now says: “Designed around speed, privacy, and the way you actually work.”
+- The Accent Color preference now labels Kiki’s default accent as Orange.
+
+Transcription, performance, and Kiki’s fully local privacy model remain unchanged.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.3/Kiki-0.4.3-macOS.zip" length="6826275" type="application/octet-stream" sparkle:edSignature="Bc4WEFO0VZK7ot1okUpG662i6thZ5EqMutwFz+EWVfKfPbILY1nvgpaqk2BL9hDpG1Tf4RLH7V2kBL710e0fCA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.3/Kiki11-10.delta" sparkle:deltaFrom="10" length="258846" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="3GZNHxNood4sQ3O6UuRHac/znqU8PpuT/THRyFKeYBlLYXZ3jDRP+TUdTkiz6XhfeAQ35DdNbTErRiJ7aylECw=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.3/Kiki11-9.delta" sparkle:deltaFrom="9" length="299990" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="4a7+OkwzJ2PT/MPIa8olfixE/VJLjM16IzWYgM8l+o7xvqTws6YgMynvQUJ1ounkRqvwYWy3Q5V0Z4/snkg0CA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.3/Kiki11-8.delta" sparkle:deltaFrom="8" length="344622" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="uS1U2i9D0CRoxj7QWauyQk5Psky0FESA3rGesqI1vHyZQbbB4clmDomXR8O968YvSZIFyJJiPMNjVmgpNLcUBg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.3/Kiki11-4.delta" sparkle:deltaFrom="4" length="444202" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="1dKJg6HlqaGIBLNCrd8wmp8fHeJ+XNrWWTaycgJ1imNLcKPBrBAgvQFhcVH3Y8dRPyzHQp0gNFtESw+puwLrDA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.2</title>
             <pubDate>Fri, 07 Aug 2026 12:23:57 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.2</link>
