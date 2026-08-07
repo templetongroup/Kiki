@@ -101,6 +101,62 @@ enum Settings {
         }
         set { UserDefaults.standard.set(newValue, forKey: "saveTranscriptionHistory") }
     }
+
+    static var learnFromCorrections: Bool {
+        get { bool(forKey: "learnFromCorrections", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "learnFromCorrections") }
+    }
+
+    static var useContextVocabulary: Bool {
+        get { bool(forKey: "useContextVocabulary", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "useContextVocabulary") }
+    }
+
+    static var enableZeroWaitChaining: Bool {
+        get { bool(forKey: "enableZeroWaitChaining", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableZeroWaitChaining") }
+    }
+
+    static var enableVoiceContinuations: Bool {
+        get { bool(forKey: "enableVoiceContinuations", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableVoiceContinuations") }
+    }
+
+    static var showHUDNearCaret: Bool {
+        get { bool(forKey: "showHUDNearCaret", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "showHUDNearCaret") }
+    }
+
+    static var enableConfidenceVerification: Bool {
+        get { bool(forKey: "enableConfidenceVerification", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableConfidenceVerification") }
+    }
+
+    static var speechProfile: SpeechProfile {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "speechProfile") else { return .standard }
+            return SpeechProfile(rawValue: raw) ?? .standard
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "speechProfile") }
+    }
+
+    static var continuationWindow: TimeInterval {
+        get {
+            let value = UserDefaults.standard.double(forKey: "continuationWindow")
+            return value > 0 ? min(max(value, 1), 12) : 4
+        }
+        set { UserDefaults.standard.set(min(max(newValue, 1), 12), forKey: "continuationWindow") }
+    }
+
+    static var saveMeetingAudio: Bool {
+        get { bool(forKey: "saveMeetingAudio", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "saveMeetingAudio") }
+    }
+
+    private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return defaultValue }
+        return UserDefaults.standard.bool(forKey: key)
+    }
 }
 
 enum ActivationMode: String, CaseIterable {

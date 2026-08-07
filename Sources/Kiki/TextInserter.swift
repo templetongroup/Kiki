@@ -12,7 +12,8 @@ enum TextInserter {
     }
 
     @discardableResult
-    static func insert(_ text: String) -> Result {
+    @MainActor
+    static func insert(_ text: String, context: AppContextSnapshot? = nil) -> Result {
         let pasteboard = NSPasteboard.general
 
         guard AXIsProcessTrusted() else {
@@ -24,6 +25,10 @@ enum TextInserter {
         }
 
         let previous = pasteboard.string(forType: .string)
+        let learningAnchor: CorrectionLearningObserver.Anchor? = context.flatMap { snapshot in
+            guard Settings.learnFromCorrections, !snapshot.isPrivate else { return nil }
+            return CorrectionLearningObserver.shared.captureAnchor(context: snapshot)
+        }
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
@@ -37,7 +42,21 @@ enum TextInserter {
                 pasteboard.setString(previous, forType: .string)
             }
         }
+        if let learningAnchor {
+            CorrectionLearningObserver.shared.observe(
+                insertedText: text,
+                anchor: learningAnchor,
+                context: context
+            )
+        }
         return .inserted
+    }
+
+    @MainActor
+    static func copyOnly(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 
     private static func synthesizePaste() -> Bool {

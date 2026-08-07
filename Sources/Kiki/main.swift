@@ -7,6 +7,27 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 2, args[1] == "--self-test-features" {
+    MainActor.assumeIsolated {
+        do {
+            try FeatureDiagnostics.run()
+            print("Kiki feature diagnostics passed: learning, snippets, context, meetings, boundaries")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
+if args.count >= 2, args[1] == "--benchmark-postprocessing" {
+    MainActor.assumeIsolated {
+        let average = FeatureDiagnostics.benchmarkPostProcessing()
+        print(String(format: "Average deterministic post-processing: %.2f ms (2,002 context terms)", average * 1_000))
+        exit(average < 0.050 ? 0 : 1)
+    }
+}
+
 if args.count >= 3, args[1] == "--transcribe-live-file" {
     let audioURL = URL(fileURLWithPath: args[2])
     Task { @MainActor in

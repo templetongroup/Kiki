@@ -12,6 +12,7 @@ final class HotkeyManager {
     var onToggle: @MainActor () -> Void = {}
     var onHoldStart: @MainActor () -> Void = {}
     var onHoldEnd: @MainActor () -> Void = {}
+    var onCancel: @MainActor () -> Void = {}
 
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
@@ -65,6 +66,10 @@ final class HotkeyManager {
     }
 
     private func handleTriggerEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape) {
+            DispatchQueue.main.async { self.onCancel() }
+            return
+        }
         let shortcut = dictationShortcut
         guard event.keyCode == shortcut.keyCode else { return }
 

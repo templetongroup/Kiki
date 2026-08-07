@@ -77,6 +77,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Kiki records your voice while dictating so it can transcribe it locally.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Kiki can import contact names into an optional local vocabulary so names are spelled correctly.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Kiki can import upcoming meeting titles and attendee names into an optional local vocabulary.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Kiki Meeting Mode can capture Mac system audio for a fully local, source-labelled transcript.</string>
     <key>SUFeedURL</key>
     <string>$SPARKLE_FEED_URL</string>
     <key>SUPublicEDKey</key>
@@ -168,7 +174,6 @@ else
         --force \
         --deep \
         --sign "$SIGNING_IDENTITY" \
-        --options runtime \
         --timestamp=none \
         "$APP/Contents/Frameworks/Sparkle.framework"
 
@@ -177,7 +182,6 @@ else
         --sign "$SIGNING_IDENTITY" \
         --identifier "$APP_ID" \
         --entitlements "$ENTITLEMENTS" \
-        --options runtime \
         --timestamp=none \
         "$APP"
 fi

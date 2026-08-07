@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let controller = DictationController()
     private let hotkeys = HotkeyManager()
     private let updateController = UpdateController()
+    private var lastExternalContext: AppContextSnapshot?
     private lazy var settingsWindow: SettingsWindowController = {
         let controller = SettingsWindowController()
         controller.onSettingsChange = { [weak self] shortcut, mode in
@@ -23,10 +24,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onAutomaticUpdatesChange = { [weak self] enabled in
             self?.updateController.automaticallyChecksForUpdates = enabled
         }
+        controller.onOpenPersonalization = { [weak self] in
+            guard let self else { return }
+            self.personalizationWindow.show(context: self.captureExternalContext())
+        }
         return controller
     }()
     private lazy var dictionaryWindow = CustomDictionaryWindowController()
     private lazy var historyWindow = HistoryWindowController()
+    private lazy var personalizationWindow = PersonalizationWindowController()
+    private lazy var meetingWindow: MeetingWindowController = {
+        let window = MeetingWindowController()
+        window.onCaptureStateChange = { [weak self] active in
+            self?.controller.setMeetingCaptureActive(active)
+        }
+        window.onTranscribe = { [weak self] capture, title in
+            guard let self else { throw KikiError("Kiki is unavailable.") }
+            return try await self.controller.transcribeMeeting(
+                microphoneSamples: capture.microphoneSamples,
+                systemSamples: capture.systemSamples,
+                duration: capture.duration,
+                title: title
+            )
+        }
+        return window
+    }()
     private lazy var fileTranscriptionWindow: FileTranscriptionWindowController = {
         let window = FileTranscriptionWindowController()
         window.onTranscribe = { [weak self] url in
@@ -59,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeys.onHoldStart = { [weak self] in self?.controller.startRecording() }
         hotkeys.onHoldEnd = { [weak self] in self?.controller.finishRecording() }
         hotkeys.onToggle = { [weak self] in self?.controller.toggleRecording() }
+        hotkeys.onCancel = { [weak self] in self?.controller.cancelRecording() }
         hotkeys.start()
 
         controller.prepare()
@@ -94,9 +117,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dictionaryItem.target = self
         menu.addItem(dictionaryItem)
 
+        let personalizationItem = NSMenuItem(title: "Personalization Studio…", action: #selector(openPersonalization), keyEquivalent: "")
+        personalizationItem.target = self
+        menu.addItem(personalizationItem)
+
         let fileItem = NSMenuItem(title: "Transcribe File…", action: #selector(openFileTranscription), keyEquivalent: "")
         fileItem.target = self
         menu.addItem(fileItem)
+
+        let meetingItem = NSMenuItem(title: "Meeting Mode…", action: #selector(openMeetingMode), keyEquivalent: "")
+        meetingItem.target = self
+        menu.addItem(meetingItem)
 
         let modelsItem = NSMenuItem(title: "Open Models Folder", action: #selector(openModelsFolder), keyEquivalent: "")
         modelsItem.target = self
@@ -147,7 +178,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toggleMenuItem.isEnabled = true
         case .transcribing:
             stateMenuItem.title = "Transcribing…"
-            toggleMenuItem.isEnabled = false
+            toggleMenuItem.title = Settings.enableZeroWaitChaining
+                ? "Start Another Dictation (⌃⌥D)"
+                : "Transcribing…"
+            toggleMenuItem.isEnabled = Settings.enableZeroWaitChaining
         }
     }
 
@@ -156,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
+        _ = captureExternalContext()
         settingsWindow.show()
     }
 
@@ -167,8 +202,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dictionaryWindow.show()
     }
 
+    @objc private func openPersonalization() {
+        personalizationWindow.show(context: captureExternalContext())
+    }
+
     @objc private func openFileTranscription() {
         fileTranscriptionWindow.show()
+    }
+
+    @objc private func openMeetingMode() {
+        meetingWindow.show()
     }
 
     @objc private func openModelsFolder() {
@@ -184,6 +227,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openMicrophoneSettings() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
         NSWorkspace.shared.open(url)
+    }
+
+    private func captureExternalContext() -> AppContextSnapshot? {
+        let context = AppContextSnapshot.capture()
+        if context.bundleIdentifier != Bundle.main.bundleIdentifier {
+            lastExternalContext = context
+        }
+        return lastExternalContext
     }
 
     private static func menuBarIcon() -> NSImage? {

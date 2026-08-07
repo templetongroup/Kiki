@@ -4,6 +4,7 @@ import Foundation
 enum TranscriptionSource: String, Codable {
     case dictation
     case file
+    case meeting
 }
 
 struct TranscriptionRecord: Codable, Identifiable {

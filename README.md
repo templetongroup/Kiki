@@ -32,6 +32,15 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - Text-only transcription history with app/source, model, duration, and an explicit local-processing indicator
 - Drag-and-drop local audio-file transcription with editable, copyable, and exportable results
 - Automatic Mac output muting during recording, with the previous mute or volume restored afterward
+- Zero-wait dictation chaining: begin the next recording while the previous final pass finishes
+- Caret-following live preview that stays near the place where text will be inserted
+- Kiki Learns You: local correction suggestions with global or per-app approval
+- Optional local vocabulary imports from Contacts, upcoming Calendar events, and project folders
+- Deterministic voice snippets with `{{date}}`, `{{time}}`, and `{{clipboard}}` variables
+- Private-app zones and automatic secure-field protection that skip history, learning, and verification
+- Standard, disfluency-assist, verbatim, and soft-speech accessibility profiles
+- Optional background confidence verification using an installed Whisper model after the primary result is pasted
+- Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, chapters, action-item hints, and Markdown/TXT/SRT/WebVTT export
 
 Kiki does not upload recordings, transcripts, dictionary entries, or history. Microphone audio is used in memory for transcription and is not added to history.
 
@@ -41,10 +50,18 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Mi
 - **⌃⌥D** — toggle mode: press to start, press again to stop and insert.
 - System audio is silenced while recording by default, then restored exactly when recording stops. This can be disabled in Settings.
 - A branded HUD shows Listening / Transcribing and, with Parakeet, a low-latency live transcript. The preview can be disabled in Settings.
+- Press **Esc** while recording to cancel without transcribing or saving anything.
+- Quick successive dictations can continue the same paragraph, and Kiki can accept another recording while the previous one finishes.
 - Use **Dictionary…** to teach Kiki your preferred spellings and replacements.
+- Use **Personalization Studio…** to approve learned corrections, import context vocabulary, create voice snippets, manage private apps, and review confidence disagreements.
 - Use **History…** to review, copy, or delete locally stored transcript text.
 - Use **Transcribe File…** to drop an audio file, edit the result, copy it, or save it as plain text.
+- Use **Meeting Mode…** for longer local sessions. Microphone speech is labelled “You” and Mac system audio is labelled “Others”; headphones produce the cleanest source separation.
 - The Kiki menu bar icon provides status, settings, model controls, update checks, and local transcription tools.
+
+### Performance design
+
+The normal dictation path remains record → local speech model → deterministic text rules → paste. Learning observation happens after paste, confidence verification runs on a utility queue, and meeting capture uses a separate pipeline. Context vocabulary is token-indexed; the built-in benchmark averages single-digit milliseconds on the development Mac even with 2,002 terms.
 
 ## Setup
 
@@ -59,9 +76,14 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Mi
    ./scripts/download-model.sh large-v3-turbo   # ~1.6 GB, recommended
    ./scripts/download-model.sh base.en          # ~142 MB, fast but weaker
    ```
-3. Launch Kiki and grant two permissions when prompted:
+3. Launch Kiki and grant two permissions required for normal dictation:
    - **Microphone** — to record you.
    - **Accessibility** — to see the Right-⌥ hotkey globally and to synthesize the ⌘V that inserts text.
+
+   Optional features request their own permission only when used:
+   - **Contacts** — imports names only into local context vocabulary.
+   - **Calendars** — imports upcoming titles and attendee names only.
+   - **Screen Recording** — lets Meeting Mode capture Mac system audio locally.
 
    If insertion doesn't work, check System Settings → Privacy & Security → Accessibility and make sure Kiki is enabled. Local builds use a stable self-signed certificate after running the one-time setup command, so permission grants survive rebuilds more reliably.
 
@@ -72,6 +94,8 @@ Kiki uses [Sparkle](https://sparkle-project.org/) for cryptographically signed a
 ## How it works
 
 `HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `ParakeetTranscriber` (FluidAudio/Core ML) or `WhisperTranscriber` (whisper.cpp/Metal) → custom dictionary → optional text-only history → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
+
+Finished recordings enter an ordered in-memory job queue, allowing the next recording to start immediately. `TranscriptPostProcessor` applies snippets, approved corrections, and indexed context vocabulary synchronously; correction observation and `BackgroundConfidenceVerifier` run only after insertion. Private zones short-circuit all optional retention and learning.
 
 Parakeet also receives a short-window stream while recording so the HUD can show an immediate, provisional transcript. Kiki discards that preview when recording ends and runs the normal full-audio pass for the text it inserts.
 
@@ -90,6 +114,10 @@ Transcribe a file without the mic (useful for testing changes):
 
 ```bash
 ./build/Kiki.app/Contents/MacOS/Kiki --transcribe-file some-audio.m4a
+
+# Deterministic feature checks and a large-vocabulary latency benchmark
+./build/Kiki.app/Contents/MacOS/Kiki --self-test-features
+./build/Kiki.app/Contents/MacOS/Kiki --benchmark-postprocessing
 ```
 
 ## Notes on the vendored whisper.cpp
@@ -100,11 +128,7 @@ FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet
 
 ## Feature ideas
 
-- Press Esc while recording to cancel
-- Correction memory that proposes dictionary entries from repeated edits
-- Private-app exclusions that never retain history from selected applications
-- Dual-model verification that highlights uncertain words without sending audio off-device
-- Speaker-labelled file transcription with Markdown, SRT, and VTT export
-- Shareable glossary packs for teams, clients, industries, and accessibility needs
-- Offline meeting mode with system-audio capture, speakers, chapters, and action items
-- Optional local cleanup pass for formatting, punctuation, and filler-word removal
+- Shareable, signed glossary packs for teams, clients, industries, and accessibility needs
+- Optional on-device semantic cleanup models that never block the primary paste
+- Individual-speaker diarization inside the current local “Others” meeting track
+- End-to-end encrypted Apple-device handoff for personal context packs
