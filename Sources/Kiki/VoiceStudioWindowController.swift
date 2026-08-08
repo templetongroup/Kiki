@@ -17,24 +17,28 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private var playbackTimer: Timer?
     private var generatedAudioURL: URL?
     private var profile = VoiceProfileStore.load()
+    private var voiceFeedback: String?
+    private var modelFeedback: String?
+    private var generationFeedback: String?
 
     private let profileStatusLabel = NSTextField(wrappingLabelWithString: "")
     private let voiceNameField = NSTextField(string: "My Voice")
-    private let scriptTextView = NSTextView()
+    private let scriptLabel = NSTextField(wrappingLabelWithString: VoiceProfileStore.enrollmentScript)
     private let consentCheckbox = NSButton(checkboxWithTitle: "This is my voice, and I consent to creating a private local voice model.", target: nil, action: nil)
-    private lazy var recordButton = KikiActionButton("Start Voice Recording", kind: .primary, target: self, action: #selector(toggleRecording))
-    private lazy var saveVoiceButton = KikiActionButton("Save My Voice", kind: .primary, target: self, action: #selector(saveVoice))
-    private lazy var playReferenceButton = KikiActionButton("Play Recording", kind: .secondary, target: self, action: #selector(playReference))
+    private lazy var recordButton = KikiActionButton("Start Recording", kind: .primary, target: self, action: #selector(toggleRecording))
+    private lazy var saveVoiceButton = KikiActionButton("Save Voice", kind: .primary, target: self, action: #selector(saveVoice))
+    private lazy var playReferenceButton = KikiActionButton("Play Preview", kind: .secondary, target: self, action: #selector(playReference))
     private lazy var deleteVoiceButton = KikiActionButton("Delete Voice", kind: .quiet, target: self, action: #selector(deleteVoice))
     private let recordingTimeLabel = NSTextField(labelWithString: "00:00")
     private let recordingMeter = NSProgressIndicator()
     private let qualityLabel = NSTextField(wrappingLabelWithString: "Read naturally in a quiet room. Aim for 30–60 seconds.")
 
     private let modelStatusLabel = NSTextField(wrappingLabelWithString: "")
-    private lazy var modelButton = KikiActionButton("Download Local Model", kind: .secondary, target: self, action: #selector(toggleModelDownload))
+    private lazy var modelButton = KikiActionButton("Install Voice Engine (2 GB)", kind: .secondary, target: self, action: #selector(toggleModelDownload))
     private let modelProgress = NSProgressIndicator()
 
     private let editor = NSTextView()
+    private let setupStatusLabel = NSTextField(wrappingLabelWithString: "")
     private let characterCountLabel = NSTextField(labelWithString: "0 characters")
     private lazy var generateButton = KikiActionButton("Generate in My Voice", kind: .primary, target: self, action: #selector(generateSpeech))
     private lazy var cancelButton = KikiActionButton("Cancel", kind: .secondary, target: self, action: #selector(cancelGeneration))
@@ -50,7 +54,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1080, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 1080, height: 840),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -59,7 +63,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 940, height: 760)
+        window.minSize = NSSize(width: 1020, height: 840)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
@@ -144,7 +148,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             header.widthAnchor.constraint(equalTo: root.widthAnchor),
             columns.widthAnchor.constraint(equalTo: root.widthAnchor),
             columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -92),
-            leftCard.widthAnchor.constraint(equalToConstant: 390),
+            leftCard.widthAnchor.constraint(equalToConstant: 450),
             rightCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
             rightCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
             leftCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
@@ -153,7 +157,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeVoiceCard() -> NSView {
         let card = KikiCardView()
-        let sectionTitle = kikiLabel("My Voice", size: 18, weight: .bold)
+        let sectionTitle = kikiLabel("1. Record your voice", size: 18, weight: .bold)
         profileStatusLabel.font = .systemFont(ofSize: 12.5)
         profileStatusLabel.textColor = KikiPalette.secondaryText
         profileStatusLabel.maximumNumberOfLines = 3
@@ -162,21 +166,35 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         voiceNameField.font = .systemFont(ofSize: 13.5, weight: .medium)
         voiceNameField.bezelStyle = .roundedBezel
 
-        scriptTextView.isEditable = false
-        scriptTextView.isSelectable = true
-        scriptTextView.isRichText = false
-        scriptTextView.string = VoiceProfileStore.enrollmentScript
-        scriptTextView.font = .systemFont(ofSize: 13.5)
-        scriptTextView.textColor = KikiPalette.primaryText
-        scriptTextView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.52)
-        scriptTextView.textContainerInset = NSSize(width: 13, height: 12)
-        let scriptScroll = KikiScrollView()
-        scriptScroll.documentView = scriptTextView
-        scriptScroll.hasVerticalScroller = true
-        scriptScroll.wantsLayer = true
-        scriptScroll.layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.52).cgColor
-        scriptScroll.layer?.borderWidth = 1
-        scriptScroll.layer?.borderColor = KikiPalette.stroke.cgColor
+        let scriptParagraph = NSMutableParagraphStyle()
+        scriptParagraph.lineSpacing = 2
+        scriptParagraph.lineBreakMode = .byWordWrapping
+        scriptLabel.attributedStringValue = NSAttributedString(
+            string: VoiceProfileStore.enrollmentScript,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 16, weight: .regular),
+                .foregroundColor: KikiPalette.primaryText,
+                .paragraphStyle: scriptParagraph,
+            ]
+        )
+        scriptLabel.isSelectable = true
+        scriptLabel.maximumNumberOfLines = 0
+        scriptLabel.setAccessibilityLabel("Voice enrollment passage")
+        let scriptPanel = NSView()
+        scriptPanel.wantsLayer = true
+        scriptPanel.layer?.cornerRadius = 12
+        scriptPanel.layer?.cornerCurve = .continuous
+        scriptPanel.layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.52).cgColor
+        scriptPanel.layer?.borderWidth = 1
+        scriptPanel.layer?.borderColor = KikiPalette.stroke.cgColor
+        scriptLabel.translatesAutoresizingMaskIntoConstraints = false
+        scriptPanel.addSubview(scriptLabel)
+        NSLayoutConstraint.activate([
+            scriptLabel.leadingAnchor.constraint(equalTo: scriptPanel.leadingAnchor, constant: 14),
+            scriptLabel.trailingAnchor.constraint(equalTo: scriptPanel.trailingAnchor, constant: -14),
+            scriptLabel.topAnchor.constraint(equalTo: scriptPanel.topAnchor, constant: 12),
+            scriptLabel.bottomAnchor.constraint(lessThanOrEqualTo: scriptPanel.bottomAnchor, constant: -12),
+        ])
 
         consentCheckbox.target = self
         consentCheckbox.action = #selector(consentChanged)
@@ -202,14 +220,20 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
         saveVoiceButton.isHidden = true
         playReferenceButton.isHidden = true
-        let recordingActions = NSStackView(views: [recordButton, saveVoiceButton, playReferenceButton, NSView()])
-        recordingActions.orientation = .horizontal
-        recordingActions.alignment = .centerY
+        let recordingReviewActions = NSStackView(views: [saveVoiceButton, playReferenceButton, deleteVoiceButton, NSView()])
+        recordingReviewActions.orientation = .horizontal
+        recordingReviewActions.alignment = .centerY
+        recordingReviewActions.spacing = 8
+        let recordingActions = NSStackView(views: [recordButton, recordingReviewActions])
+        recordingActions.orientation = .vertical
+        recordingActions.alignment = .leading
         recordingActions.spacing = 8
+        recordButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        recordingReviewActions.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
         let divider = NSBox()
         divider.boxType = .separator
-        let modelTitle = kikiLabel("Local voice engine", size: 13.5, weight: .semibold)
+        let modelTitle = kikiLabel("2. Install the voice engine", size: 13.5, weight: .semibold)
         modelStatusLabel.font = .systemFont(ofSize: 11.5)
         modelStatusLabel.textColor = KikiPalette.secondaryText
         modelStatusLabel.maximumNumberOfLines = 2
@@ -218,13 +242,13 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         modelProgress.maxValue = 1
         modelProgress.isHidden = true
         modelProgress.controlSize = .small
-        let modelActions = NSStackView(views: [modelButton, deleteVoiceButton, NSView()])
+        let modelActions = NSStackView(views: [modelButton, NSView()])
         modelActions.orientation = .horizontal
         modelActions.alignment = .centerY
         modelActions.spacing = 8
 
         let stack = NSStackView(views: [
-            sectionTitle, profileStatusLabel, voiceNameField, scriptScroll, consentCheckbox,
+            sectionTitle, profileStatusLabel, voiceNameField, scriptPanel, consentCheckbox,
             meterRow, qualityLabel, recordingActions, divider,
             modelTitle, modelStatusLabel, modelProgress, modelActions,
         ])
@@ -240,13 +264,15 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
             profileStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             voiceNameField.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scriptScroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scriptScroll.heightAnchor.constraint(equalToConstant: 140),
+            scriptPanel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            scriptPanel.heightAnchor.constraint(equalToConstant: 226),
             consentCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor),
             meterRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordingMeter.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
             qualityLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordingActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            recordButton.widthAnchor.constraint(equalTo: recordingActions.widthAnchor),
+            recordingReviewActions.widthAnchor.constraint(equalTo: recordingActions.widthAnchor),
             divider.widthAnchor.constraint(equalTo: stack.widthAnchor),
             modelStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             modelProgress.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -257,8 +283,11 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeGenerationCard() -> NSView {
         let card = KikiCardView()
-        let sectionTitle = kikiLabel("Create Audio", size: 18, weight: .bold)
+        let sectionTitle = kikiLabel("3. Create audio", size: 18, weight: .bold)
         let sectionDetail = kikiLabel("Write, paste, or edit a script. Longer text is generated in natural sections.", size: 12, color: KikiPalette.secondaryText)
+
+        setupStatusLabel.font = .systemFont(ofSize: 12.5, weight: .semibold)
+        setupStatusLabel.maximumNumberOfLines = 2
 
         editor.isEditable = true
         editor.isRichText = false
@@ -324,7 +353,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
         let privacy = kikiLabel("Private by design · Voice, text, and generated audio stay on this Mac.", size: 11, color: KikiPalette.tertiaryText)
         let stack = NSStackView(views: [
-            sectionTitle, sectionDetail, editorScroll, generationActions,
+            sectionTitle, sectionDetail, setupStatusLabel, editorScroll, generationActions,
             generationProgress, generationStatusLabel, outputCard, privacy,
         ])
         stack.orientation = .vertical
@@ -338,6 +367,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 20),
             stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -18),
             sectionDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            setupStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             editorScroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
             editorScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 210),
             generationActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -352,35 +382,74 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private func refreshState() {
         let hasProfile = profile != nil
         if let profile {
-            profileStatusLabel.stringValue = "\(profile.name) is ready · recorded \(profile.createdAt.formatted(date: .abbreviated, time: .omitted)) · \(Int(profile.duration.rounded())) seconds"
+            profileStatusLabel.stringValue = "✓ \(profile.name) is saved and ready · \(Int(profile.duration.rounded())) seconds · \(profile.createdAt.formatted(date: .abbreviated, time: .omitted))"
             voiceNameField.stringValue = profile.name
-            qualityLabel.stringValue = "Your reference recording is stored only in Kiki’s Application Support folder."
+            qualityLabel.stringValue = voiceFeedback ?? (VoiceModelStore.isInstalled
+                ? "Ready. Type on the right, then choose Generate in My Voice."
+                : "Next: install the voice engine below. Kiki handles the downloaded files automatically.")
             consentCheckbox.state = .on
         } else {
             profileStatusLabel.stringValue = "Read the passage below once. Kiki uses the recording as a private reference—there is no cloud training."
-            qualityLabel.stringValue = "Read naturally in a quiet room. Aim for 30–60 seconds."
+            if recordingSamples == nil && recordingStartedAt == nil {
+                qualityLabel.stringValue = voiceFeedback ?? "Read naturally in a quiet room. Aim for 30–60 seconds."
+            }
         }
+        profileStatusLabel.textColor = hasProfile ? KikiPalette.accentText : KikiPalette.secondaryText
+        qualityLabel.textColor = voiceFeedback == nil ? KikiPalette.secondaryText : KikiPalette.accentText
         voiceNameField.isEnabled = !hasProfile
-        scriptTextView.alphaValue = hasProfile ? 0.55 : 1
+        scriptLabel.alphaValue = hasProfile ? 0.55 : 1
         consentCheckbox.isEnabled = !hasProfile
-        recordButton.title = hasProfile ? "Record Again" : "Start Voice Recording"
+        if recordingStartedAt == nil {
+            recordButton.title = hasProfile || recordingSamples != nil ? "Record Again" : "Start Recording"
+        }
         recordButton.isEnabled = hasProfile || consentCheckbox.state == .on
         saveVoiceButton.isHidden = recordingSamples == nil
         playReferenceButton.isHidden = !hasProfile && recordingSamples == nil
-        deleteVoiceButton.isHidden = !hasProfile
+        deleteVoiceButton.isHidden = !hasProfile || recordingSamples != nil
 
         if VoiceModelStore.isInstalled {
-            modelStatusLabel.stringValue = "Installed · 2.0 GB · optimized for Apple silicon · no network used during generation"
-            modelButton.title = "Remove Model"
+            modelStatusLabel.stringValue = modelFeedback ?? "✓ Installed and ready. Nothing else to open—Kiki uses the engine automatically and stays offline."
+            modelButton.title = "Remove Voice Engine…"
             modelButton.isEnabled = downloadTask == nil && synthesisTask == nil
+        } else if downloadTask != nil {
+            modelButton.title = "Cancel Installation"
+            modelButton.isEnabled = true
         } else {
-            modelStatusLabel.stringValue = "Optional 2.0 GB download. After installation, generation is completely offline."
-            modelButton.title = downloadTask == nil ? "Download Local Model" : "Cancel Download"
+            modelStatusLabel.stringValue = modelFeedback ?? "One-time 2.0 GB download. Kiki installs it here automatically; there is no file you need to open."
+            modelButton.title = "Install Voice Engine (2 GB)"
             modelButton.isEnabled = true
         }
 
-        let ready = hasProfile && VoiceModelStore.isInstalled && synthesisTask == nil
-        generateButton.isEnabled = ready && !editor.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasText = !editor.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isInstalled = VoiceModelStore.isInstalled
+        let isGenerating = synthesisTask != nil
+        let ready = hasProfile && isInstalled && !isGenerating
+        generateButton.isEnabled = ready && hasText
+        if !isGenerating {
+            if !hasProfile {
+                setupStatusLabel.stringValue = "Setup needed · Record and save your voice in step 1."
+                setupStatusLabel.textColor = KikiPalette.secondaryText
+                generateButton.title = "Save Your Voice First"
+                generationStatusLabel.stringValue = generationFeedback ?? "Your text is safe here. Generate unlocks as soon as your voice is saved."
+            } else if !isInstalled {
+                setupStatusLabel.stringValue = downloadTask == nil
+                    ? "Setup needed · Install the voice engine in step 2."
+                    : "Installing the voice engine… Generate will unlock automatically."
+                setupStatusLabel.textColor = KikiPalette.secondaryText
+                generateButton.title = downloadTask == nil ? "Install Voice Engine First" : "Installing Voice Engine…"
+                generationStatusLabel.stringValue = generationFeedback ?? "This one-time setup keeps every future generation fully local."
+            } else if !hasText {
+                setupStatusLabel.stringValue = "✓ My Voice and the local engine are ready."
+                setupStatusLabel.textColor = KikiPalette.accentText
+                generateButton.title = "Enter Text to Generate"
+                generationStatusLabel.stringValue = generationFeedback ?? "Type or paste anything above."
+            } else {
+                setupStatusLabel.stringValue = "✓ Ready to generate privately on this Mac."
+                setupStatusLabel.textColor = KikiPalette.accentText
+                generateButton.title = "Generate in My Voice"
+                generationStatusLabel.stringValue = generationFeedback ?? "Your audio will appear below when it is ready."
+            }
+        }
         playOutputButton.isEnabled = generatedAudioURL != nil
         exportButton.isEnabled = generatedAudioURL != nil
         revealButton.isEnabled = generatedAudioURL != nil
@@ -400,6 +469,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             return
         }
         audioPlayer?.stop()
+        playbackTimer?.invalidate()
+        voiceFeedback = nil
         recordingSamples = nil
         saveVoiceButton.isHidden = true
         playReferenceButton.isHidden = true
@@ -460,8 +531,13 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     @objc private func saveVoice() {
         guard let recordingSamples else { return }
         do {
+            audioPlayer?.stop()
+            playbackTimer?.invalidate()
             profile = try VoiceProfileStore.save(samples: recordingSamples, name: voiceNameField.stringValue)
             self.recordingSamples = nil
+            voiceFeedback = VoiceModelStore.isInstalled
+                ? "✓ Saved. Your voice is ready—type on the right and generate audio."
+                : "✓ Saved. Next, install the voice engine below once; Kiki handles the files for you."
             Task { await synthesisEngine.unload() }
             refreshState()
         } catch {
@@ -497,6 +573,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             try VoiceProfileStore.delete()
             profile = nil
             recordingSamples = nil
+            voiceFeedback = nil
             Task { await synthesisEngine.unload() }
             refreshState()
         } catch {
@@ -518,9 +595,9 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
                 await synthesisEngine.unload()
                 do {
                     try VoiceModelStore.delete()
-                    modelStatusLabel.stringValue = "Local voice engine removed."
+                    modelFeedback = "Voice engine removed. Install it again whenever you want to create audio."
                 } catch {
-                    modelStatusLabel.stringValue = "Could not remove the model: \(error.localizedDescription)"
+                    modelFeedback = "Could not remove the voice engine: \(error.localizedDescription)"
                 }
                 refreshState()
             }
@@ -530,34 +607,45 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             downloadTask.cancel()
             self.downloadTask = nil
             modelProgress.isHidden = true
-            modelStatusLabel.stringValue = "Download cancelled. Any completed model files will be reused next time."
+            modelFeedback = "Installation paused. Kiki will reuse completed files when you resume."
             refreshState()
             return
         }
+        modelFeedback = nil
         modelProgress.doubleValue = Double(VoiceModelStore.installedSize) / Double(VoiceModelStore.downloadSize)
         modelProgress.isHidden = false
-        modelButton.title = "Cancel Download"
+        modelStatusLabel.stringValue = "Preparing the private voice engine…"
+        modelButton.title = "Cancel Installation"
         downloadTask = Task { [weak self] in
             guard let self else { return }
             do {
                 try await VoiceModelStore.download { [weak self] progress in
                     guard let self else { return }
                     self.modelProgress.doubleValue = progress.fraction
-                    let percent = Int((progress.fraction * 100).rounded())
-                    self.modelStatusLabel.stringValue = "Downloading locally… \(percent)% · \(progress.currentFile)"
+                    let percent = progress.currentFile == "Complete"
+                        ? 100
+                        : min(99, Int(floor(progress.fraction * 100)))
+                    let fileName = progress.currentFile == "Complete"
+                        ? "Finalizing installation"
+                        : progress.currentFile.split(separator: "/").last.map(String.init) ?? progress.currentFile
+                    self.modelStatusLabel.stringValue = "Installing locally… \(percent)% · \(fileName)"
                 }
                 self.downloadTask = nil
                 self.modelProgress.isHidden = true
+                self.modelFeedback = "✓ Voice engine installed. Nothing else to open—Create Audio is ready."
+                if self.profile != nil {
+                    self.voiceFeedback = "✓ Saved. Your voice is ready—type on the right and generate audio."
+                }
                 self.refreshState()
             } catch is CancellationError {
                 self.downloadTask = nil
                 self.modelProgress.isHidden = true
-                self.modelStatusLabel.stringValue = "Download cancelled. Completed files will be reused."
+                self.modelFeedback = "Installation paused. Kiki will reuse completed files when you resume."
                 self.refreshState()
             } catch {
                 self.downloadTask = nil
                 self.modelProgress.isHidden = true
-                self.modelStatusLabel.stringValue = "Download failed: \(error.localizedDescription)"
+                self.modelFeedback = "Installation failed: \(error.localizedDescription)"
                 self.refreshState()
             }
         }
@@ -571,6 +659,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let text = editor.string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         audioPlayer?.stop()
+        generationFeedback = nil
         generatedAudioURL = nil
         generationProgress.doubleValue = 0
         generationProgress.isHidden = false
@@ -590,13 +679,16 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
                 }
                 generatedAudioURL = url
                 generationProgress.doubleValue = 1
-                generationStatusLabel.stringValue = "Ready · generated entirely on this Mac"
+                generationFeedback = "✓ Audio ready · generated entirely on this Mac. Play it below or export WAV/M4A."
+                generationStatusLabel.stringValue = generationFeedback ?? "Audio ready."
                 loadOutputAudio(url)
                 playAudio(url: url, isOutput: true)
             } catch is CancellationError {
-                generationStatusLabel.stringValue = "Generation cancelled."
+                generationFeedback = "Generation cancelled. Your text is still here."
+                generationStatusLabel.stringValue = generationFeedback ?? "Generation cancelled."
             } catch {
-                generationStatusLabel.stringValue = "Could not generate speech: \(error.localizedDescription)"
+                generationFeedback = "Could not generate speech: \(error.localizedDescription)"
+                generationStatusLabel.stringValue = generationFeedback ?? "Could not generate speech."
             }
             synthesisTask = nil
             generationProgress.isHidden = true
@@ -742,6 +834,7 @@ private final class SendableAudioExportSession: @unchecked Sendable {
 extension VoiceStudioWindowController: NSTextViewDelegate {
     func textDidChange(_ notification: Notification) {
         characterCountLabel.stringValue = "\(editor.string.count.formatted()) characters"
+        generationFeedback = nil
         refreshState()
     }
 }

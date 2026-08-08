@@ -291,6 +291,9 @@ final class KikiActionButton: NSButton {
         isBordered = false
         focusRingType = .none
         font = .systemFont(ofSize: 13, weight: .semibold)
+        lineBreakMode = .byTruncatingTail
+        cell?.wraps = false
+        setContentCompressionResistancePriority(.required, for: .vertical)
         wantsLayer = true
         layer?.cornerRadius = 10
         layer?.cornerCurve = .continuous
