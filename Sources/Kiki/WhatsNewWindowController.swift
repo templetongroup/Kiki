@@ -17,7 +17,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         window.title = "What’s New in Kiki"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
@@ -49,9 +49,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         ])
 
         let icon = NSImageView()
-        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
-            icon.image = NSImage(contentsOf: url)
-        }
+        icon.image = NSApp.applicationIconImage
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.wantsLayer = true
         icon.layer?.cornerRadius = 17

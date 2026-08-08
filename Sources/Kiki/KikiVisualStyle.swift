@@ -288,6 +288,7 @@ final class KikiActionButton: NSButton {
         self.title = title
         self.target = target
         self.action = action
+        setButtonType(.momentaryPushIn)
         isBordered = false
         focusRingType = .none
         font = .systemFont(ofSize: 13, weight: .semibold)
@@ -314,16 +315,6 @@ final class KikiActionButton: NSButton {
     override var mouseDownCanMoveWindow: Bool { false }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func mouseDown(with event: NSEvent) {
-        guard isEnabled, let action else { return }
-        NSApp.sendAction(action, to: target, from: self)
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
-        return self
-    }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()

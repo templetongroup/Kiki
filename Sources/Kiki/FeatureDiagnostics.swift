@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import ObjectiveC.runtime
 
 @MainActor
 enum FeatureDiagnostics {
@@ -80,16 +82,24 @@ enum FeatureDiagnostics {
         let sampleCount = Int(21 * AudioRecorder.sampleRate)
         let clean = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.08, count: sampleCount))
         let quiet = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.001, count: sampleCount))
-        let button = KikiActionButton("Diagnostic", target: nil, action: nil)
-        button.frame = NSRect(x: 60, y: 40, width: 180, height: 42)
-        guard clean.canSave,
-              !quiet.canSave,
-              quiet.isTooQuiet,
-              VoiceProfileStore.enrollmentScript.count > 250,
-              VoiceModelStore.manifestSize == VoiceModelStore.downloadSize,
-              button.hitTest(NSPoint(x: 20, y: 20)) === button,
-              button.hitTest(NSPoint(x: 200, y: 20)) == nil
-        else { throw failure("voice studio enrollment and model manifest") }
+        let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
+        var methodCount: UInt32 = 0
+        let methods = class_copyMethodList(KikiActionButton.self, &methodCount)
+        let overridesMouseDown = methods.map { methods in
+            UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
+                method_getName($0) == mouseDownSelector
+            }
+        } ?? false
+        guard clean.canSave, !quiet.canSave, quiet.isTooQuiet else {
+            throw failure("voice studio recording quality")
+        }
+        guard VoiceProfileStore.enrollmentScript.count > 250,
+              VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
+            throw failure("voice studio enrollment and model manifest")
+        }
+        guard !overridesMouseDown else {
+            throw failure("action buttons must use native AppKit mouse tracking")
+        }
     }
 
     private static func temporaryFile(_ name: String) -> URL {
