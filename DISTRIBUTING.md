@@ -30,10 +30,11 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
    ```bash
    xcrun notarytool store-credentials "kiki-notary" \
      --apple-id "YOUR_APPLE_ID" \
-     --team-id "YOUR_TEAM_ID"
+     --team-id "YOUR_TEAM_ID" \
+     --sync
    ```
 
-   Enter the app-specific password at the secure prompt. Do not put it directly on the command line, where it could be saved in shell history.
+   Enter the app-specific password at the secure prompt. Do not put it directly on the command line, where it could be saved in shell history. `--sync` stores the profile in iCloud Keychain so the same release identity works on your Macs. Kiki verifies the profile before spending time on a release build.
 
    App Store Connect API-key credentials are also supported by `notarytool` and are preferable for CI.
 
@@ -57,6 +58,7 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
 | `KIKI_SIGNING_IDENTITY` | Exact code-signing identity | Local identity, or Developer ID for releases |
 | `KIKI_LOCAL_SIGNING_IDENTITY` | Name of the self-signed development identity | `Kiki Local Code Signing` |
 | `KIKI_NOTARY_PROFILE` | `notarytool` keychain profile | Notarization skipped |
+| `KIKI_NOTARY_KEYCHAIN` | Optional file-based Keychain containing that profile | Synced/default Keychain |
 | `KIKI_BUNDLE_ID` | App bundle identifier | `com.tonyricciardi.kiki` |
 | `KIKI_VERSION` | User-visible version | `0.1.0` |
 | `KIKI_BUILD_NUMBER` | Monotonically increasing build number | `1` |
