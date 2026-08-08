@@ -7,6 +7,22 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 3, args[1] == "--self-test-splash-artwork" {
+    MainActor.assumeIsolated {
+        do {
+            _ = NSApplication.shared
+            try FeatureDiagnostics.checkSplashArtwork(
+                referenceURL: URL(fileURLWithPath: args[2])
+            )
+            print("Kiki splash artwork diagnostic passed")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
 if args.count >= 3, args[1] == "--create-local-voice-profile" {
     do {
         let source = URL(fileURLWithPath: args[2])

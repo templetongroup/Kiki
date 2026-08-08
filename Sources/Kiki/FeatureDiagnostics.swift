@@ -25,6 +25,36 @@ enum FeatureDiagnostics {
         return (ProcessInfo.processInfo.systemUptime - started) / Double(iterations)
     }
 
+    static func checkSplashArtwork(referenceURL: URL) throws {
+        guard let referenceImage = NSImage(contentsOf: referenceURL),
+              let referenceData = referenceImage.tiffRepresentation else {
+            throw failure("splash artwork reference")
+        }
+
+        let controller = WhatsNewWindowController()
+        guard let contentView = controller.window?.contentView,
+              let artworkView = findView(
+                  in: contentView,
+                  identifier: "kiki.whats-new.splash-artwork"
+              ) as? NSImageView,
+              let copyView = findView(
+                  in: contentView,
+                  identifier: "kiki.whats-new.copy"
+              ),
+              let renderedData = artworkView.image?.tiffRepresentation,
+              renderedData == referenceData else {
+            throw failure("splash artwork")
+        }
+
+        contentView.layoutSubtreeIfNeeded()
+        let artworkFrame = artworkView.convert(artworkView.bounds, to: contentView)
+        let copyFrame = copyView.convert(copyView.bounds, to: contentView)
+        guard artworkFrame.width >= 300,
+              artworkFrame.maxX < copyFrame.minX else {
+            throw failure("splash artwork layout")
+        }
+    }
+
     private static func checkCorrectionMemory() throws {
         let store = CorrectionMemoryStore(fileURL: temporaryFile("learning.json"))
         store.suggest(heard: "Riccardi", replacement: "Ricciardi", bundleIdentifier: "com.apple.mail")
@@ -117,6 +147,14 @@ enum FeatureDiagnostics {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("KikiDiagnostics-\(UUID().uuidString)", isDirectory: true)
             .appendingPathComponent(name)
+    }
+
+    private static func findView(in root: NSView, identifier: String) -> NSView? {
+        if root.identifier?.rawValue == identifier { return root }
+        for subview in root.subviews {
+            if let match = findView(in: subview, identifier: identifier) { return match }
+        }
+        return nil
     }
 
     private static func failure(_ name: String) -> KikiError {
