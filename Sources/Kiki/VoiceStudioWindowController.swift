@@ -10,6 +10,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private let recorder = AudioRecorder()
     private var recordingSamples: [Float]?
     private var recordingStartedAt: Date?
+    private var recordingEnrollmentMode: VoiceEnrollmentMode?
+    private var selectedEnrollmentMode: VoiceEnrollmentMode = .quick
     private var recordingTimer: Timer?
     private var synthesisTask: Task<Void, Never>?
     private var downloadTask: Task<Void, Never>?
@@ -23,7 +25,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private let profileStatusLabel = NSTextField(wrappingLabelWithString: "")
     private let voiceNameField = NSTextField(string: "My Voice")
-    private let scriptLabel = NSTextField(wrappingLabelWithString: VoiceProfileStore.enrollmentScript)
+    private lazy var enrollmentModeControl = NSSegmentedControl(
+        labels: VoiceEnrollmentMode.allCases.map(\.displayName),
+        trackingMode: .selectOne,
+        target: self,
+        action: #selector(enrollmentModeChanged)
+    )
+    private let enrollmentModeDetailLabel = NSTextField(wrappingLabelWithString: "")
+    private let scriptView = NSTextView()
     private let consentCheckbox = NSButton(checkboxWithTitle: "This is my voice, and I consent to creating a private local voice model.", target: nil, action: nil)
     private lazy var recordButton = KikiActionButton("Start Recording", kind: .primary, target: self, action: #selector(toggleRecording))
     private lazy var saveVoiceButton = KikiActionButton("Save Voice", kind: .primary, target: self, action: #selector(saveVoice))
@@ -66,6 +75,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         window.minSize = NSSize(width: 1020, height: 840)
         window.isReleasedWhenClosed = false
         super.init(window: window)
+        selectedEnrollmentMode = profile?.enrollmentMode ?? .quick
         window.delegate = self
         buildContent()
         refreshState()
@@ -75,6 +85,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     func show() {
         profile = VoiceProfileStore.load()
+        selectedEnrollmentMode = profile?.enrollmentMode ?? selectedEnrollmentMode
+        updateEnrollmentModePresentation()
         refreshState()
         showWindow(nil)
         window?.center()
@@ -166,20 +178,33 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         voiceNameField.font = .systemFont(ofSize: 13.5, weight: .medium)
         voiceNameField.bezelStyle = .roundedBezel
 
-        let scriptParagraph = NSMutableParagraphStyle()
-        scriptParagraph.lineSpacing = 2
-        scriptParagraph.lineBreakMode = .byWordWrapping
-        scriptLabel.attributedStringValue = NSAttributedString(
-            string: VoiceProfileStore.enrollmentScript,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 16, weight: .regular),
-                .foregroundColor: KikiPalette.primaryText,
-                .paragraphStyle: scriptParagraph,
-            ]
-        )
-        scriptLabel.isSelectable = true
-        scriptLabel.maximumNumberOfLines = 0
-        scriptLabel.setAccessibilityLabel("Voice enrollment passage")
+        enrollmentModeControl.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-mode")
+        enrollmentModeControl.setAccessibilityLabel("Voice setup length")
+        enrollmentModeControl.segmentStyle = .rounded
+        enrollmentModeControl.setContentHuggingPriority(.required, for: .horizontal)
+
+        enrollmentModeDetailLabel.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-explanation")
+        enrollmentModeDetailLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
+        enrollmentModeDetailLabel.textColor = KikiPalette.secondaryText
+        enrollmentModeDetailLabel.maximumNumberOfLines = 3
+
+        scriptView.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-script")
+        scriptView.isEditable = false
+        scriptView.isSelectable = true
+        scriptView.drawsBackground = false
+        scriptView.textContainerInset = NSSize(width: 12, height: 10)
+        scriptView.isVerticallyResizable = true
+        scriptView.isHorizontallyResizable = false
+        scriptView.autoresizingMask = [.width]
+        scriptView.textContainer?.widthTracksTextView = true
+        scriptView.setAccessibilityLabel("Voice enrollment passage")
+
+        let scriptScroll = KikiScrollView()
+        scriptScroll.drawsBackground = false
+        scriptScroll.borderType = .noBorder
+        scriptScroll.hasVerticalScroller = true
+        scriptScroll.autohidesScrollers = true
+        scriptScroll.documentView = scriptView
         let scriptPanel = NSView()
         scriptPanel.wantsLayer = true
         scriptPanel.layer?.cornerRadius = 12
@@ -187,14 +212,16 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         scriptPanel.layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.52).cgColor
         scriptPanel.layer?.borderWidth = 1
         scriptPanel.layer?.borderColor = KikiPalette.stroke.cgColor
-        scriptLabel.translatesAutoresizingMaskIntoConstraints = false
-        scriptPanel.addSubview(scriptLabel)
+        scriptPanel.layer?.masksToBounds = true
+        scriptScroll.translatesAutoresizingMaskIntoConstraints = false
+        scriptPanel.addSubview(scriptScroll)
         NSLayoutConstraint.activate([
-            scriptLabel.leadingAnchor.constraint(equalTo: scriptPanel.leadingAnchor, constant: 14),
-            scriptLabel.trailingAnchor.constraint(equalTo: scriptPanel.trailingAnchor, constant: -14),
-            scriptLabel.topAnchor.constraint(equalTo: scriptPanel.topAnchor, constant: 12),
-            scriptLabel.bottomAnchor.constraint(lessThanOrEqualTo: scriptPanel.bottomAnchor, constant: -12),
+            scriptScroll.leadingAnchor.constraint(equalTo: scriptPanel.leadingAnchor),
+            scriptScroll.trailingAnchor.constraint(equalTo: scriptPanel.trailingAnchor),
+            scriptScroll.topAnchor.constraint(equalTo: scriptPanel.topAnchor),
+            scriptScroll.bottomAnchor.constraint(equalTo: scriptPanel.bottomAnchor),
         ])
+        updateEnrollmentModePresentation()
 
         consentCheckbox.target = self
         consentCheckbox.action = #selector(consentChanged)
@@ -248,7 +275,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         modelActions.spacing = 8
 
         let stack = NSStackView(views: [
-            sectionTitle, profileStatusLabel, voiceNameField, scriptPanel, consentCheckbox,
+            sectionTitle, profileStatusLabel, voiceNameField, enrollmentModeControl,
+            enrollmentModeDetailLabel, scriptPanel, consentCheckbox,
             meterRow, qualityLabel, recordingActions, divider,
             modelTitle, modelStatusLabel, modelProgress, modelActions,
         ])
@@ -264,8 +292,9 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
             profileStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             voiceNameField.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            enrollmentModeDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scriptPanel.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scriptPanel.heightAnchor.constraint(equalToConstant: 226),
+            scriptPanel.heightAnchor.constraint(equalToConstant: 190),
             consentCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor),
             meterRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordingMeter.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
@@ -279,6 +308,25 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             modelActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
         return card
+    }
+
+    private func updateEnrollmentModePresentation() {
+        enrollmentModeControl.selectedSegment = VoiceEnrollmentMode.allCases.firstIndex(of: selectedEnrollmentMode) ?? 0
+        enrollmentModeDetailLabel.stringValue = selectedEnrollmentMode.explanation
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 3
+        paragraph.paragraphSpacing = 8
+        paragraph.lineBreakMode = .byWordWrapping
+        scriptView.textStorage?.setAttributedString(NSAttributedString(
+            string: selectedEnrollmentMode.script,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 15, weight: .regular),
+                .foregroundColor: KikiPalette.primaryText,
+                .paragraphStyle: paragraph,
+            ]
+        ))
+        scriptView.scrollToBeginningOfDocument(nil)
     }
 
     private func makeGenerationCard() -> NSView {
@@ -382,22 +430,25 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private func refreshState() {
         let hasProfile = profile != nil
         if let profile {
-            profileStatusLabel.stringValue = "✓ \(profile.name) is saved and ready · \(Int(profile.duration.rounded())) seconds · \(profile.createdAt.formatted(date: .abbreviated, time: .omitted))"
+            let mode = profile.enrollmentMode?.displayName ?? "Quick"
+            profileStatusLabel.stringValue = "✓ \(profile.name) is saved and ready · \(mode) setup · \(Int(profile.duration.rounded())) seconds · \(profile.createdAt.formatted(date: .abbreviated, time: .omitted))"
             voiceNameField.stringValue = profile.name
             qualityLabel.stringValue = voiceFeedback ?? (VoiceModelStore.isInstalled
                 ? "Ready. Type on the right, then choose Generate in My Voice."
                 : "Next: install the voice engine below. Kiki handles the downloaded files automatically.")
             consentCheckbox.state = .on
         } else {
-            profileStatusLabel.stringValue = "Read the passage below once. Kiki uses the recording as a private reference—there is no cloud training."
+            profileStatusLabel.stringValue = "Choose Quick for faster setup or Full for better accuracy. Either way, your recording stays private on this Mac."
             if recordingSamples == nil && recordingStartedAt == nil {
-                qualityLabel.stringValue = voiceFeedback ?? "Read naturally in a quiet room. Aim for 30–60 seconds."
+                qualityLabel.stringValue = voiceFeedback ?? selectedEnrollmentMode.explanation
             }
         }
         profileStatusLabel.textColor = hasProfile ? KikiPalette.accentText : KikiPalette.secondaryText
         qualityLabel.textColor = voiceFeedback == nil ? KikiPalette.secondaryText : KikiPalette.accentText
         voiceNameField.isEnabled = !hasProfile
-        scriptLabel.alphaValue = hasProfile ? 0.55 : 1
+        enrollmentModeControl.isEnabled = recordingStartedAt == nil && recordingSamples == nil
+        enrollmentModeDetailLabel.alphaValue = hasProfile ? 0.7 : 1
+        scriptView.alphaValue = hasProfile ? 0.7 : 1
         consentCheckbox.isEnabled = !hasProfile
         if recordingStartedAt == nil {
             recordButton.title = hasProfile || recordingSamples != nil ? "Record Again" : "Start Recording"
@@ -459,6 +510,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         recordButton.isEnabled = consentCheckbox.state == .on || profile != nil
     }
 
+    @objc private func enrollmentModeChanged() {
+        guard VoiceEnrollmentMode.allCases.indices.contains(enrollmentModeControl.selectedSegment) else { return }
+        selectedEnrollmentMode = VoiceEnrollmentMode.allCases[enrollmentModeControl.selectedSegment]
+        voiceFeedback = nil
+        updateEnrollmentModePresentation()
+        refreshState()
+    }
+
     @objc private func toggleRecording() {
         if recordingStartedAt != nil { stopRecording() } else { startRecording() }
     }
@@ -472,6 +531,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         playbackTimer?.invalidate()
         voiceFeedback = nil
         recordingSamples = nil
+        recordingEnrollmentMode = selectedEnrollmentMode
+        enrollmentModeControl.isEnabled = false
         saveVoiceButton.isHidden = true
         playReferenceButton.isHidden = true
         recordingMeter.doubleValue = 0
@@ -486,7 +547,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             try recorder.start()
             recordingStartedAt = Date()
             recordButton.title = "Stop Recording"
-            qualityLabel.stringValue = "Recording locally… read the complete passage at your normal pace."
+            qualityLabel.stringValue = "Recording \(selectedEnrollmentMode.displayName.lowercased()) setup locally… read the complete passage at your normal pace."
             recordingTimeLabel.textColor = .systemRed
             onCaptureStateChange?(true)
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
@@ -495,6 +556,8 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             updateRecordingTimer()
         } catch {
             recorder.setSamplesHandler(nil)
+            recordingEnrollmentMode = nil
+            enrollmentModeControl.isEnabled = true
             qualityLabel.stringValue = "Could not record: \(error.localizedDescription)"
             onCaptureStateChange?(false)
         }
@@ -511,7 +574,12 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         recordButton.title = profile == nil ? "Record Again" : "Replace Recording"
         onCaptureStateChange?(false)
 
-        let quality = VoiceProfileStore.recordingQuality(samples: samples)
+        let mode = recordingEnrollmentMode ?? selectedEnrollmentMode
+        let quality = VoiceProfileStore.recordingQuality(
+            samples: samples,
+            minimumDuration: mode.minimumDuration,
+            maximumDuration: mode.maximumDuration
+        )
         qualityLabel.stringValue = quality.message
         recordingSamples = quality.canSave ? samples : nil
         saveVoiceButton.isHidden = !quality.canSave
@@ -519,13 +587,17 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         if quality.canSave {
             recordingSamples = samples
             saveVoiceButton.isEnabled = true
+        } else {
+            recordingEnrollmentMode = nil
+            enrollmentModeControl.isEnabled = true
         }
     }
 
     private func updateRecordingTimer() {
         let elapsed = max(0, Int(Date().timeIntervalSince(recordingStartedAt ?? Date())))
         recordingTimeLabel.stringValue = String(format: "%02d:%02d", elapsed / 60, elapsed % 60)
-        if elapsed >= 90 { stopRecording() }
+        let maximumDuration = recordingEnrollmentMode?.maximumDuration ?? selectedEnrollmentMode.maximumDuration
+        if TimeInterval(elapsed) >= maximumDuration { stopRecording() }
     }
 
     @objc private func saveVoice() {
@@ -533,8 +605,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         do {
             audioPlayer?.stop()
             playbackTimer?.invalidate()
-            profile = try VoiceProfileStore.save(samples: recordingSamples, name: voiceNameField.stringValue)
+            let mode = recordingEnrollmentMode ?? selectedEnrollmentMode
+            profile = try VoiceProfileStore.save(
+                samples: recordingSamples,
+                name: voiceNameField.stringValue,
+                enrollmentMode: mode
+            )
             self.recordingSamples = nil
+            recordingEnrollmentMode = nil
             voiceFeedback = VoiceModelStore.isInstalled
                 ? "✓ Saved. Your voice is ready—type on the right and generate audio."
                 : "✓ Saved. Next, install the voice engine below once; Kiki handles the files for you."

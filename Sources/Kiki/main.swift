@@ -7,6 +7,17 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 2, args[1] == "--preview-voice-studio" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        let controller = VoiceStudioWindowController()
+        controller.show()
+        app.run()
+    }
+}
+
 if args.count >= 3, args[1] == "--self-test-splash-artwork" {
     MainActor.assumeIsolated {
         do {
@@ -15,6 +26,22 @@ if args.count >= 3, args[1] == "--self-test-splash-artwork" {
                 referenceURL: URL(fileURLWithPath: args[2])
             )
             print("Kiki splash artwork diagnostic passed")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
+if args.count >= 3, args[1] == "--self-test-voice-enrollment" {
+    MainActor.assumeIsolated {
+        do {
+            _ = NSApplication.shared
+            try FeatureDiagnostics.checkVoiceEnrollment(
+                fullScriptReferenceURL: URL(fileURLWithPath: args[2])
+            )
+            print("Kiki voice enrollment diagnostic passed")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)

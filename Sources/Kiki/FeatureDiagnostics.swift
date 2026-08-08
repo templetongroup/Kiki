@@ -55,6 +55,26 @@ enum FeatureDiagnostics {
         }
     }
 
+    static func checkVoiceEnrollment(fullScriptReferenceURL: URL) throws {
+        let expected = try String(contentsOf: fullScriptReferenceURL, encoding: .utf8)
+            .trimmingCharacters(in: .newlines)
+        guard VoiceProfileStore.fullEnrollmentScript == expected,
+              VoiceEnrollmentMode.quick.script == VoiceProfileStore.quickEnrollmentScript,
+              VoiceEnrollmentMode.full.script == expected,
+              VoiceEnrollmentMode.full.minimumDuration > VoiceEnrollmentMode.quick.maximumDuration,
+              VoiceEnrollmentMode.full.explanation.contains("better accuracy") else {
+            throw failure("full voice enrollment script")
+        }
+
+        let controller = VoiceStudioWindowController()
+        guard let contentView = controller.window?.contentView,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-mode") is NSSegmentedControl,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView else {
+            throw failure("voice enrollment mode interface")
+        }
+    }
+
     private static func checkCorrectionMemory() throws {
         let store = CorrectionMemoryStore(fileURL: temporaryFile("learning.json"))
         store.suggest(heard: "Riccardi", replacement: "Ricciardi", bundleIdentifier: "com.apple.mail")
@@ -135,6 +155,7 @@ enum FeatureDiagnostics {
             throw failure("voice studio recording quality")
         }
         guard VoiceProfileStore.enrollmentScript.count > 250,
+              VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
               VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
             throw failure("voice studio enrollment and model manifest")
         }
