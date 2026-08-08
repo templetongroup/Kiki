@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
@@ -14,14 +15,19 @@ final class HUDPanel {
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 48),
                         styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered,
-                        defer: true)
+                        defer: false)
+        panel.title = "Kiki Live Transcription"
         panel.level = .statusBar
+        panel.isFloatingPanel = true
+        panel.isReleasedWhenClosed = false
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.animationBehavior = .none
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.setAccessibilityTitle("Kiki Live Transcription")
 
         effect = NSVisualEffectView()
         effect.material = .hudWindow
@@ -82,10 +88,7 @@ final class HUDPanel {
         transcriptLabel.isHidden = true
         let logoWidth: CGFloat = logoView.isHidden ? 0 : 37
         let width = max(180, statusLabel.intrinsicContentSize.width + logoWidth + 54)
-        let frame = positionedFrame(width: width, height: 54)
-        panel.setFrame(frame, display: true)
-        gradient.frame = effect.bounds
-        panel.orderFrontRegardless()
+        present(width: width, height: 54)
     }
 
     func showListening(transcript: String? = nil) {
@@ -109,11 +112,17 @@ final class HUDPanel {
     }
 
     private func showExpanded() {
-        let width: CGFloat = 440
-        let frame = positionedFrame(width: width, height: 82)
+        present(width: 440, height: 82)
+    }
+
+    private func present(width: CGFloat, height: CGFloat) {
+        let frame = positionedFrame(width: width, height: height)
+        panel.alphaValue = 1
         panel.setFrame(frame, display: true)
+        effect.layoutSubtreeIfNeeded()
         gradient.frame = effect.bounds
         panel.orderFrontRegardless()
+        panel.displayIfNeeded()
     }
 
     private func displayText(_ transcript: String?) -> String {
@@ -126,24 +135,62 @@ final class HUDPanel {
     private func positionedFrame(width: CGFloat, height: CGFloat) -> NSRect {
         if Settings.showHUDNearCaret,
            let caret = AppContextSnapshot.caretScreenRect(),
-           let primary = NSScreen.screens.first {
-            let point = NSPoint(x: caret.midX, y: primary.frame.maxY - caret.midY)
-            let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? NSScreen.main
-            if let visible = screen?.visibleFrame {
-                let desiredX = point.x - width / 2
-                let desiredY = point.y - height - 14
-                return NSRect(
-                    x: min(max(desiredX, visible.minX + 8), visible.maxX - width - 8),
-                    y: min(max(desiredY, visible.minY + 8), visible.maxY - height - 8),
-                    width: width,
-                    height: height
-                )
-            }
+           let placement = caretPlacement(for: caret) {
+            return clampedFrame(
+                near: placement.point,
+                visibleFrame: placement.screen.visibleFrame,
+                width: width,
+                height: height
+            )
         }
-        let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame ?? .zero
+
+        let pointer = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(pointer) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: width, height: height)
         return NSRect(
             x: visible.midX - width / 2,
             y: visible.minY + 60,
+            width: width,
+            height: height
+        )
+    }
+
+    private func caretPlacement(for caret: CGRect) -> (point: NSPoint, screen: NSScreen)? {
+        let quartzPoint = CGPoint(x: caret.midX, y: caret.midY)
+        for screen in NSScreen.screens {
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+                continue
+            }
+            let quartzFrame = CGDisplayBounds(CGDirectDisplayID(number.uint32Value))
+            guard quartzFrame.contains(quartzPoint) else { continue }
+            let point = NSPoint(
+                x: screen.frame.minX + quartzPoint.x - quartzFrame.minX,
+                y: screen.frame.maxY - (quartzPoint.y - quartzFrame.minY)
+            )
+            return (point, screen)
+        }
+        return nil
+    }
+
+    private func clampedFrame(
+        near point: NSPoint,
+        visibleFrame: NSRect,
+        width: CGFloat,
+        height: CGFloat
+    ) -> NSRect {
+        let margin: CGFloat = 8
+        let gap: CGFloat = 14
+        let minimumX = visibleFrame.minX + margin
+        let maximumX = max(minimumX, visibleFrame.maxX - width - margin)
+        let minimumY = visibleFrame.minY + margin
+        let maximumY = max(minimumY, visibleFrame.maxY - height - margin)
+        let belowCaret = point.y - height - gap
+        let desiredY = belowCaret >= minimumY ? belowCaret : point.y + gap
+        return NSRect(
+            x: min(max(point.x - width / 2, minimumX), maximumX),
+            y: min(max(desiredY, minimumY), maximumY),
             width: width,
             height: height
         )
@@ -166,5 +213,9 @@ final class HUDPanel {
 
     func hide() {
         panel.orderOut(nil)
+    }
+
+    var isVisibleOnScreen: Bool {
+        panel.isVisible && NSScreen.screens.contains { $0.visibleFrame.intersects(panel.frame) }
     }
 }

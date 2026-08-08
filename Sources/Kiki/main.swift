@@ -76,6 +76,25 @@ if args.count >= 2, args[1] == "--self-test-features" {
     }
 }
 
+if args.count >= 2, args[1] == "--self-test-hud" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        let hud = HUDPanel()
+        hud.showListening(transcript: "Live transcription window test")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            guard hud.isVisibleOnScreen else {
+                fputs("Error: Kiki live transcription window is not visible on any screen.\n", stderr)
+                exit(1)
+            }
+            print("Kiki live transcription window is visible on screen")
+            hud.hide()
+            exit(0)
+        }
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--benchmark-postprocessing" {
     MainActor.assumeIsolated {
         let average = FeatureDiagnostics.benchmarkPostProcessing()
