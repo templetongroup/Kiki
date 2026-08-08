@@ -54,7 +54,7 @@ struct KikiVoiceProfile: Codable, Sendable {
 
 enum VoiceProfileStore {
     static let quickEnrollmentScript = """
-    This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement; later, I may slow down to explain a thoughtful idea. Clear words, quiet pauses, and natural expression all belong here. Numbers like twenty-seven, dates like October fifth, and questions such as, “Where should we begin?” help capture the way I actually sound. I consent to Kiki using this recording only on this Mac to create speech in my voice.
+    This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement; later, I may slow down to explain a thoughtful idea. Clear words, quiet pauses, and natural expression all belong here. Numbers like twenty-seven, dates like October fifth, and questions such as, “Where should we begin?” help capture the way I actually sound. Kiki will keep this recording private on my Mac and use it only to create speech that sounds like me.
     """
 
     static let fullEnrollmentScript = """

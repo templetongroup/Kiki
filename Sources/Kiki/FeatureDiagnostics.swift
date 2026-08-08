@@ -155,6 +155,8 @@ enum FeatureDiagnostics {
             throw failure("voice studio recording quality")
         }
         guard VoiceProfileStore.enrollmentScript.count > 250,
+              !VoiceProfileStore.quickEnrollmentScript.contains("I consent"),
+              VoiceProfileStore.quickEnrollmentScript.contains("keep this recording private on my Mac"),
               VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
               VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
             throw failure("voice studio enrollment and model manifest")
