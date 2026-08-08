@@ -55,6 +55,7 @@ enum FeatureDiagnostics {
     }
 
     private static func checkMeetingExports() throws {
+        let permissionError = MeetingCaptureStartError.systemAudioPermissionRequired
         let segments = [
             MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "You", text: "I will send the proposal."),
             MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Others", text: "Please schedule the review."),
@@ -69,7 +70,10 @@ enum FeatureDiagnostics {
         guard meeting.markdown.contains("Possible action items"),
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
-              meeting.actionItems.count == 2
+              meeting.actionItems.count == 2,
+              permissionError.requiresScreenRecordingSettings,
+              permissionError.localizedDescription.contains("Zoom"),
+              !MeetingCaptureStartError.microphoneUnavailable("test").requiresScreenRecordingSettings
         else { throw failure("meeting exports") }
     }
 

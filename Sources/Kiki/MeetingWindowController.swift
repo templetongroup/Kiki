@@ -11,7 +11,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private let titleField = NSTextField()
     private lazy var recordButton = KikiActionButton("Start Meeting Capture", kind: .primary, target: self, action: #selector(toggleRecording))
     private let timerLabel = NSTextField(labelWithString: "00:00:00")
-    private let statusLabel = NSTextField(wrappingLabelWithString: "Ready — microphone and system audio stay on this Mac.")
+    private let statusLabel = NSTextField(wrappingLabelWithString: "Ready — Kiki verifies both your microphone and remote meeting audio before recording.")
     private let textView = NSTextView()
     private let formatPopup = NSPopUpButton()
     private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
@@ -177,8 +177,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 textView.string = preview == nil
                     ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
                     : "LIVE DRAFT · YOU\n\nListening…"
-                statusLabel.stringValue = captureSession.systemAudioWarning
-                    ?? "Recording locally — live draft shows You; the final transcript labels You and Others."
+                statusLabel.stringValue = "Recording locally — remote audio is active. Live draft shows You; the final transcript labels You and Others."
                 startTimer()
             } catch {
                 captureSession.setMicrophoneSamplesHandler(nil)
@@ -187,8 +186,33 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 Task { await preview?.stop() }
                 onCaptureStateChange?(false)
                 recordButton.isEnabled = true
-                statusLabel.stringValue = "Could not start Meeting Mode: \(error.localizedDescription)"
+                statusLabel.stringValue = "Recording did not start — Kiki could not verify both you and the other speakers."
+                presentCaptureStartFailure(error)
             }
+        }
+    }
+
+    private func presentCaptureStartFailure(_ error: Error) {
+        let captureError = error as? MeetingCaptureStartError
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Meeting recording did not start"
+        alert.informativeText = "\(error.localizedDescription)\n\nKiki will not record a meeting unless it can capture both your microphone and the other speakers."
+
+        if captureError?.requiresScreenRecordingSettings == true {
+            alert.addButton(withTitle: "Open System Settings")
+            alert.addButton(withTitle: "Cancel")
+        } else {
+            alert.addButton(withTitle: "OK")
+        }
+
+        guard let window else { return }
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn,
+                  captureError?.requiresScreenRecordingSettings == true,
+                  let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+            else { return }
+            NSWorkspace.shared.open(settingsURL)
         }
     }
 

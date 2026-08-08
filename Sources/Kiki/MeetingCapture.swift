@@ -1,7 +1,32 @@
 import AVFoundation
 import CoreMedia
+import CoreGraphics
 import Foundation
 import ScreenCaptureKit
+
+enum MeetingCaptureStartError: LocalizedError {
+    case systemAudioPermissionRequired
+    case systemAudioUnavailable(String)
+    case microphoneUnavailable(String)
+
+    var requiresScreenRecordingSettings: Bool {
+        switch self {
+        case .systemAudioPermissionRequired, .systemAudioUnavailable: true
+        case .microphoneUnavailable: false
+        }
+    }
+
+    var errorDescription: String? {
+        switch self {
+        case .systemAudioPermissionRequired:
+            "Kiki needs Screen & System Audio Recording access to capture other people in Zoom, Google Meet, and similar apps."
+        case .systemAudioUnavailable(let detail):
+            "Kiki could not start system-audio capture. \(detail)"
+        case .microphoneUnavailable(let detail):
+            "Kiki could not start microphone capture. \(detail)"
+        }
+    }
+}
 
 struct MeetingAudioCapture: Sendable {
     let microphoneSamples: [Float]
@@ -56,7 +81,6 @@ final class MeetingCaptureSession {
     private let microphone = AudioRecorder()
     private let systemAudio = SystemAudioRecorder()
     private var startedAt: Date?
-    private(set) var systemAudioWarning: String?
 
     func setMicrophoneSamplesHandler(_ handler: (([Float]) -> Void)?) {
         microphone.setSamplesHandler(handler)
@@ -64,17 +88,23 @@ final class MeetingCaptureSession {
 
     func start() async throws {
         guard startedAt == nil else { throw KikiError("A meeting capture is already running.") }
-        systemAudioWarning = nil
+
+        if !CGPreflightScreenCaptureAccess() {
+            guard CGRequestScreenCaptureAccess() else {
+                throw MeetingCaptureStartError.systemAudioPermissionRequired
+            }
+        }
+
         do {
             try await systemAudio.start()
         } catch {
-            systemAudioWarning = "System audio is unavailable: \(error.localizedDescription)"
+            throw MeetingCaptureStartError.systemAudioUnavailable(error.localizedDescription)
         }
         do {
             try microphone.start()
         } catch {
             _ = await systemAudio.stop()
-            throw error
+            throw MeetingCaptureStartError.microphoneUnavailable(error.localizedDescription)
         }
         startedAt = Date()
     }
