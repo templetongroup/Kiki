@@ -42,12 +42,11 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
 
    ```bash
    KIKI_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-   KIKI_NOTARY_PROFILE="kiki-notary" \
    KIKI_BUILD_NUMBER="1" \
    ./scripts/release.sh 0.1.0
    ```
 
-   The output is `build/Kiki-0.1.0-macOS.zip`. The release script refuses to create a public archive with a local or ad-hoc identity. If `KIKI_NOTARY_PROFILE` is omitted it creates a Developer ID-signed archive but clearly reports that notarization was skipped.
+   The output is `build/Kiki-0.1.0-macOS.zip`. The release script uses the synced `kiki-notary` profile by default and verifies it before building. It refuses to create a public archive if the Developer ID identity or notarization profile is unavailable, so an unnotarized ZIP cannot be published accidentally. Set `KIKI_NOTARY_PROFILE` only when using a differently named profile.
 
 4. Upload the ZIP to a GitHub Release. Before publishing, test the exact downloaded archive on another Mac or a clean user account.
 
@@ -57,7 +56,7 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
 | --- | --- | --- |
 | `KIKI_SIGNING_IDENTITY` | Exact code-signing identity | Local identity, or Developer ID for releases |
 | `KIKI_LOCAL_SIGNING_IDENTITY` | Name of the self-signed development identity | `Kiki Local Code Signing` |
-| `KIKI_NOTARY_PROFILE` | `notarytool` keychain profile | Notarization skipped |
+| `KIKI_NOTARY_PROFILE` | `notarytool` keychain profile | `kiki-notary` |
 | `KIKI_NOTARY_KEYCHAIN` | Optional file-based Keychain containing that profile | Synced/default Keychain |
 | `KIKI_BUNDLE_ID` | App bundle identifier | `com.tonyricciardi.kiki` |
 | `KIKI_VERSION` | User-visible version | `0.1.0` |
