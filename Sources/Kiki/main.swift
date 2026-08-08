@@ -84,13 +84,37 @@ if args.count >= 2, args[1] == "--self-test-hud" {
         hud.showListening(transcript: "Live transcription window test")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             guard hud.isVisibleOnScreen else {
-                fputs("Error: Kiki live transcription window is not visible on any screen.\n", stderr)
+                fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)
                 exit(1)
             }
-            print("Kiki live transcription window is visible on screen")
-            hud.hide()
-            exit(0)
+            hud.showWaveform(level: 0.8)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                guard hud.isVisibleOnScreen else {
+                    fputs("Error: Kiki waveform is not visible on any screen.\n", stderr)
+                    exit(1)
+                }
+                hud.hide()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    guard !hud.isVisibleOnScreen else {
+                        fputs("Error: Kiki listening display did not hide.\n", stderr)
+                        exit(1)
+                    }
+                    print("Kiki listening displays passed: full transcript, waveform, hidden")
+                    exit(0)
+                }
+            }
         }
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-settings" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        app.finishLaunching()
+        let controller = SettingsWindowController()
+        controller.show()
         app.run()
     }
 }

@@ -80,6 +80,13 @@ enum FeatureDiagnostics {
     private static func checkPhraseBoundaries() throws {
         guard WholePhraseReplacer.replace("Ann", with: "Anne", in: "Ann met Annabelle") == "Anne met Annabelle"
         else { throw failure("phrase boundaries") }
+
+        let silentLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0, count: 128))
+        let speakingLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.12, count: 128))
+        guard ListeningDisplayMode.allCases == [.fullTranscript, .waveform, .hidden],
+              silentLevel == 0,
+              speakingLevel > 0.5
+        else { throw failure("listening display modes") }
     }
 
     private static func checkVoiceStudio() throws {

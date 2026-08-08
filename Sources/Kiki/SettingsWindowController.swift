@@ -13,10 +13,17 @@ final class SettingsWindowController: NSWindowController {
     private let speechProfilePopup = NSPopUpButton()
     private let appearancePopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
+    private let listeningDisplayControl = NSSegmentedControl(
+        labels: ListeningDisplayMode.allCases.map(\.title),
+        trackingMode: .selectOne,
+        target: nil,
+        action: nil
+    )
     private let messageLabel = NSTextField(labelWithString: "")
     private let startupStatusLabel = NSTextField(labelWithString: "")
     private let lookAndSoundStatusLabel = NSTextField(labelWithString: "")
     private let speechProfileDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
+    private let listeningDisplayDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
     private let pageHost = NSView()
     private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
     private let pageSubtitleLabel = kikiLabel(
@@ -37,7 +44,6 @@ final class SettingsWindowController: NSWindowController {
     private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
     private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
     private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
-    private let liveTranscriptionCheckbox = NSButton(checkboxWithTitle: "Show words while I speak", target: nil, action: nil)
     private let caretHUDCheckbox = NSButton(checkboxWithTitle: "Keep the listening window near my cursor", target: nil, action: nil)
     private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
     private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
@@ -211,7 +217,7 @@ final class SettingsWindowController: NSWindowController {
     private func configureControls() {
         let checkboxes = [
             launchAtLoginCheckbox, automaticUpdatesCheckbox, silenceAudioCheckbox,
-            liveTranscriptionCheckbox, caretHUDCheckbox, zeroWaitCheckbox,
+            caretHUDCheckbox, zeroWaitCheckbox,
             continuationsCheckbox, learningCheckbox, contextCheckbox,
             confidenceCheckbox, historyCheckbox,
         ]
@@ -225,8 +231,15 @@ final class SettingsWindowController: NSWindowController {
         automaticUpdatesCheckbox.action = #selector(automaticUpdatesChanged)
         silenceAudioCheckbox.target = self
         silenceAudioCheckbox.action = #selector(silenceAudioChanged)
-        liveTranscriptionCheckbox.target = self
-        liveTranscriptionCheckbox.action = #selector(liveTranscriptionChanged)
+        listeningDisplayControl.target = self
+        listeningDisplayControl.action = #selector(listeningDisplayChanged)
+        listeningDisplayControl.segmentStyle = .rounded
+        listeningDisplayControl.controlSize = .large
+        listeningDisplayControl.font = .systemFont(ofSize: 12.5, weight: .semibold)
+        listeningDisplayControl.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        for index in 0..<listeningDisplayControl.segmentCount {
+            listeningDisplayControl.setWidth(150, forSegment: index)
+        }
         caretHUDCheckbox.target = self
         caretHUDCheckbox.action = #selector(caretHUDChanged)
         zeroWaitCheckbox.target = self
@@ -276,6 +289,7 @@ final class SettingsWindowController: NSWindowController {
             $0.maximumNumberOfLines = 2
         }
         speechProfileDescriptionLabel.maximumNumberOfLines = 0
+        listeningDisplayDescriptionLabel.maximumNumberOfLines = 0
     }
 
     private func makeGeneralPage() -> NSView {
@@ -307,6 +321,19 @@ final class SettingsWindowController: NSWindowController {
                 views: [shortcutRow, behaviorRow, messageLabel]
             ),
             SettingsCard(
+                title: "Listening Display",
+                subtitle: "Choose how much Kiki shows while it works. This never changes transcription speed or quality.",
+                views: [
+                    listeningDisplayControl,
+                    listeningDisplayDescriptionLabel,
+                    informativeToggle(
+                        caretHUDCheckbox,
+                        title: "Keep the listening display near my cursor",
+                        detail: "Places the transcript or waveform beside the insertion point when Kiki can detect it. Otherwise, it appears near the bottom of the active screen."
+                    ),
+                ]
+            ),
+            SettingsCard(
                 title: "Flow",
                 subtitle: "Optional conveniences that never change the speed or accuracy of your final transcription.",
                 views: [
@@ -319,16 +346,6 @@ final class SettingsWindowController: NSWindowController {
                         continuationsCheckbox,
                         title: "Join back-to-back dictations",
                         detail: "When you dictate again within a few seconds, Kiki joins the thoughts with natural spacing instead of treating them as unrelated."
-                    ),
-                    informativeToggle(
-                        liveTranscriptionCheckbox,
-                        title: "Show words while I speak",
-                        detail: "Shows partial words in the listening window as you speak. Your final text still comes from the complete local transcription."
-                    ),
-                    informativeToggle(
-                        caretHUDCheckbox,
-                        title: "Keep the listening window near my cursor",
-                        detail: "Places the listening window beside the insertion point when Kiki can detect it. Otherwise, it appears near the bottom of the screen."
                     ),
                 ]
             ),
@@ -459,8 +476,11 @@ final class SettingsWindowController: NSWindowController {
         speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
         speechProfileDescriptionLabel.stringValue = Settings.speechProfile.detail
         silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
-        liveTranscriptionCheckbox.state = Settings.showLiveTranscription ? .on : .off
+        let listeningMode = Settings.listeningDisplayMode
+        listeningDisplayControl.selectedSegment = ListeningDisplayMode.allCases.firstIndex(of: listeningMode) ?? 0
+        listeningDisplayDescriptionLabel.stringValue = listeningMode.detail
         caretHUDCheckbox.state = Settings.showHUDNearCaret ? .on : .off
+        caretHUDCheckbox.isEnabled = listeningMode != .hidden
         zeroWaitCheckbox.state = Settings.enableZeroWaitChaining ? .on : .off
         continuationsCheckbox.state = Settings.enableVoiceContinuations ? .on : .off
         learningCheckbox.state = Settings.learnFromCorrections ? .on : .off
@@ -599,7 +619,11 @@ final class SettingsWindowController: NSWindowController {
             : "Previewing \(Settings.soundStyle.title.lowercased()) sounds."
     }
     @objc private func silenceAudioChanged() { Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on }
-    @objc private func liveTranscriptionChanged() { Settings.showLiveTranscription = liveTranscriptionCheckbox.state == .on }
+    @objc private func listeningDisplayChanged() {
+        guard ListeningDisplayMode.allCases.indices.contains(listeningDisplayControl.selectedSegment) else { return }
+        Settings.listeningDisplayMode = ListeningDisplayMode.allCases[listeningDisplayControl.selectedSegment]
+        refresh()
+    }
     @objc private func caretHUDChanged() { Settings.showHUDNearCaret = caretHUDCheckbox.state == .on }
     @objc private func zeroWaitChanged() { Settings.enableZeroWaitChaining = zeroWaitCheckbox.state == .on; onSettingsChange?(Settings.dictationShortcut, Settings.activationMode) }
     @objc private func continuationsChanged() { Settings.enableVoiceContinuations = continuationsCheckbox.state == .on }

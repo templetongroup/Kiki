@@ -319,7 +319,7 @@ final class DictationController {
             beginLivePreviewIfAvailable()
             try recorder.start()
             state = .recording
-            hud.showListening()
+            showListeningPresentation()
         } catch {
             _ = stopLivePreview()
             systemAudioSilencer.restore()
@@ -357,7 +357,7 @@ final class DictationController {
         )
         pendingJobs.sort { $0.sequence < $1.sequence }
         state = .transcribing
-        hud.showTranscribing(transcript: lastLiveTranscript)
+        showTranscribingPresentation(transcript: lastLiveTranscript)
         processNextJobIfNeeded()
     }
 
@@ -371,7 +371,7 @@ final class DictationController {
         lastLiveTranscript = nil
         if processingJob || !pendingJobs.isEmpty {
             state = .transcribing
-            hud.showTranscribing()
+            showTranscribingPresentation()
         } else {
             state = .idle
             hud.hide()
@@ -387,7 +387,7 @@ final class DictationController {
         let job = pendingJobs.removeFirst()
         if state != .recording {
             state = .transcribing
-            hud.showTranscribing(transcript: job.liveTranscript)
+            showTranscribingPresentation(transcript: job.liveTranscript)
         }
 
         if let parakeetTranscriber {
@@ -475,13 +475,33 @@ final class DictationController {
 
     private func beginLivePreviewIfAvailable() {
         lastLiveTranscript = nil
-        guard Settings.showLiveTranscription, let parakeetTranscriber else {
+        let mode = Settings.listeningDisplayMode
+        guard mode != .hidden else {
             recorder.setSamplesHandler(nil)
             return
         }
 
         livePreviewID = UUID()
         let currentID = livePreviewID
+
+        if mode == .waveform {
+            recorder.setSamplesHandler { [weak self] samples in
+                let level = VoiceLevelMeter.normalizedLevel(for: samples)
+                DispatchQueue.main.async {
+                    guard let self,
+                          self.state == .recording,
+                          self.livePreviewID == currentID
+                    else { return }
+                    self.hud.showWaveform(level: level)
+                }
+            }
+            return
+        }
+
+        guard let parakeetTranscriber else {
+            recorder.setSamplesHandler(nil)
+            return
+        }
         let feed = AudioSampleFeed()
         liveAudioFeed = feed
         recorder.setSamplesHandler { samples in feed.yield(samples) }
@@ -492,6 +512,22 @@ final class DictationController {
             else { return }
             self.lastLiveTranscript = text
             self.hud.showListening(transcript: text)
+        }
+    }
+
+    private func showListeningPresentation() {
+        switch Settings.listeningDisplayMode {
+        case .fullTranscript: hud.showListening()
+        case .waveform: hud.showWaveform(level: 0, reset: true)
+        case .hidden: hud.hide()
+        }
+    }
+
+    private func showTranscribingPresentation(transcript: String? = nil) {
+        switch Settings.listeningDisplayMode {
+        case .fullTranscript: hud.showTranscribing(transcript: transcript)
+        case .waveform: hud.showWaveform(level: 0, reset: true)
+        case .hidden: hud.hide()
         }
     }
 

@@ -54,13 +54,21 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "silenceSystemAudioWhileRecording") }
     }
 
-    static var showLiveTranscription: Bool {
+    static var listeningDisplayMode: ListeningDisplayMode {
         get {
-            let key = "showLiveTranscription"
-            guard UserDefaults.standard.object(forKey: key) != nil else { return true }
-            return UserDefaults.standard.bool(forKey: key)
+            if let raw = UserDefaults.standard.string(forKey: "listeningDisplayMode"),
+               let mode = ListeningDisplayMode(rawValue: raw) {
+                return mode
+            }
+            // The old switch controlled live words but always kept the panel.
+            // Preserve that preference by migrating "off" to the compact mode.
+            if UserDefaults.standard.object(forKey: "showLiveTranscription") != nil,
+               !UserDefaults.standard.bool(forKey: "showLiveTranscription") {
+                return .waveform
+            }
+            return .fullTranscript
         }
-        set { UserDefaults.standard.set(newValue, forKey: "showLiveTranscription") }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "listeningDisplayMode") }
     }
 
     static var appearanceMode: AppAppearanceMode {
@@ -163,6 +171,31 @@ enum ActivationMode: String, CaseIterable {
     case hold, toggle
 
     var title: String { self == .hold ? "Hold to Dictate" : "Press to Toggle" }
+}
+
+enum ListeningDisplayMode: String, CaseIterable {
+    case fullTranscript
+    case waveform
+    case hidden
+
+    var title: String {
+        switch self {
+        case .fullTranscript: "Full Transcript"
+        case .waveform: "Waveform"
+        case .hidden: "Hidden"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .fullTranscript:
+            "Shows Kiki's live words and recording status while you speak."
+        case .waveform:
+            "Shows only a compact sound wave that responds to your voice."
+        case .hidden:
+            "Keeps the screen completely clear while Kiki listens and transcribes."
+        }
+    }
 }
 
 struct DictationShortcut: Codable, Equatable {

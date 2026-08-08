@@ -10,6 +10,12 @@ final class HUDPanel {
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
+    private let waveformView = KikiWaveformView()
+    private let textStack = NSStackView()
+    private var hasLogo = false
+    private var presentation: Presentation?
+
+    private enum Presentation { case message, transcript, waveform }
 
     init() {
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 48),
@@ -47,6 +53,7 @@ final class HUDPanel {
             logoView.image = NSImage(contentsOf: url)
         }
         logoView.isHidden = logoView.image == nil
+        hasLogo = logoView.image != nil
 
         statusLabel = NSTextField(labelWithString: "")
         statusLabel.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -58,12 +65,13 @@ final class HUDPanel {
         transcriptLabel.lineBreakMode = .byTruncatingHead
         transcriptLabel.isHidden = true
 
-        let textStack = NSStackView(views: [statusLabel, transcriptLabel])
+        textStack.setViews([statusLabel, transcriptLabel], in: .leading)
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 3
 
-        let content = NSStackView(views: [logoView, textStack])
+        waveformView.isHidden = true
+        let content = NSStackView(views: [logoView, textStack, waveformView])
         content.orientation = .horizontal
         content.alignment = .centerY
         content.spacing = 12
@@ -73,6 +81,8 @@ final class HUDPanel {
             logoView.widthAnchor.constraint(equalToConstant: 38),
             logoView.heightAnchor.constraint(equalToConstant: 38),
             transcriptLabel.widthAnchor.constraint(equalToConstant: 350),
+            waveformView.widthAnchor.constraint(equalToConstant: 96),
+            waveformView.heightAnchor.constraint(equalToConstant: 28),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 14),
             content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -14),
             content.centerYAnchor.constraint(equalTo: effect.centerYAnchor),
@@ -83,6 +93,10 @@ final class HUDPanel {
 
     func show(_ text: String) {
         applyAppearance()
+        presentation = .message
+        logoView.isHidden = !hasLogo
+        textStack.isHidden = false
+        waveformView.isHidden = true
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -93,16 +107,37 @@ final class HUDPanel {
 
     func showListening(transcript: String? = nil) {
         applyAppearance()
+        let needsPresentation = presentation != .transcript || !panel.isVisible
+        presentation = .transcript
+        logoView.isHidden = !hasLogo
+        textStack.isHidden = false
+        waveformView.isHidden = true
         statusLabel.stringValue = "●  Listening"
         statusLabel.textColor = Settings.accentColor.color
         transcriptLabel.stringValue = displayText(transcript)
         transcriptLabel.textColor = transcript == nil ? .secondaryLabelColor : .labelColor
         transcriptLabel.isHidden = false
-        showExpanded()
+        if needsPresentation { showExpanded() }
+    }
+
+    func showWaveform(level: CGFloat, reset: Bool = false) {
+        applyAppearance()
+        let needsPresentation = presentation != .waveform || !panel.isVisible
+        presentation = .waveform
+        logoView.isHidden = true
+        textStack.isHidden = true
+        waveformView.isHidden = false
+        if reset { waveformView.reset() }
+        waveformView.level = level
+        if needsPresentation { present(width: 132, height: 54) }
     }
 
     func showTranscribing(transcript: String? = nil) {
         applyAppearance()
+        presentation = .transcript
+        logoView.isHidden = !hasLogo
+        textStack.isHidden = false
+        waveformView.isHidden = true
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -212,10 +247,63 @@ final class HUDPanel {
     }
 
     func hide() {
+        presentation = nil
+        waveformView.level = 0
         panel.orderOut(nil)
     }
 
     var isVisibleOnScreen: Bool {
         panel.isVisible && NSScreen.screens.contains { $0.visibleFrame.intersects(panel.frame) }
+    }
+}
+
+enum VoiceLevelMeter {
+    static func normalizedLevel(for samples: [Float]) -> CGFloat {
+        guard !samples.isEmpty else { return 0 }
+        let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count)
+        let rms = meanSquare.squareRoot()
+        guard rms > 0.003 else { return 0 }
+        return CGFloat(min(max((rms - 0.003) / 0.16, 0), 1))
+    }
+}
+
+@MainActor
+private final class KikiWaveformView: NSView {
+    var level: CGFloat = 0 {
+        didSet {
+            smoothedLevel = (smoothedLevel * 0.58) + (min(max(level, 0), 1) * 0.42)
+            needsDisplay = true
+        }
+    }
+    private var smoothedLevel: CGFloat = 0
+
+    func reset() {
+        level = 0
+        smoothedLevel = 0
+        needsDisplay = true
+    }
+
+    override var isFlipped: Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let multipliers: [CGFloat] = [0.34, 0.58, 0.82, 1, 0.74, 0.52, 0.3]
+        let barWidth: CGFloat = 6
+        let spacing: CGFloat = 8
+        let totalWidth = CGFloat(multipliers.count) * barWidth + CGFloat(multipliers.count - 1) * spacing
+        let startX = (bounds.width - totalWidth) / 2
+        let baseLevel = max(smoothedLevel, 0.05)
+        Settings.accentColor.color.setFill()
+
+        for (index, multiplier) in multipliers.enumerated() {
+            let height = max(4, bounds.height * (0.16 + baseLevel * 0.84) * multiplier)
+            let rect = NSRect(
+                x: startX + CGFloat(index) * (barWidth + spacing),
+                y: (bounds.height - height) / 2,
+                width: barWidth,
+                height: height
+            )
+            NSBezierPath(roundedRect: rect, xRadius: barWidth / 2, yRadius: barWidth / 2).fill()
+        }
     }
 }
