@@ -151,6 +151,10 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
         exit 1
     fi
 
+    # Secure timestamping rejects a generic file when its copied mtime is stale.
+    # Refresh the packaged metallib immediately before applying its signature.
+    touch "$APP/Contents/MacOS/mlx.metallib"
+
     codesign \
         --force \
         --sign "$SIGNING_IDENTITY" \
