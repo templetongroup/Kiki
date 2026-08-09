@@ -293,11 +293,6 @@ final class KikiNavButton: NSButton {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    override func mouseDown(with event: NSEvent) {
-        guard isEnabled, let action else { return }
-        NSApp.sendAction(action, to: target, from: self)
-    }
-
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
         return self

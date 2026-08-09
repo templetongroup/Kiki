@@ -10,6 +10,7 @@ enum FeatureDiagnostics {
         try checkContextVocabulary()
         try checkMeetingExports()
         try checkPhraseBoundaries()
+        try checkSettingsInteractions()
         try checkVoiceStudio()
     }
 
@@ -163,6 +164,22 @@ enum FeatureDiagnostics {
         }
         guard !overridesMouseDown else {
             throw failure("action buttons must use native AppKit mouse tracking")
+        }
+    }
+
+    private static func checkSettingsInteractions() throws {
+        let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
+        var methodCount: UInt32 = 0
+        let methods = class_copyMethodList(KikiNavButton.self, &methodCount)
+        let overridesMouseDown = methods.map { methods in
+            UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
+                method_getName($0) == mouseDownSelector
+            }
+        } ?? false
+        let controller = SettingsWindowController()
+        guard controller.window?.isMovableByWindowBackground == false,
+              !overridesMouseDown else {
+            throw failure("settings controls must use native AppKit mouse tracking")
         }
     }
 

@@ -69,7 +69,7 @@ final class SettingsWindowController: NSWindowController {
         window.title = "Kiki Settings"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.minSize = NSSize(width: 900, height: 680)
         window.isReleasedWhenClosed = false
         super.init(window: window)
