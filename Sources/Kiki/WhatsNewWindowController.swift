@@ -140,6 +140,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         tint: NSColor
     ) -> NSView {
         let card = KikiCardView()
+        card.showsFasteners = true
         let image = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
         image.contentTintColor = tint
         let titleLabel = kikiLabel(title, size: 14.5, weight: .semibold)

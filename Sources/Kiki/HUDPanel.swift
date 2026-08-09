@@ -5,8 +5,7 @@ import CoreGraphics
 @MainActor
 final class HUDPanel {
     private let panel: NSPanel
-    private let effect: NSVisualEffectView
-    private let gradient = CAGradientLayer()
+    private let effect: NSView
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
@@ -35,17 +34,11 @@ final class HUDPanel {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.setAccessibilityTitle("Kiki Live Transcription")
 
-        effect = NSVisualEffectView()
-        effect.material = .hudWindow
-        effect.state = .active
+        effect = NSView()
         effect.wantsLayer = true
-        effect.layer?.cornerRadius = 14
+        effect.layer?.cornerRadius = 9
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
-        gradient.locations = [0, 1]
-        gradient.startPoint = CGPoint(x: 0, y: 1)
-        gradient.endPoint = CGPoint(x: 1, y: 0)
-        effect.layer?.addSublayer(gradient)
 
         logoView = NSImageView()
         logoView.imageScaling = .scaleProportionallyUpOrDown
@@ -56,35 +49,35 @@ final class HUDPanel {
         hasLogo = logoView.image != nil
 
         statusLabel = NSTextField(labelWithString: "")
-        statusLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        statusLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         statusLabel.textColor = .secondaryLabelColor
 
         transcriptLabel = NSTextField(wrappingLabelWithString: "")
-        transcriptLabel.font = .systemFont(ofSize: 15, weight: .medium)
-        transcriptLabel.maximumNumberOfLines = 2
-        transcriptLabel.lineBreakMode = .byTruncatingHead
+        transcriptLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        transcriptLabel.maximumNumberOfLines = 1
+        transcriptLabel.lineBreakMode = .byTruncatingTail
         transcriptLabel.isHidden = true
 
         textStack.setViews([statusLabel, transcriptLabel], in: .leading)
         textStack.orientation = .vertical
         textStack.alignment = .leading
-        textStack.spacing = 3
+        textStack.spacing = 2
 
         waveformView.isHidden = true
         let content = NSStackView(views: [logoView, textStack, waveformView])
         content.orientation = .horizontal
         content.alignment = .centerY
-        content.spacing = 12
+        content.spacing = 10
         content.translatesAutoresizingMaskIntoConstraints = false
         effect.addSubview(content)
         NSLayoutConstraint.activate([
-            logoView.widthAnchor.constraint(equalToConstant: 38),
-            logoView.heightAnchor.constraint(equalToConstant: 38),
-            transcriptLabel.widthAnchor.constraint(equalToConstant: 350),
-            waveformView.widthAnchor.constraint(equalToConstant: 96),
-            waveformView.heightAnchor.constraint(equalToConstant: 28),
-            content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 14),
-            content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -14),
+            logoView.widthAnchor.constraint(equalToConstant: 34),
+            logoView.heightAnchor.constraint(equalToConstant: 34),
+            transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
+            waveformView.widthAnchor.constraint(equalToConstant: 84),
+            waveformView.heightAnchor.constraint(equalToConstant: 24),
+            content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
+            content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -12),
             content.centerYAnchor.constraint(equalTo: effect.centerYAnchor),
         ])
 
@@ -112,8 +105,8 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
-        statusLabel.stringValue = "●  Listening"
-        statusLabel.textColor = Settings.accentColor.color
+        statusLabel.stringValue = "Listening"
+        statusLabel.textColor = KikiPalette.accentText
         transcriptLabel.stringValue = displayText(transcript)
         transcriptLabel.textColor = transcript == nil ? .secondaryLabelColor : .labelColor
         transcriptLabel.isHidden = false
@@ -129,7 +122,7 @@ final class HUDPanel {
         waveformView.isHidden = false
         if reset { waveformView.reset() }
         waveformView.level = level
-        if needsPresentation { present(width: 132, height: 54) }
+        if needsPresentation { present(width: 116, height: 50) }
     }
 
     func showTranscribing(transcript: String? = nil) {
@@ -147,7 +140,7 @@ final class HUDPanel {
     }
 
     private func showExpanded() {
-        present(width: 440, height: 82)
+        present(width: 410, height: 66)
     }
 
     private func present(width: CGFloat, height: CGFloat) {
@@ -155,7 +148,6 @@ final class HUDPanel {
         panel.alphaValue = 1
         panel.setFrame(frame, display: true)
         effect.layoutSubtreeIfNeeded()
-        gradient.frame = effect.bounds
         panel.orderFrontRegardless()
         panel.displayIfNeeded()
     }
@@ -234,10 +226,7 @@ final class HUDPanel {
     private func applyAppearance() {
         panel.appearance = Settings.appearanceMode.appearance
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-            gradient.colors = [
-                KikiPalette.elevatedSurface.withAlphaComponent(0.97).cgColor,
-                KikiPalette.canvas.withAlphaComponent(0.97).cgColor,
-            ]
+            effect.layer?.backgroundColor = KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
             effect.layer?.borderWidth = 1
             effect.layer?.borderColor = KikiPalette.strongStroke.cgColor
             effect.layer?.shadowColor = NSColor.black.cgColor
@@ -293,7 +282,7 @@ private final class KikiWaveformView: NSView {
         let totalWidth = CGFloat(multipliers.count) * barWidth + CGFloat(multipliers.count - 1) * spacing
         let startX = (bounds.width - totalWidth) / 2
         let baseLevel = max(smoothedLevel, 0.05)
-        Settings.accentColor.color.setFill()
+        KikiPalette.accent.setFill()
 
         for (index, multiplier) in multipliers.enumerated() {
             let height = max(4, bounds.height * (0.16 + baseLevel * 0.84) * multiplier)

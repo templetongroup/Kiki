@@ -114,25 +114,41 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
 
-        let icon = NSImageView()
-        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
-            icon.image = NSImage(contentsOf: url)
+        let artwork = NSImageView()
+        if let url = Bundle.main.url(forResource: "SplashArtwork", withExtension: "png") {
+            artwork.image = NSImage(contentsOf: url)
+        } else if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
+            artwork.image = NSImage(contentsOf: url)
         }
-        icon.imageScaling = .scaleProportionallyUpOrDown
-        icon.wantsLayer = true
-        icon.layer?.cornerRadius = 11
-        icon.layer?.masksToBounds = true
+        artwork.imageScaling = .scaleProportionallyUpOrDown
+        artwork.wantsLayer = true
+        artwork.layer?.cornerRadius = 6
+        artwork.layer?.cornerCurve = .continuous
+        artwork.layer?.masksToBounds = true
         let eyebrow = kikiLabel("VOICE STUDIO · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Your words. Your voice. Your Mac.", size: 28, weight: .bold)
-        let subtitle = kikiLabel("Create a private voice once, turn any text into natural speech, and export the result. Nothing is uploaded.", size: 12.5, color: KikiPalette.secondaryText)
+        let title = kikiLabel("Kiki is ready", size: 28, weight: .bold)
+        let subtitle = kikiLabel("Professional voice recording with local intelligence. Voice, text, and generated audio stay on this Mac.", size: 12.5, color: KikiPalette.secondaryText)
         let headerText = NSStackView(views: [eyebrow, title, subtitle])
         headerText.orientation = .vertical
         headerText.alignment = .leading
         headerText.spacing = 5
-        let header = NSStackView(views: [icon, headerText])
-        header.orientation = .horizontal
-        header.alignment = .centerY
-        header.spacing = 14
+        let headerRow = NSStackView(views: [headerText, NSView(), artwork])
+        headerRow.orientation = .horizontal
+        headerRow.alignment = .centerY
+        headerRow.spacing = 18
+        headerRow.translatesAutoresizingMaskIntoConstraints = false
+        let header = KikiCardView()
+        header.showsFasteners = true
+        header.addSubview(headerRow)
+        NSLayoutConstraint.activate([
+            headerRow.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 20),
+            headerRow.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -14),
+            headerRow.topAnchor.constraint(equalTo: header.topAnchor, constant: 10),
+            headerRow.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -10),
+            artwork.widthAnchor.constraint(equalToConstant: 176),
+            artwork.heightAnchor.constraint(equalToConstant: 104),
+            subtitle.widthAnchor.constraint(lessThanOrEqualToConstant: 620),
+        ])
 
         let leftCard = makeVoiceCard()
         let rightCard = makeGenerationCard()
@@ -145,21 +161,19 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let root = NSStackView(views: [header, columns])
         root.orientation = .vertical
         root.alignment = .leading
-        root.spacing = 20
+        root.spacing = 16
         root.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(root)
 
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 48),
-            icon.heightAnchor.constraint(equalToConstant: 48),
-            subtitle.widthAnchor.constraint(lessThanOrEqualToConstant: 820),
             root.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 30),
             root.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -30),
             root.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
             root.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
             header.widthAnchor.constraint(equalTo: root.widthAnchor),
+            header.heightAnchor.constraint(equalToConstant: 124),
             columns.widthAnchor.constraint(equalTo: root.widthAnchor),
-            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -92),
+            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -140),
             leftCard.widthAnchor.constraint(equalToConstant: 450),
             rightCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
             rightCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
@@ -169,6 +183,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeVoiceCard() -> NSView {
         let card = KikiCardView()
+        card.showsFasteners = true
         let sectionTitle = kikiLabel("1. Record your voice", size: 18, weight: .bold)
         profileStatusLabel.font = .systemFont(ofSize: 12.5)
         profileStatusLabel.textColor = KikiPalette.secondaryText
@@ -181,6 +196,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         enrollmentModeControl.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-mode")
         enrollmentModeControl.setAccessibilityLabel("Voice setup length")
         enrollmentModeControl.segmentStyle = .rounded
+        enrollmentModeControl.selectedSegmentBezelColor = KikiPalette.accent
         enrollmentModeControl.setContentHuggingPriority(.required, for: .horizontal)
 
         enrollmentModeDetailLabel.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-explanation")
@@ -226,6 +242,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         consentCheckbox.target = self
         consentCheckbox.action = #selector(consentChanged)
         consentCheckbox.font = .systemFont(ofSize: 11.5)
+        consentCheckbox.contentTintColor = KikiPalette.accent
         consentCheckbox.lineBreakMode = .byWordWrapping
         consentCheckbox.cell?.wraps = true
         consentCheckbox.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -331,6 +348,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeGenerationCard() -> NSView {
         let card = KikiCardView()
+        card.showsFasteners = true
         let sectionTitle = kikiLabel("3. Create audio", size: 18, weight: .bold)
         let sectionDetail = kikiLabel("Write, paste, or edit a script. Longer text is generated in natural sections.", size: 12, color: KikiPalette.secondaryText)
 
@@ -527,8 +545,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             qualityLabel.stringValue = "Confirm that this is your voice before recording."
             return
         }
-        audioPlayer?.stop()
-        playbackTimer?.invalidate()
+        stopAnyPlayback()
         voiceFeedback = nil
         recordingSamples = nil
         recordingEnrollmentMode = selectedEnrollmentMode
@@ -603,8 +620,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     @objc private func saveVoice() {
         guard let recordingSamples else { return }
         do {
-            audioPlayer?.stop()
-            playbackTimer?.invalidate()
+            stopAnyPlayback()
             let mode = recordingEnrollmentMode ?? selectedEnrollmentMode
             profile = try VoiceProfileStore.save(
                 samples: recordingSamples,
@@ -624,6 +640,10 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func playReference() {
+        if playReferenceButton.title == "Stop Preview" {
+            stopAnyPlayback()
+            return
+        }
         let url: URL
         if let recordingSamples {
             do {
@@ -647,7 +667,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         alert.alertStyle = .warning
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         do {
-            audioPlayer?.stop()
+            stopAnyPlayback()
             try VoiceProfileStore.delete()
             profile = nil
             recordingSamples = nil
@@ -736,7 +756,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         }
         let text = editor.string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        audioPlayer?.stop()
+        stopAnyPlayback()
         generationFeedback = nil
         generatedAudioURL = nil
         generationProgress.doubleValue = 0
@@ -796,6 +816,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func playAudio(url: URL, isOutput: Bool) {
+        stopAnyPlayback()
         if isOutput, audioPlayer != nil {
             audioPlayer?.currentTime = 0
         } else {
@@ -809,7 +830,11 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             }
         }
         audioPlayer?.play()
-        if isOutput { playOutputButton.title = "Pause" }
+        if isOutput {
+            playOutputButton.title = "Pause"
+        } else {
+            playReferenceButton.title = "Stop Preview"
+        }
         startPlaybackTimer(isOutput: isOutput)
     }
 
@@ -830,19 +855,33 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func startPlaybackTimer(isOutput: Bool) {
         playbackTimer?.invalidate()
-        guard isOutput else { return }
         playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, let player = self.audioPlayer, player.duration > 0 else { return }
-                self.playbackProgress.doubleValue = player.currentTime / player.duration
+                if isOutput {
+                    self.playbackProgress.doubleValue = player.currentTime / player.duration
+                }
                 if !player.isPlaying && player.currentTime >= player.duration - 0.05 {
                     self.playbackTimer?.invalidate()
                     self.playbackTimer = nil
-                    self.playOutputButton.title = "Play"
-                    self.playbackProgress.doubleValue = 1
+                    if isOutput {
+                        self.playOutputButton.title = "Play"
+                        self.playbackProgress.doubleValue = 1
+                    } else {
+                        self.playReferenceButton.title = "Play Preview"
+                    }
                 }
             }
         }
+    }
+
+    private func stopAnyPlayback() {
+        audioPlayer?.stop()
+        audioPlayer?.currentTime = 0
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        playReferenceButton.title = "Play Preview"
+        playOutputButton.title = "Play"
     }
 
     @objc private func exportAudio() {

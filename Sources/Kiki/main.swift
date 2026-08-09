@@ -12,6 +12,7 @@ if args.count >= 2, args[1] == "--preview-voice-studio" {
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
         app.finishLaunching()
+        AppearanceController.apply()
         let controller = VoiceStudioWindowController()
         controller.show()
         app.run()
@@ -156,8 +157,10 @@ if args.count >= 2, args[1] == "--preview-settings" {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
         app.finishLaunching()
+        AppearanceController.apply()
         let controller = SettingsWindowController()
-        controller.show()
+        let previewPage = args.count >= 3 ? Int(args[2]) : nil
+        controller.show(page: previewPage)
         app.run()
     }
 }

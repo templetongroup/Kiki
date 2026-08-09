@@ -26,14 +26,16 @@ enum KikiAccentColor: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .gold: "Orange"
+        case .gold: "Sage"
         default: rawValue.capitalized
         }
     }
 
     var color: NSColor {
         switch self {
-        case .gold: NSColor(red: 1.00, green: 0.55, blue: 0.12, alpha: 1)
+        // Keep the historical raw value for existing preferences while making
+        // the default accent match the Studio Hardware palette.
+        case .gold: NSColor(red: 0.376, green: 0.424, blue: 0.349, alpha: 1)
         case .teal: NSColor(red: 0.12, green: 0.68, blue: 0.66, alpha: 1)
         case .blue: .systemBlue
         case .purple: .systemPurple

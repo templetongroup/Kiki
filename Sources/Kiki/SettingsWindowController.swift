@@ -78,8 +78,11 @@ final class SettingsWindowController: NSWindowController {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func show() {
+    func show(page index: Int? = nil) {
         refresh()
+        if let index, pages.indices.contains(index) {
+            showPage(index: index)
+        }
         showWindow(nil)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
@@ -223,6 +226,7 @@ final class SettingsWindowController: NSWindowController {
         ]
         checkboxes.forEach {
             $0.font = .systemFont(ofSize: 13)
+            $0.contentTintColor = KikiPalette.accent
         }
 
         launchAtLoginCheckbox.target = self
@@ -235,6 +239,7 @@ final class SettingsWindowController: NSWindowController {
         listeningDisplayControl.action = #selector(listeningDisplayChanged)
         listeningDisplayControl.segmentStyle = .rounded
         listeningDisplayControl.controlSize = .large
+        listeningDisplayControl.selectedSegmentBezelColor = KikiPalette.accent
         listeningDisplayControl.font = .systemFont(ofSize: 12.5, weight: .semibold)
         listeningDisplayControl.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
         for index in 0..<listeningDisplayControl.segmentCount {
@@ -303,7 +308,7 @@ final class SettingsWindowController: NSWindowController {
             ),
             SettingsCard(
                 title: "Look & Sound",
-                subtitle: "Choose a calm light or dark workspace that stays easy to read.",
+                subtitle: "Use Studio Hardware in light, dark, or the appearance chosen by your Mac.",
                 views: [appearanceRow, soundRow, lookAndSoundStatusLabel]
             ),
         ])
@@ -637,6 +642,7 @@ final class SettingsWindowController: NSWindowController {
 private final class SettingsCard: KikiCardView {
     init(title: String, subtitle: String, views: [NSView]) {
         super.init(frame: .zero)
+        showsFasteners = true
 
         let titleLabel = kikiLabel(title, size: 16.5, weight: .semibold)
         let subtitleLabel = kikiLabel(subtitle, size: 12.5, color: KikiPalette.secondaryText)
@@ -664,18 +670,13 @@ private final class ModelCardView: KikiCardView {
     var onUse: ((TranscriptionModelID) -> Void)?
     private let statusLabel = NSTextField(labelWithString: "")
     private let button = KikiActionButton("Use Model", kind: .primary, target: nil, action: nil)
+    private let dial = KikiHardwareDialView()
 
     init(model: TranscriptionModelID) {
         self.model = model
         super.init(frame: .zero)
-
-        let symbolName = model.isParakeet ? "bolt.horizontal.circle.fill" : "waveform.circle.fill"
-        let symbol = NSImageView(image: NSImage(systemSymbolName: symbolName, accessibilityDescription: model.displayName) ?? NSImage())
-        symbol.contentTintColor = model.isParakeet ? KikiPalette.accentText : KikiPalette.violet
-        let symbolShell = KikiCardView()
-        symbolShell.selected = true
-        symbolShell.addSubview(symbol)
-        symbol.translatesAutoresizingMaskIntoConstraints = false
+        showsFasteners = true
+        dial.translatesAutoresizingMaskIntoConstraints = false
 
         let title = kikiLabel(model.displayName, size: 16.5, weight: .semibold)
         let detail = kikiLabel(model.detail, size: 12.5, color: KikiPalette.secondaryText)
@@ -687,7 +688,7 @@ private final class ModelCardView: KikiCardView {
         labels.orientation = .vertical
         labels.alignment = .leading
         labels.spacing = 5
-        let row = NSStackView(views: [symbolShell, labels, NSView(), button])
+        let row = NSStackView(views: [dial, labels, NSView(), button])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 18
@@ -698,12 +699,8 @@ private final class ModelCardView: KikiCardView {
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
             row.topAnchor.constraint(equalTo: topAnchor, constant: 18),
             row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
-            symbolShell.widthAnchor.constraint(equalToConstant: 48),
-            symbolShell.heightAnchor.constraint(equalToConstant: 48),
-            symbol.widthAnchor.constraint(equalToConstant: 23),
-            symbol.heightAnchor.constraint(equalToConstant: 23),
-            symbol.centerXAnchor.constraint(equalTo: symbolShell.centerXAnchor),
-            symbol.centerYAnchor.constraint(equalTo: symbolShell.centerYAnchor),
+            dial.widthAnchor.constraint(equalToConstant: 44),
+            dial.heightAnchor.constraint(equalToConstant: 44),
             detail.widthAnchor.constraint(lessThanOrEqualToConstant: 460),
         ])
         refresh()
@@ -714,6 +711,7 @@ private final class ModelCardView: KikiCardView {
     func refresh() {
         let selected = Settings.transcriptionModel == model
         self.selected = selected
+        dial.isActive = selected
         let installed = model.isParakeet || ModelStore.isWhisperModelInstalled(model)
         if !model.isCompatible {
             statusLabel.stringValue = "Unavailable on this Mac"
