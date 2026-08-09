@@ -6,6 +6,32 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.4</title>
+            <pubDate>Sun, 09 Aug 2026 18:44:56 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.4</link>
+            <sparkle:version>19</sparkle:version>
+            <sparkle:shortVersionString>0.5.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.4
+
+## Studio Hardware
+
+- A complete light and dark visual system inspired by professional recording equipment.
+- Templeton sage and khaki accents, warm enamel light surfaces, and charcoal dark panels.
+- Hardware details across Settings, Models, Voice Studio, splash cards, meeting controls, and secondary windows.
+- Voice Studio uses the same full Kiki portrait and layout in both appearances.
+
+## Listening and playback
+
+- The live transcription window is now a compact, unobtrusive single-line HUD labeled “Listening.”
+- Voice reference preview can now be stopped immediately; the button changes between “Play Preview” and “Stop Preview.”
+
+This update remains fully local, Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.4/Kiki-0.5.4-macOS.zip" length="52705055" type="application/octet-stream" sparkle:edSignature="7q2oyqzd2xLR8o+93AVvlay9VYE8nDc4Qa7OghS3co5tIR8wqlXnB4CMrMVRQRBvQ9+rpsyCXVP1hTnoK9+6Cg=="/>
+        </item>
+        <item>
             <title>0.5.3</title>
             <pubDate>Sun, 09 Aug 2026 17:39:31 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.3</link>
@@ -95,38 +121,6 @@ Kiki can now create natural speech in your own voice without sending your record
 The normal transcription path is unchanged. Voice generation uses a separate native MLX pipeline and does not reduce dictation speed or quality.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.0/Kiki-0.5.0-macOS.zip" length="51227381" type="application/octet-stream" sparkle:edSignature="fQl3slRHffFRkpV6FmJAHg7vjZR9uxwM4rUHTak2HN69OdEu3wOQJ1qr7QM1w/g9D3FfCY3VAfFfuEh8PIwMCg=="/>
-        </item>
-        <item>
-            <title>0.4.6</title>
-            <pubDate>Fri, 07 Aug 2026 15:08:42 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.6</link>
-            <sparkle:version>14</sparkle:version>
-            <sparkle:shortVersionString>0.4.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.6
-
-This release fixes mouse interaction across Kiki’s custom navigation controls.
-
-## What’s fixed
-
-- Sidebar buttons now respond to ordinary mouse clicks throughout Settings.
-- Personalization Studio navigation receives the same shared correction.
-- Custom action and information buttons no longer allow their clicks to be interpreted as window dragging.
-- Sidebar controls respond on the first click even when their window was previously inactive.
-
-The root cause was a hit-test coordinate mismatch: parent-space mouse positions were being compared with local button bounds. Keyboard and accessibility activation worked, but physical clicks on later sidebar rows were rejected.
-
-Transcription speed, quality, and Kiki’s fully local privacy model remain unchanged.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki-0.4.6-macOS.zip" length="6826367" type="application/octet-stream" sparkle:edSignature="ZLGWP1Ml5s910pgHLcQtgXl7ESWawWQHF4MT7wl6JzJI/sWXsJykYvLN0sFCcg4uvF6MwFlBNTTkyaF/JGVGAw=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-13.delta" sparkle:deltaFrom="13" length="214038" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="q6IsabmakXAS/YslWaKz1xhVrxHRXcqcu8F1zPFqzjWXrzGbAWMXUnEuFIKlDBQwFAyF0BXULDkyyjsqupJjAQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-12.delta" sparkle:deltaFrom="12" length="252218" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="uNqGGGyuqQbcvgCB+EyutcxklMQ7KMEDsTM16fPWq+wjOLJZ74Q/ChPiMD0j6PZIx3iM5+zYsV2uBWtXKQkXCg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-11.delta" sparkle:deltaFrom="11" length="238518" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="uj7Fss6wHnGzrjxkwpeKSFjLcFKC29kb5h6pjK57KtjkLHpclmDnl6pk1552qpA7bO58vVoAkreK2RHnkbK/Cw=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-10.delta" sparkle:deltaFrom="10" length="272218" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="GA4DLWZgItjICKx16VaOsxzMrSS6Qy57HuVKi7hsgwJ5fxeeIXxVqlg5YpzduW1nWS9i69nk2ljC31tKHnhYCg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-9.delta" sparkle:deltaFrom="9" length="310746" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="TPUnJugj9L1WHNH9qFojA019WSU0ST92pmTSzDMbHuIFUy2QB5yKfTJLnw+kcj7VIHC7bC7iNvGIBsJK+1MGDA=="/>
-            </sparkle:deltas>
         </item>
     </channel>
 </rss>
