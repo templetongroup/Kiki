@@ -6,6 +6,27 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.5</title>
+            <pubDate>Sun, 09 Aug 2026 19:01:04 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.5</link>
+            <sparkle:version>20</sparkle:version>
+            <sparkle:shortVersionString>0.5.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.5
+
+## Fixed
+
+- Settings buttons, navigation, checkboxes, segmented controls, and pop-up menus now respond reliably to normal mouse clicks.
+- Settings navigation uses native AppKit mouse tracking instead of custom click handling.
+- The full-size Settings window no longer treats control clicks as attempts to drag the window.
+- A release diagnostic now blocks future builds if either unsafe interaction behavior returns.
+
+This update is Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.5/Kiki-0.5.5-macOS.zip" length="52704108" type="application/octet-stream" sparkle:edSignature="fVQDhwoGYkbUccQzEG+XGBSusgn4rFLqtYkKxmv3f6vQU3RkuZKZrnb54OWnHNymoAor6RbTVnW3x4t3hgEkCQ=="/>
+        </item>
+        <item>
             <title>0.5.4</title>
             <pubDate>Sun, 09 Aug 2026 18:44:56 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.4</link>
@@ -90,37 +111,6 @@ Voice Studio is now a clear, guided three-step workflow:
 This update also prevents recording playback from continuing after Save Voice and keeps every action button on one readable line.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.1/Kiki-0.5.1-macOS.zip" length="51212318" type="application/octet-stream" sparkle:edSignature="uXLSzopAx6wbVct3CD4bdrAlRnk09Xu4k/GuV/eT8TZ26WlzG+7GdlW2Y57hEcmADhSYBAusbLaG9Up316sECQ=="/>
-        </item>
-        <item>
-            <title>0.5.0</title>
-            <pubDate>Fri, 07 Aug 2026 23:11:21 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.0</link>
-            <sparkle:version>15</sparkle:version>
-            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.0
-
-Kiki can now create natural speech in your own voice without sending your recording, text, or generated audio to the cloud.
-
-## Voice Studio
-
-- Record one guided 30–60 second reference passage with consent and live quality checks.
-- Download an optional 2 GB Qwen3-TTS voice engine optimized for Apple silicon.
-- Type or paste a script and generate speech entirely on your Mac.
-- Generate longer writing in natural sections, cancel work in progress, and play the result in Kiki.
-- Export generated speech as lossless WAV or compact M4A with AI-generation provenance metadata.
-- Remove the model or your voice reference independently while keeping exported audio under your control.
-
-## Reliability and polish
-
-- Fixed the shared custom-button hit test so General Settings, Studio navigation, and action buttons receive ordinary mouse clicks across their full visible bounds.
-- Improved disabled-button contrast in both light and dark appearance.
-- Added a polished Voice Studio launch experience and a new menu-bar feature entry.
-
-The normal transcription path is unchanged. Voice generation uses a separate native MLX pipeline and does not reduce dictation speed or quality.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.0/Kiki-0.5.0-macOS.zip" length="51227381" type="application/octet-stream" sparkle:edSignature="fQl3slRHffFRkpV6FmJAHg7vjZR9uxwM4rUHTak2HN69OdEu3wOQJ1qr7QM1w/g9D3FfCY3VAfFfuEh8PIwMCg=="/>
         </item>
     </channel>
 </rss>
