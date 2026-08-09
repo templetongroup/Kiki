@@ -25,6 +25,56 @@ enum FeatureDiagnostics {
         return (ProcessInfo.processInfo.systemUptime - started) / Double(iterations)
     }
 
+    static func checkSplashArtwork(referenceURL: URL) throws {
+        guard let referenceImage = NSImage(contentsOf: referenceURL),
+              let referenceData = referenceImage.tiffRepresentation else {
+            throw failure("splash artwork reference")
+        }
+
+        let controller = WhatsNewWindowController()
+        guard let contentView = controller.window?.contentView,
+              let artworkView = findView(
+                  in: contentView,
+                  identifier: "kiki.whats-new.splash-artwork"
+              ) as? NSImageView,
+              let copyView = findView(
+                  in: contentView,
+                  identifier: "kiki.whats-new.copy"
+              ),
+              let renderedData = artworkView.image?.tiffRepresentation,
+              renderedData == referenceData else {
+            throw failure("splash artwork")
+        }
+
+        contentView.layoutSubtreeIfNeeded()
+        let artworkFrame = artworkView.convert(artworkView.bounds, to: contentView)
+        let copyFrame = copyView.convert(copyView.bounds, to: contentView)
+        guard artworkFrame.width >= 300,
+              artworkFrame.maxX < copyFrame.minX else {
+            throw failure("splash artwork layout")
+        }
+    }
+
+    static func checkVoiceEnrollment(fullScriptReferenceURL: URL) throws {
+        let expected = try String(contentsOf: fullScriptReferenceURL, encoding: .utf8)
+            .trimmingCharacters(in: .newlines)
+        guard VoiceProfileStore.fullEnrollmentScript == expected,
+              VoiceEnrollmentMode.quick.script == VoiceProfileStore.quickEnrollmentScript,
+              VoiceEnrollmentMode.full.script == expected,
+              VoiceEnrollmentMode.full.minimumDuration > VoiceEnrollmentMode.quick.maximumDuration,
+              VoiceEnrollmentMode.full.explanation.contains("better accuracy") else {
+            throw failure("full voice enrollment script")
+        }
+
+        let controller = VoiceStudioWindowController()
+        guard let contentView = controller.window?.contentView,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-mode") is NSSegmentedControl,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView else {
+            throw failure("voice enrollment mode interface")
+        }
+    }
+
     private static func checkCorrectionMemory() throws {
         let store = CorrectionMemoryStore(fileURL: temporaryFile("learning.json"))
         store.suggest(heard: "Riccardi", replacement: "Ricciardi", bundleIdentifier: "com.apple.mail")
@@ -105,6 +155,9 @@ enum FeatureDiagnostics {
             throw failure("voice studio recording quality")
         }
         guard VoiceProfileStore.enrollmentScript.count > 250,
+              !VoiceProfileStore.quickEnrollmentScript.contains("I consent"),
+              VoiceProfileStore.quickEnrollmentScript.contains("keep this recording private on my Mac"),
+              VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
               VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
             throw failure("voice studio enrollment and model manifest")
         }
@@ -117,6 +170,14 @@ enum FeatureDiagnostics {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("KikiDiagnostics-\(UUID().uuidString)", isDirectory: true)
             .appendingPathComponent(name)
+    }
+
+    private static func findView(in root: NSView, identifier: String) -> NSView? {
+        if root.identifier?.rawValue == identifier { return root }
+        for subview in root.subviews {
+            if let match = findView(in: subview, identifier: identifier) { return match }
+        }
+        return nil
     }
 
     private static func failure(_ name: String) -> KikiError {

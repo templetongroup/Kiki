@@ -9,7 +9,7 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 610),
+            contentRect: NSRect(x: 0, y: 0, width: 1_040, height: 620),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -49,14 +49,21 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         ])
 
         let icon = NSImageView()
-        icon.image = NSApp.applicationIconImage
+        if let url = Bundle.main.url(forResource: "SplashArtwork", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            icon.image = image
+        } else {
+            assertionFailure("SplashArtwork.png is missing from the Kiki app bundle")
+            icon.image = NSApp.applicationIconImage
+        }
         icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.identifier = NSUserInterfaceItemIdentifier("kiki.whats-new.splash-artwork")
         icon.wantsLayer = true
-        icon.layer?.cornerRadius = 17
+        icon.layer?.cornerRadius = 30
         icon.layer?.masksToBounds = true
 
         let badge = kikiLabel("", size: 11, weight: .semibold, color: KikiPalette.accentText)
-        badge.alignment = .center
+        badge.alignment = .left
         badge.attributedStringValue = NSAttributedString(
             string: "NEW IN \(version)",
             attributes: [
@@ -67,56 +74,66 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         )
 
         let title = kikiLabel("Meet Kiki Voice Studio.", size: 30, weight: .bold)
-        title.alignment = .center
+        title.alignment = .left
         let detail = kikiLabel(
             "Create speech in your own voice—fully local, private, and ready to export.",
             size: 14,
             color: KikiPalette.secondaryText
         )
-        detail.alignment = .center
+        detail.alignment = .left
+        detail.maximumNumberOfLines = 2
 
         let features = NSStackView(views: [
-            featureCard(symbol: "mic.badge.plus", title: "Create your voice", detail: "Read one guided passage. Recording-quality checks help capture a clean private reference.", tint: KikiPalette.accentText),
-            featureCard(symbol: "text.bubble", title: "Write and listen", detail: "Turn short notes or long scripts into natural speech without sending text or audio anywhere.", tint: KikiPalette.violet),
-            featureCard(symbol: "square.and.arrow.up", title: "Export anywhere", detail: "Play the result in Kiki or save a polished WAV or M4A audio file.", tint: KikiPalette.magenta),
+            featureRow(symbol: "mic.badge.plus", title: "Create your voice", detail: "Read one guided passage. Recording-quality checks help capture a clean private reference.", tint: KikiPalette.accentText),
+            featureRow(symbol: "text.bubble", title: "Write and listen", detail: "Turn short notes or long scripts into natural speech without sending text or audio anywhere.", tint: KikiPalette.violet),
+            featureRow(symbol: "square.and.arrow.up", title: "Export anywhere", detail: "Play the result in Kiki or save a polished WAV or M4A audio file.", tint: KikiPalette.magenta),
         ])
-        features.orientation = .horizontal
-        features.alignment = .top
+        features.orientation = .vertical
+        features.alignment = .leading
         features.distribution = .fillEqually
-        features.spacing = 12
+        features.spacing = 10
 
         let explore = KikiActionButton("Open Voice Studio", kind: .primary, target: self, action: #selector(explorePressed))
         let later = KikiActionButton("Not now", kind: .quiet, target: self, action: #selector(closePressed))
         let actions = NSStackView(views: [explore, later])
-        actions.orientation = .vertical
-        actions.alignment = .centerX
-        actions.spacing = 8
+        actions.orientation = .horizontal
+        actions.alignment = .centerY
+        actions.spacing = 12
 
-        let stack = NSStackView(views: [icon, badge, title, detail, features, actions])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 12
-        stack.setCustomSpacing(20, after: icon)
-        stack.setCustomSpacing(12, after: badge)
-        stack.setCustomSpacing(8, after: title)
-        stack.setCustomSpacing(24, after: detail)
-        stack.setCustomSpacing(22, after: features)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(stack)
+        let copy = NSStackView(views: [badge, title, detail, features, actions])
+        copy.orientation = .vertical
+        copy.alignment = .leading
+        copy.spacing = 10
+        copy.setCustomSpacing(12, after: badge)
+        copy.setCustomSpacing(8, after: title)
+        copy.setCustomSpacing(22, after: detail)
+        copy.setCustomSpacing(24, after: features)
+        copy.identifier = NSUserInterfaceItemIdentifier("kiki.whats-new.copy")
+
+        let hero = NSStackView(views: [icon, copy])
+        hero.orientation = .horizontal
+        hero.alignment = .centerY
+        hero.spacing = 44
+        hero.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(hero)
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 68),
-            icon.heightAnchor.constraint(equalToConstant: 68),
-            detail.widthAnchor.constraint(equalToConstant: 510),
-            features.widthAnchor.constraint(equalToConstant: 640),
-            features.heightAnchor.constraint(equalToConstant: 158),
-            explore.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
-            stack.centerXAnchor.constraint(equalTo: content.centerXAnchor),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -28),
+            icon.widthAnchor.constraint(equalToConstant: 340),
+            icon.heightAnchor.constraint(equalToConstant: 340),
+            copy.widthAnchor.constraint(equalToConstant: 530),
+            detail.widthAnchor.constraint(equalToConstant: 500),
+            features.widthAnchor.constraint(equalToConstant: 530),
+            features.heightAnchor.constraint(equalToConstant: 240),
+            explore.widthAnchor.constraint(greaterThanOrEqualToConstant: 210),
+            hero.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            hero.centerYAnchor.constraint(equalTo: content.centerYAnchor),
+            hero.leadingAnchor.constraint(greaterThanOrEqualTo: content.leadingAnchor, constant: 48),
+            hero.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -48),
+            hero.topAnchor.constraint(greaterThanOrEqualTo: content.topAnchor, constant: 38),
+            hero.bottomAnchor.constraint(lessThanOrEqualTo: content.bottomAnchor, constant: -38),
         ])
     }
 
-    private func featureCard(
+    private func featureRow(
         symbol: String,
         title: String,
         detail: String,
@@ -127,21 +144,25 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         image.contentTintColor = tint
         let titleLabel = kikiLabel(title, size: 14.5, weight: .semibold)
         let detailLabel = kikiLabel(detail, size: 11.5, color: KikiPalette.secondaryText)
-        detailLabel.alignment = .center
-        detailLabel.maximumNumberOfLines = 4
-        let stack = NSStackView(views: [image, titleLabel, detailLabel])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 9
+        detailLabel.alignment = .left
+        detailLabel.maximumNumberOfLines = 2
+        let labels = NSStackView(views: [titleLabel, detailLabel])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 4
+        let stack = NSStackView(views: [image, labels])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(stack)
         NSLayoutConstraint.activate([
-            image.widthAnchor.constraint(equalToConstant: 28),
-            image.heightAnchor.constraint(equalToConstant: 28),
-            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12),
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 17),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -14),
+            image.widthAnchor.constraint(equalToConstant: 26),
+            image.heightAnchor.constraint(equalToConstant: 26),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 12),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -12),
         ])
         return card
     }
