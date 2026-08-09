@@ -6,6 +6,27 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.3</title>
+            <pubDate>Sun, 09 Aug 2026 17:39:31 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.3</link>
+            <sparkle:version>18</sparkle:version>
+            <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.3
+
+Voice Studio enrollment is clearer and more flexible:
+
+- Choose **Quick** for a shorter setup or **Full** for a longer, more accurate voice sample.
+- The Full script uses the complete guided recording passage, while Quick keeps the faster existing path.
+- The Quick passage now ends with natural privacy language instead of legal-sounding consent copy.
+- The Voice Studio welcome screen gives Kiki's portrait much more presence, with the artwork on the left and the introduction on the right.
+
+This update is fully local, Developer ID signed, notarized by Apple, and available through Kiki's built-in updater.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.3/Kiki-0.5.3-macOS.zip" length="52697771" type="application/octet-stream" sparkle:edSignature="+MFHcR0FpVPPuPxhXV1UapB4dKWaEc0XtPgOVY/6CNY3r7xHVIfbPCF8PPuGlSD0DxcFc669/pWBchriq1I9BQ=="/>
+        </item>
+        <item>
             <title>0.5.2</title>
             <pubDate>Sat, 08 Aug 2026 00:33:58 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.2</link>
@@ -105,38 +126,6 @@ Transcription speed, quality, and Kiki’s fully local privacy model remain unch
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-11.delta" sparkle:deltaFrom="11" length="238518" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="uj7Fss6wHnGzrjxkwpeKSFjLcFKC29kb5h6pjK57KtjkLHpclmDnl6pk1552qpA7bO58vVoAkreK2RHnkbK/Cw=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-10.delta" sparkle:deltaFrom="10" length="272218" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="GA4DLWZgItjICKx16VaOsxzMrSS6Qy57HuVKi7hsgwJ5fxeeIXxVqlg5YpzduW1nWS9i69nk2ljC31tKHnhYCg=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.6/Kiki14-9.delta" sparkle:deltaFrom="9" length="310746" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="TPUnJugj9L1WHNH9qFojA019WSU0ST92pmTSzDMbHuIFUy2QB5yKfTJLnw+kcj7VIHC7bC7iNvGIBsJK+1MGDA=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.4.5</title>
-            <pubDate>Fri, 07 Aug 2026 14:55:00 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.4.5</link>
-            <sparkle:version>13</sparkle:version>
-            <sparkle:shortVersionString>0.4.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.4.5
-
-This release makes General settings clear, responsive, and easier to verify.
-
-## What’s improved
-
-- Every General setting now provides immediate visible feedback.
-- Dictation sound choices play a short preview when selected.
-- Login-item errors now appear directly on the General page.
-- Appearance and sound selectors have larger, clearer click targets.
-- Removed the misleading Accent Color selector; orange remains Kiki’s consistent product accent.
-- Added the installed version and build number beneath “VOICE INTELLIGENCE” in the Settings sidebar.
-
-Transcription speed, quality, and Kiki’s fully local privacy model remain unchanged.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki-0.4.5-macOS.zip" length="6826219" type="application/octet-stream" sparkle:edSignature="M/J5k5mZDNwo9uJqtc8DzHP8jeQAqEAdDq3b33n5OMQTIiOsl5hYnY4NgMut4oCBrRpsahYFNECDLGoQoM6+BA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki13-12.delta" sparkle:deltaFrom="12" length="223714" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="jF/v+3PUdhRy5IVVcqEEFFGkXSmC7nNkLtfbbo9cr2PHnJ1NcxB36yGXSK/WNP58/b3ZifZwVUv38CKUHZ/6BA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki13-11.delta" sparkle:deltaFrom="11" length="247382" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="2lPrBHWMAD+tUP3mvC1uuDfarKzgIrRXbdPAfCdQ2OtRtCiNEAiGHtXkabtRLwd0fFEQri5SURkCODE0yTuECQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki13-10.delta" sparkle:deltaFrom="10" length="269910" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="3jeE4cuaVW3fdBuZ6RLQTt43WSiiapJmgQaT4/i7eFtX3Qu2wPgvCqDHhi3b0u96cbSZnz8HaALMUjjvXqjtDA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki13-9.delta" sparkle:deltaFrom="9" length="321010" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="FLR7WKhYEabtnksdP8X/lM3tkf2qp+iGFmhs8t5XeXscodNHTRmVpEoX3rP1BpLUFvvlbBkzVzgDGgKGtxh6Ag=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.4.5/Kiki13-8.delta" sparkle:deltaFrom="8" length="350406" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="yRRsdyPc19wvHgqwqXPIRZm8O2PZIC+ueHRJ3LXhHB4ljmAc669fX7W6pgSSf0fkFgh/cGjaq4UzarV+ZTihAQ=="/>
             </sparkle:deltas>
         </item>
     </channel>
