@@ -221,7 +221,7 @@ if args.count >= 2, args[1] == "--self-test-hud" {
 if args.count >= 2, args[1] == "--preview-settings" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
-        app.setActivationPolicy(.accessory)
+        app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
         if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {

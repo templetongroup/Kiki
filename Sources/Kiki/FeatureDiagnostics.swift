@@ -262,8 +262,10 @@ enum FeatureDiagnostics {
             ],
             actionItems: []
         )
+        let diagnosticSettings = SettingsWindowController()
+        diagnosticSettings.prepareForDiagnostics(page: 2)
         let interactiveWindows: [NSWindowController] = [
-            SettingsWindowController(),
+            diagnosticSettings,
             VoiceStudioWindowController(),
             MeetingWindowController(),
             MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting),
@@ -304,6 +306,22 @@ enum FeatureDiagnostics {
         }
         guard hitTestFailures.isEmpty else {
             throw failure("control hit testing [\(hitTestFailures.joined(separator: "; "))]")
+        }
+
+        guard let settingsContent = diagnosticSettings.window?.contentView,
+              abs(settingsContent.bounds.width - 682) < 1,
+              abs(settingsContent.bounds.height - 802) < 1,
+              let modelsScroll = findView(in: settingsContent, identifier: "kiki.models.scroll") as? NSScrollView,
+              let selectedCard = findView(in: settingsContent, identifier: "kiki.model.card.parakeetEnglish"),
+              let controlBay = findView(in: selectedCard, identifier: "kiki.model.control-bay"),
+              let divider = findView(in: selectedCard, identifier: "kiki.model.divider"),
+              let analogMeter = findView(in: selectedCard, identifier: "kiki.model.analog-meter"),
+              abs(controlBay.bounds.width - 72) < 1,
+              abs(divider.bounds.width - 1) < 1,
+              !analogMeter.isHidden,
+              modelsScroll.scrollerStyle == .overlay,
+              modelsScroll.autohidesScrollers else {
+            throw failure("Models must preserve the approved compact Studio Hardware layout")
         }
 
         let hardwareCard = KikiCardView()

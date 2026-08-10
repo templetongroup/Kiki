@@ -12,19 +12,19 @@ enum KikiPalette {
     // Sage and khaki are sampled from the Templeton palette and remain consistent
     // across both appearances.
     static let canvas = adaptive(
-        dark: NSColor(red: 0.067, green: 0.075, blue: 0.067, alpha: 1),
+        dark: NSColor(red: 0.102, green: 0.102, blue: 0.110, alpha: 1),
         light: NSColor(red: 0.957, green: 0.945, blue: 0.910, alpha: 1)
     )
     static let sidebar = adaptive(
-        dark: NSColor(red: 0.087, green: 0.097, blue: 0.086, alpha: 1),
+        dark: NSColor(red: 0.094, green: 0.094, blue: 0.102, alpha: 1),
         light: NSColor(red: 0.925, green: 0.908, blue: 0.866, alpha: 1)
     )
     static let surface = adaptive(
-        dark: NSColor(red: 0.105, green: 0.116, blue: 0.102, alpha: 1),
+        dark: NSColor(red: 0.114, green: 0.114, blue: 0.118, alpha: 1),
         light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
     )
     static let elevatedSurface = adaptive(
-        dark: NSColor(red: 0.137, green: 0.151, blue: 0.132, alpha: 1),
+        dark: NSColor(red: 0.137, green: 0.137, blue: 0.141, alpha: 1),
         light: NSColor(red: 0.929, green: 0.918, blue: 0.882, alpha: 1)
     )
     static let stroke = adaptive(
@@ -60,14 +60,14 @@ enum KikiPalette {
         light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 1)
     )
     static let selectionSurface = adaptive(
-        dark: NSColor(red: 0.166, green: 0.190, blue: 0.154, alpha: 1),
+        dark: NSColor(red: 0.231, green: 0.239, blue: 0.196, alpha: 1),
         light: NSColor(red: 0.855, green: 0.871, blue: 0.824, alpha: 1)
     )
     static let khaki = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
-    static let hardwareControl = NSColor(red: 0.095, green: 0.103, blue: 0.094, alpha: 1)
+    static let hardwareControl = NSColor(red: 0.094, green: 0.094, blue: 0.098, alpha: 1)
     static let hardwareControlText = NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1)
     static let meterTrack = adaptive(
         dark: NSColor(red: 0.038, green: 0.043, blue: 0.037, alpha: 1),
@@ -157,6 +157,7 @@ final class KikiSidebarView: NSView {
 @MainActor
 class KikiCardView: NSView {
     var selected = false { didSet { updateStyle() } }
+    var usesSelectionFill = true { didSet { updateStyle() } }
     var showsFasteners = false { didSet { updateFasteners() } }
     private let fasteners = (0..<4).map { _ in KikiFastenerLayer() }
 
@@ -213,7 +214,7 @@ class KikiCardView: NSView {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.cornerRadius = 8
             layer?.cornerCurve = .continuous
-            layer?.backgroundColor = (selected ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
+            layer?.backgroundColor = (selected && usesSelectionFill ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
             layer?.borderWidth = 1
             layer?.borderColor = (selected ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
@@ -265,8 +266,8 @@ final class KikiNavButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
+    private let chevronView = NSImageView()
     private let contentStack = NSStackView()
-    private let selectionRail = CALayer()
 
     init(title: String, symbol: String, target: AnyObject?, action: Selector?) {
         super.init(frame: .zero)
@@ -284,8 +285,11 @@ final class KikiNavButton: NSButton {
         titleLabel.stringValue = title
         titleLabel.font = .systemFont(ofSize: 13.5, weight: .medium)
         titleLabel.lineBreakMode = .byTruncatingTail
+        chevronView.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
+        chevronView.imageScaling = .scaleProportionallyDown
+        chevronView.setContentHuggingPriority(.required, for: .horizontal)
 
-        contentStack.setViews([symbolView, titleLabel], in: .leading)
+        contentStack.setViews([symbolView, titleLabel, chevronView], in: .leading)
         contentStack.orientation = .horizontal
         contentStack.alignment = .centerY
         contentStack.spacing = 8
@@ -295,8 +299,6 @@ final class KikiNavButton: NSButton {
         wantsLayer = true
         layer?.cornerRadius = 6
         layer?.cornerCurve = .continuous
-        selectionRail.cornerRadius = 1.5
-        layer?.addSublayer(selectionRail)
         heightAnchor.constraint(equalToConstant: 42).isActive = true
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
@@ -304,6 +306,8 @@ final class KikiNavButton: NSButton {
             contentStack.centerYAnchor.constraint(equalTo: centerYAnchor),
             symbolView.widthAnchor.constraint(equalToConstant: 16),
             symbolView.heightAnchor.constraint(equalToConstant: 16),
+            chevronView.widthAnchor.constraint(equalToConstant: 9),
+            chevronView.heightAnchor.constraint(equalToConstant: 12),
         ])
         updateStyle()
     }
@@ -321,14 +325,6 @@ final class KikiNavButton: NSButton {
 
     override var mouseDownCanMoveWindow: Bool { false }
 
-    override func layout() {
-        super.layout()
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        selectionRail.frame = CGRect(x: 0, y: 7, width: 3, height: max(0, bounds.height - 14))
-        CATransaction.commit()
-    }
-
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -339,15 +335,62 @@ final class KikiNavButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
-                ? KikiPalette.selectionSurface.cgColor
+                ? KikiPalette.selectionSurface.withAlphaComponent(0.72).cgColor
                 : NSColor.clear.cgColor
-            layer?.borderWidth = 0
-            selectionRail.backgroundColor = KikiPalette.accent.cgColor
-            selectionRail.isHidden = !isSelectedPage
+            layer?.borderWidth = isSelectedPage ? 1 : 0
+            layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.48).cgColor
             let color = isSelectedPage ? KikiPalette.accentText : KikiPalette.secondaryText
             symbolView.contentTintColor = color
             titleLabel.textColor = color
+            chevronView.contentTintColor = color
+            chevronView.isHidden = !isSelectedPage
         }
+    }
+}
+
+@MainActor
+final class KikiCircularPortraitView: NSView {
+    private var portrait: NSImage?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        if let url = Bundle.main.url(forResource: "SplashArtwork", withExtension: "png") {
+            portrait = NSImage(contentsOf: url)
+        } else if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
+            portrait = NSImage(contentsOf: url)
+        }
+        wantsLayer = true
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let portraitRect = bounds.insetBy(dx: 2, dy: 2)
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(ovalIn: portraitRect).addClip()
+        KikiPalette.meterTrack.setFill()
+        NSBezierPath(rect: portraitRect).fill()
+        if let portrait {
+            let source = NSRect(
+                x: portrait.size.width * 0.16,
+                y: portrait.size.height * 0.34,
+                width: portrait.size.width * 0.68,
+                height: portrait.size.height * 0.62
+            )
+            portrait.draw(in: portraitRect, from: source, operation: .sourceOver, fraction: 1)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        KikiPalette.khaki.withAlphaComponent(0.5).setStroke()
+        let ring = NSBezierPath(ovalIn: portraitRect.insetBy(dx: 0.5, dy: 0.5))
+        ring.lineWidth = 1
+        ring.stroke()
     }
 }
 
@@ -573,6 +616,69 @@ final class KikiHardwareDialView: NSView {
             indicator.lineWidth = 2
             indicator.lineCapStyle = .round
             indicator.stroke()
+        }
+    }
+}
+
+@MainActor
+final class KikiAnalogMeterView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        identifier = NSUserInterfaceItemIdentifier("kiki.model.analog-meter")
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let labels = ["-30", "-18", "-12", "-6", "0"]
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 6.5, weight: .medium),
+                .foregroundColor: KikiPalette.secondaryText,
+            ]
+            let baselineY: CGFloat = 21
+            let left: CGFloat = 5
+            let right = bounds.width - 5
+
+            KikiPalette.stroke.setStroke()
+            let arc = NSBezierPath()
+            arc.move(to: CGPoint(x: left, y: 8))
+            arc.curve(
+                to: CGPoint(x: right, y: 8),
+                controlPoint1: CGPoint(x: bounds.width * 0.33, y: 18),
+                controlPoint2: CGPoint(x: bounds.width * 0.67, y: 18)
+            )
+            arc.lineWidth = 1
+            arc.stroke()
+
+            for (index, label) in labels.enumerated() {
+                let progress = CGFloat(index) / CGFloat(labels.count - 1)
+                let x = left + progress * (right - left)
+                let height: CGFloat = index == 0 || index == labels.count - 1 ? 8 : 6
+                let tick = NSBezierPath()
+                tick.move(to: CGPoint(x: x, y: 7))
+                tick.line(to: CGPoint(x: x, y: 7 + height))
+                KikiPalette.khaki.setStroke()
+                tick.lineWidth = 1
+                tick.stroke()
+                let size = label.size(withAttributes: attributes)
+                label.draw(at: CGPoint(x: x - size.width / 2, y: baselineY), withAttributes: attributes)
+            }
+
+            let needle = NSBezierPath()
+            needle.move(to: CGPoint(x: bounds.midX, y: 4))
+            needle.line(to: CGPoint(x: bounds.width * 0.72, y: 15))
+            KikiPalette.accentText.setStroke()
+            needle.lineWidth = 1.5
+            needle.lineCapStyle = .round
+            needle.stroke()
         }
     }
 }
