@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.17</title>
+            <pubDate>Mon, 10 Aug 2026 19:03:46 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.17</link>
+            <sparkle:version>32</sparkle:version>
+            <sparkle:shortVersionString>0.5.17</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.17
+
+- Rebuilds the waveform as a fixed 30 fps scrolling history of real microphone loudness instead of replacing all 38 bars with every incoming audio chunk.
+- Preserves 37 prior bars per frame and appends one new RMS-derived level, eliminating the jumping, stuttering pattern while keeping the display audio-driven.
+- Calibrates the meter against the saved real-voice reference recording on this Mac rather than synthetic test tones.
+- Keeps normal recorded speech centered around a restrained visual range with substantial headroom for genuinely forceful speech.
+- Adds a packaged real-voice regression diagnostic that checks both raw levels and the final rendered waveform against saturation limits.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.17/Kiki-0.5.17-macOS.zip" length="53496227" type="application/octet-stream" sparkle:edSignature="KTN/SMxlnQxKWE3r3PVrPbIHPEQWFskImUdtwX/EbZ0Y6TUKDnzRZuyg+3+rLYmhY6nNLkCjAuaMc62uQmtiBw=="/>
+        </item>
+        <item>
             <title>0.5.16</title>
             <pubDate>Mon, 10 Aug 2026 18:52:56 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.16</link>
@@ -74,24 +92,6 @@
 - Adds signal-response diagnostics and a dedicated packaged waveform preview for visual release checks.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.13/Kiki-0.5.13-macOS.zip" length="53491724" type="application/octet-stream" sparkle:edSignature="CSgL5JInn+IKPCo3iKGQcZzRcX0QXHNNC7QN7RrHxDvbOhq7GHbDTe8sBhTIBVX0WdhDWW9fZxkVeF+3F/SgBg=="/>
-        </item>
-        <item>
-            <title>0.5.12</title>
-            <pubDate>Mon, 10 Aug 2026 14:23:33 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.12</link>
-            <sparkle:version>27</sparkle:version>
-            <sparkle:shortVersionString>0.5.12</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.12
-
-- Removes the distracting radial glare that repeated across cards and panels.
-- Removes the synthetic grain texture from shared card surfaces.
-- Replaces both effects with a restrained matte treatment: subtle vertical depth, a hairline inner edge, and a softer shadow.
-- Keeps the same card geometry and Studio Hardware colors in light and dark appearances.
-- Adds a regression check that prevents the radial-glare and texture layers from returning.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.12/Kiki-0.5.12-macOS.zip" length="53486803" type="application/octet-stream" sparkle:edSignature="SaqQC4YqTmt/sdA4S7BZAhxAmuyQ/NzQOVOVHCrkzrpqas7qpnwD4gs+kK6zzixz6Q7H8pHnW/kdnNqTUHUFAg=="/>
         </item>
     </channel>
 </rss>
