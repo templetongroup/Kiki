@@ -186,6 +186,30 @@ if args.count >= 2, args[1] == "--self-test-features" {
     }
 }
 
+if args.count >= 2, args[1] == "--preview-waveform" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        AppearanceController.apply()
+        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
+            app.appearance = NSAppearance(named: .darkAqua)
+        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
+            app.appearance = NSAppearance(named: .aqua)
+        }
+        let hud = HUDPanel()
+        let previewLevels: [CGFloat] = [0.10, 0.28, 0.62, 0.88, 0.46, 0.74, 0.22, 0.54]
+        var previewIndex = 0
+        hud.showWaveform(level: previewLevels[previewIndex], reset: true)
+        Timer.scheduledTimer(withTimeInterval: 0.11, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                previewIndex = (previewIndex + 1) % previewLevels.count
+                hud.showWaveform(level: previewLevels[previewIndex])
+            }
+        }
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--self-test-hud" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared

@@ -203,6 +203,8 @@ enum FeatureDiagnostics {
         else { throw failure("phrase boundaries") }
 
         let silentLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0, count: 128))
+        let quietLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.006, count: 128))
+        let conversationalLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.03, count: 128))
         let speakingLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.12, count: 128))
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
@@ -212,7 +214,11 @@ enum FeatureDiagnostics {
               topRight.origin == NSPoint(x: 876, y: 908),
               bottomLeft.origin == NSPoint(x: 124, y: 232),
               silentLevel == 0,
-              speakingLevel > 0.5
+              quietLevel > 0.1,
+              conversationalLevel > quietLevel,
+              speakingLevel > conversationalLevel,
+              KikiWaveformView.barCount == 38,
+              KikiWaveformView.preferredSize == NSSize(width: 220, height: 34)
         else { throw failure("listening display modes") }
     }
 

@@ -74,8 +74,8 @@ final class HUDPanel {
             logoView.widthAnchor.constraint(equalToConstant: 34),
             logoView.heightAnchor.constraint(equalToConstant: 34),
             transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
-            waveformView.widthAnchor.constraint(equalToConstant: 84),
-            waveformView.heightAnchor.constraint(equalToConstant: 24),
+            waveformView.widthAnchor.constraint(equalToConstant: KikiWaveformView.preferredSize.width),
+            waveformView.heightAnchor.constraint(equalToConstant: KikiWaveformView.preferredSize.height),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
             content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -12),
             content.centerYAnchor.constraint(equalTo: effect.centerYAnchor),
@@ -90,6 +90,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
+        waveformView.stopAnimating()
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -105,6 +106,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
+        waveformView.stopAnimating()
         statusLabel.stringValue = "Listening"
         statusLabel.textColor = KikiPalette.accentText
         transcriptLabel.stringValue = displayText(transcript)
@@ -122,7 +124,7 @@ final class HUDPanel {
         waveformView.isHidden = false
         if reset { waveformView.reset() }
         waveformView.level = level
-        if needsPresentation { present(width: 116, height: 50) }
+        if needsPresentation { present(width: 252, height: 62) }
     }
 
     func showTranscribing(transcript: String? = nil) {
@@ -131,6 +133,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
+        waveformView.stopAnimating()
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -263,6 +266,7 @@ final class HUDPanel {
     func hide() {
         presentation = nil
         waveformView.level = 0
+        waveformView.stopAnimating()
         panel.orderOut(nil)
     }
 
@@ -276,24 +280,72 @@ enum VoiceLevelMeter {
         guard !samples.isEmpty else { return 0 }
         let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count)
         let rms = meanSquare.squareRoot()
-        guard rms > 0.003 else { return 0 }
-        return CGFloat(min(max((rms - 0.003) / 0.16, 0), 1))
+        let peak = samples.reduce(0.0) { max($0, Double(abs($1))) }
+        guard peak > 0.0015 else { return 0 }
+
+        // A logarithmic meter preserves visible motion in a normal speaking range.
+        // The former linear scale spent most of its time close to zero unless the
+        // microphone signal was unusually loud.
+        let weightedAmplitude = max((rms * 0.74) + (peak * 0.26), 0.000_001)
+        let decibels = 20 * log10(weightedAmplitude)
+        let normalized = min(max((decibels + 52) / 40, 0), 1)
+        return CGFloat(pow(normalized, 0.72))
     }
 }
 
 @MainActor
-private final class KikiWaveformView: NSView {
+final class KikiWaveformView: NSView {
+    static let preferredSize = NSSize(width: 220, height: 34)
+    static let barCount = 38
+
     var level: CGFloat = 0 {
         didSet {
-            smoothedLevel = (smoothedLevel * 0.58) + (min(max(level, 0), 1) * 0.42)
-            needsDisplay = true
+            targetLevel = min(max(level, 0), 1)
+            startAnimating()
         }
     }
-    private var smoothedLevel: CGFloat = 0
+    private var targetLevel: CGFloat = 0
+    private var envelope: CGFloat = 0
+    private var phase: CGFloat = 0
+    private var history = [CGFloat](repeating: 0.055, count: barCount)
+    private var animationTimer: Timer?
 
     func reset() {
-        level = 0
-        smoothedLevel = 0
+        targetLevel = 0
+        envelope = 0
+        phase = 0
+        history = [CGFloat](repeating: 0.055, count: Self.barCount)
+        needsDisplay = true
+        startAnimating()
+    }
+
+    func stopAnimating() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+    }
+
+    private func startAnimating() {
+        guard animationTimer == nil else { return }
+        let timer = Timer(timeInterval: 1 / 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.advanceFrame() }
+        }
+        timer.tolerance = 0.006
+        RunLoop.main.add(timer, forMode: .common)
+        animationTimer = timer
+    }
+
+    private func advanceFrame() {
+        let response: CGFloat = targetLevel > envelope ? 0.62 : 0.16
+        envelope += (targetLevel - envelope) * response
+        targetLevel *= 0.93
+        phase += 0.31
+
+        let idlePulse = 0.055 + ((sin(phase * 0.58) + 1) * 0.014)
+        let voiceMotion = envelope * (0.78 + 0.22 * sin(phase * 1.41))
+        let transient = max(0, sin(phase * 0.73)) * envelope * 0.16
+        let sample = min(1, max(idlePulse, voiceMotion + transient))
+        history.removeFirst()
+        history.append(sample)
         needsDisplay = true
     }
 
@@ -301,23 +353,37 @@ private final class KikiWaveformView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        let multipliers: [CGFloat] = [0.34, 0.58, 0.82, 1, 0.74, 0.52, 0.3]
-        let barWidth: CGFloat = 6
-        let spacing: CGFloat = 8
-        let totalWidth = CGFloat(multipliers.count) * barWidth + CGFloat(multipliers.count - 1) * spacing
+        let barWidth: CGFloat = 3
+        let spacing: CGFloat = 2.7
+        let totalWidth = CGFloat(Self.barCount) * barWidth + CGFloat(Self.barCount - 1) * spacing
         let startX = (bounds.width - totalWidth) / 2
-        let baseLevel = max(smoothedLevel, 0.05)
-        KikiPalette.accent.setFill()
 
-        for (index, multiplier) in multipliers.enumerated() {
-            let height = max(4, bounds.height * (0.16 + baseLevel * 0.84) * multiplier)
-            let rect = NSRect(
-                x: startX + CGFloat(index) * (barWidth + spacing),
-                y: (bounds.height - height) / 2,
-                width: barWidth,
-                height: height
-            )
-            NSBezierPath(roundedRect: rect, xRadius: barWidth / 2, yRadius: barWidth / 2).fill()
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let centerLine = NSBezierPath()
+            centerLine.move(to: NSPoint(x: startX, y: bounds.midY))
+            centerLine.line(to: NSPoint(x: startX + totalWidth, y: bounds.midY))
+            centerLine.lineWidth = 1
+            KikiPalette.strongStroke.withAlphaComponent(0.22).setStroke()
+            centerLine.stroke()
+
+            for (index, sample) in history.enumerated() {
+                let progress = CGFloat(index) / CGFloat(max(Self.barCount - 1, 1))
+                let spatialMotion = 0.68 + 0.32 * ((sin(CGFloat(index) * 1.19 + phase * 0.72) + 1) / 2)
+                let neighboringLift = index > 0 ? history[index - 1] * 0.16 : 0
+                let amplitude = min(1, max(0.045, sample * spatialMotion + neighboringLift))
+                let height = max(3, 3 + amplitude * (bounds.height - 5))
+                let rect = NSRect(
+                    x: startX + CGFloat(index) * (barWidth + spacing),
+                    y: (bounds.height - height) / 2,
+                    width: barWidth,
+                    height: height
+                )
+                let headMix = max(0, (progress - 0.78) / 0.22) * 0.42
+                let color = KikiPalette.accentText.blended(withFraction: headMix, of: KikiPalette.khaki)
+                    ?? KikiPalette.accentText
+                color.withAlphaComponent(0.66 + progress * 0.34).setFill()
+                NSBezierPath(roundedRect: rect, xRadius: barWidth / 2, yRadius: barWidth / 2).fill()
+            }
         }
     }
 }
