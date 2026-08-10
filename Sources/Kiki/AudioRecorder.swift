@@ -4,6 +4,11 @@ import AVFoundation
 /// the input format Whisper expects.
 final class AudioRecorder {
     static let sampleRate: Double = 16000
+    static let tapBufferSize: AVAudioFrameCount = 1024
+
+    static func captureInterval(inputSampleRate: Double) -> TimeInterval {
+        Double(tapBufferSize) / inputSampleRate
+    }
 
     private var engine: AVAudioEngine?
     private var converter: AVAudioConverter?
@@ -39,7 +44,7 @@ final class AudioRecorder {
         lock.unlock()
 
         self.converter = converter
-        input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
+        input.installTap(onBus: 0, bufferSize: Self.tapBufferSize, format: inFormat) { [weak self] buffer, _ in
             self?.consume(buffer, outFormat: outFormat)
         }
         engine.prepare()

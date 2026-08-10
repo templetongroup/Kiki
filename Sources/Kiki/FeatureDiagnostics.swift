@@ -220,6 +220,20 @@ enum FeatureDiagnostics {
             for: pulseSamples,
             barCount: KikiWaveformView.barCount
         )
+        let normalSpeech = (0..<760).map { index in
+            Float(0.08 * sin(Double(index) * 0.31))
+        }
+        let forcefulSpeech = (0..<760).map { index in
+            Float(0.55 * sin(Double(index) * 0.31))
+        }
+        let normalSpeechPeak = VoiceLevelMeter.waveformBars(
+            for: normalSpeech,
+            barCount: KikiWaveformView.barCount
+        ).max() ?? 0
+        let forcefulSpeechPeak = VoiceLevelMeter.waveformBars(
+            for: forcefulSpeech,
+            barCount: KikiWaveformView.barCount
+        ).max() ?? 0
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
@@ -228,7 +242,7 @@ enum FeatureDiagnostics {
               topRight.origin == NSPoint(x: 876, y: 908),
               bottomLeft.origin == NSPoint(x: 124, y: 232),
               silentLevel == 0,
-              quietLevel > 0.1,
+              quietLevel > 0,
               conversationalLevel > quietLevel,
               speakingLevel > conversationalLevel,
               silentBars.allSatisfy({ $0 == 0 }),
@@ -237,6 +251,10 @@ enum FeatureDiagnostics {
               pulseBars.enumerated().allSatisfy({ index, level in
                   (19...20).contains(index) || level == 0
               }),
+              AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
+              normalSpeechPeak < 0.65,
+              forcefulSpeechPeak > 0.82,
+              forcefulSpeechPeak < 0.97,
               HUDPanel.waveformUsesClearSurface,
               KikiWaveformView.barCount == 38,
               KikiWaveformView.usesAdaptiveOutline,

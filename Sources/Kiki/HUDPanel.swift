@@ -294,13 +294,12 @@ enum VoiceLevelMeter {
         let peak = samples.reduce(0.0) { max($0, Double(abs($1))) }
         guard peak > 0.0015 else { return 0 }
 
-        // A logarithmic meter preserves visible motion in a normal speaking range.
-        // The former linear scale spent most of its time close to zero unless the
-        // microphone signal was unusually loud.
-        let weightedAmplitude = max((rms * 0.74) + (peak * 0.26), 0.000_001)
+        // Short waveform windows contain sharp peaks, so let RMS drive the meter
+        // and reserve enough headroom for genuinely forceful speech.
+        let weightedAmplitude = max((rms * 0.90) + (peak * 0.10), 0.000_001)
         let decibels = 20 * log10(weightedAmplitude)
-        let normalized = min(max((decibels + 52) / 40, 0), 1)
-        return CGFloat(pow(normalized, 0.72))
+        let normalized = min(max((decibels + 50) / 47, 0), 1)
+        return CGFloat(pow(normalized, 1.35))
     }
 
     static func waveformBars(for samples: [Float], barCount: Int) -> [CGFloat] {
@@ -327,7 +326,7 @@ final class KikiWaveformView: NSView {
     func update(samples: [Float]) {
         let incoming = VoiceLevelMeter.waveformBars(for: samples, barCount: Self.barCount)
         bars = zip(bars, incoming).map { current, next in
-            let response: CGFloat = next > current ? 0.82 : 0.52
+            let response: CGFloat = next > current ? 0.58 : 0.30
             return current + (next - current) * response
         }
         needsDisplay = true
