@@ -6,6 +6,25 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.9</title>
+            <pubDate>Mon, 10 Aug 2026 12:02:35 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.9</link>
+            <sparkle:version>24</sparkle:version>
+            <sparkle:shortVersionString>0.5.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.9
+
+- Rebuilds Models to match the approved Studio Hardware mockup instead of merely borrowing its colors.
+- Restores the compact 682-by-802 equipment-rack composition and original sidebar proportions.
+- Adds dedicated dial bays, divider rails, ACTIVE labeling, an analog meter, realistic fasteners, and compact dark hardware controls.
+- Replaces the flat selected navigation row with the bordered sage plate and chevron from the mockup.
+- Uses the same circular Kiki portrait and identical layout in light and dark appearances.
+- Adds regression checks for the Models geometry, hardware details, and every enabled control hit target.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.9/Kiki-0.5.9-macOS.zip" length="53486239" type="application/octet-stream" sparkle:edSignature="tk9Ey+f9JlTbVklYJFn0CsbGCNsgU/TGA0v/v/kQRG3s8sJ9zMeUMFc7lveQua8aC6Bcbv/W1miATjNr5xCsBA=="/>
+        </item>
+        <item>
             <title>0.5.8</title>
             <pubDate>Mon, 10 Aug 2026 11:06:59 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.8</link>
@@ -85,32 +104,6 @@ Kiki remains fully local, Developer ID signed, and notarized by Apple.
 This update is Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.5/Kiki-0.5.5-macOS.zip" length="52704108" type="application/octet-stream" sparkle:edSignature="fVQDhwoGYkbUccQzEG+XGBSusgn4rFLqtYkKxmv3f6vQU3RkuZKZrnb54OWnHNymoAor6RbTVnW3x4t3hgEkCQ=="/>
-        </item>
-        <item>
-            <title>0.5.4</title>
-            <pubDate>Sun, 09 Aug 2026 18:44:56 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.4</link>
-            <sparkle:version>19</sparkle:version>
-            <sparkle:shortVersionString>0.5.4</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.4
-
-## Studio Hardware
-
-- A complete light and dark visual system inspired by professional recording equipment.
-- Templeton sage and khaki accents, warm enamel light surfaces, and charcoal dark panels.
-- Hardware details across Settings, Models, Voice Studio, splash cards, meeting controls, and secondary windows.
-- Voice Studio uses the same full Kiki portrait and layout in both appearances.
-
-## Listening and playback
-
-- The live transcription window is now a compact, unobtrusive single-line HUD labeled “Listening.”
-- Voice reference preview can now be stopped immediately; the button changes between “Play Preview” and “Stop Preview.”
-
-This update remains fully local, Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.4/Kiki-0.5.4-macOS.zip" length="52705055" type="application/octet-stream" sparkle:edSignature="7q2oyqzd2xLR8o+93AVvlay9VYE8nDc4Qa7OghS3co5tIR8wqlXnB4CMrMVRQRBvQ9+rpsyCXVP1hTnoK9+6Cg=="/>
         </item>
     </channel>
 </rss>
