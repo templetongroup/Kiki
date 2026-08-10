@@ -179,7 +179,6 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeVoiceCard() -> NSView {
         let card = KikiCardView()
-        card.showsFasteners = true
         let sectionTitle = kikiLabel("1. Record your voice", size: 18, weight: .bold)
         profileStatusLabel.font = .systemFont(ofSize: 12.5)
         profileStatusLabel.textColor = KikiPalette.secondaryText
@@ -340,7 +339,6 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeGenerationCard() -> NSView {
         let card = KikiCardView()
-        card.showsFasteners = true
         let sectionTitle = kikiLabel("3. Create audio", size: 18, weight: .bold)
         let sectionDetail = kikiLabel("Write, paste, or edit a script. Longer text is generated in natural sections.", size: 12, color: KikiPalette.secondaryText)
 

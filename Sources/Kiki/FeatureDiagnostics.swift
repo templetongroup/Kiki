@@ -334,16 +334,20 @@ enum FeatureDiagnostics {
         }
 
         let hardwareCard = KikiCardView()
-        hardwareCard.showsFasteners = true
         hardwareCard.frame = NSRect(x: 0, y: 0, width: 240, height: 100)
         hardwareCard.layoutSubtreeIfNeeded()
-        let fasteners = hardwareCard.layer?.sublayers ?? []
+        let depthLayerNames = Set((hardwareCard.layer?.sublayers ?? []).compactMap(\.name))
         let hardwareButton = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
-        guard fasteners.count == 4,
-              fasteners.allSatisfy({ $0.bounds.width >= 9 && ($0.sublayers?.count ?? 0) >= 2 }),
+        guard depthLayerNames.isSuperset(of: [
+                  "kiki.card.radial-depth",
+                  "kiki.card.vertical-depth",
+                  "kiki.card.texture",
+                  "kiki.card.inner-border",
+              ]),
               hardwareButton.intrinsicContentSize.height < 40,
+              abs((hardwareButton.font?.pointSize ?? 0) - 11.5) < 0.1,
               hardwareButton.layer?.borderWidth == 1 else {
-            throw failure("Studio Hardware fasteners and compact controls")
+            throw failure("Studio Hardware depth treatment and compact controls")
         }
 
         let focusProbe = KikiActionButton("Focus Probe", target: nil, action: nil)

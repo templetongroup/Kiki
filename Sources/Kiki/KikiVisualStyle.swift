@@ -23,13 +23,21 @@ enum KikiPalette {
         dark: NSColor(red: 0.106, green: 0.106, blue: 0.114, alpha: 1),
         light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
     )
-    static let hardwareCardCenter = adaptive(
-        dark: NSColor(red: 0.125, green: 0.125, blue: 0.133, alpha: 1),
-        light: NSColor(red: 0.992, green: 0.984, blue: 0.961, alpha: 1)
+    static let cardCenterLight = adaptive(
+        dark: NSColor.white.withAlphaComponent(0.055),
+        light: NSColor.white.withAlphaComponent(0.10)
     )
-    static let hardwareCardEdge = adaptive(
-        dark: NSColor(red: 0.094, green: 0.098, blue: 0.106, alpha: 1),
-        light: NSColor(red: 0.949, green: 0.937, blue: 0.902, alpha: 1)
+    static let cardEdgeShade = adaptive(
+        dark: NSColor.black.withAlphaComponent(0.18),
+        light: NSColor.black.withAlphaComponent(0.035)
+    )
+    static let cardBottomShade = adaptive(
+        dark: NSColor.black.withAlphaComponent(0.18),
+        light: NSColor.black.withAlphaComponent(0.04)
+    )
+    static let cardInnerStroke = adaptive(
+        dark: NSColor.white.withAlphaComponent(0.050),
+        light: NSColor.white.withAlphaComponent(0.24)
     )
     static let elevatedSurface = adaptive(
         dark: NSColor(red: 0.137, green: 0.137, blue: 0.141, alpha: 1),
@@ -75,18 +83,22 @@ enum KikiPalette {
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
-    static let fastenerFace = adaptive(
-        dark: NSColor(red: 0.380, green: 0.240, blue: 0.080, alpha: 1),
-        light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
-    )
     static let hardwareControl = NSColor(red: 0.094, green: 0.094, blue: 0.098, alpha: 1)
     static let hardwareControlText = NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1)
+    static let hardwareButtonSurface = adaptive(
+        dark: NSColor(red: 0.165, green: 0.161, blue: 0.149, alpha: 1),
+        light: NSColor(red: 0.165, green: 0.161, blue: 0.149, alpha: 1)
+    )
+    static let hardwareButtonBorder = adaptive(
+        dark: NSColor(red: 0.365, green: 0.357, blue: 0.329, alpha: 1),
+        light: NSColor(red: 0.365, green: 0.357, blue: 0.329, alpha: 1)
+    )
     static let meterTrack = adaptive(
         dark: NSColor(red: 0.038, green: 0.043, blue: 0.037, alpha: 1),
         light: NSColor(red: 0.865, green: 0.847, blue: 0.800, alpha: 1)
     )
     static let meterAccent = adaptive(
-        dark: NSColor(red: 0.500, green: 0.540, blue: 0.270, alpha: 1),
+        dark: NSColor(red: 0.553, green: 0.576, blue: 0.447, alpha: 1),
         light: NSColor(red: 0.420, green: 0.475, blue: 0.250, alpha: 1)
     )
     static let violet = adaptive(
@@ -176,24 +188,67 @@ class KikiCardView: NSView {
     var usesSelectionFill = true { didSet { updateStyle() } }
     var usesSelectionBorder = true { didSet { updateStyle() } }
     var cardCornerRadius: CGFloat = 8 { didSet { updateStyle() } }
-    var usesHardwareGradient = false { didSet { updateStyle() } }
-    var showsFasteners = false { didSet { updateFasteners() } }
-    var showsBottomFasteners = true { didSet { updateFasteners() } }
-    private let fasteners = (0..<4).map { _ in KikiFastenerLayer() }
+    var usesHardwareGradient = true { didSet { updateStyle() } }
     private let hardwareGradient = CAGradientLayer()
+    private let verticalDepth = CAGradientLayer()
+    private let textureLayer = CALayer()
+    private let innerBorder = CAShapeLayer()
+
+    private static let cardTexture: CGImage? = {
+        let width = 256
+        let height = 256
+        var seed: UInt64 = 0x4B49_4B49_5354_5544
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        for index in 0..<(width * height) {
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            let grain = UInt8(104 + ((seed >> 32) % 49))
+            let alpha = UInt8(16 + ((seed >> 48) % 15))
+            let offset = index * 4
+            pixels[offset] = grain
+            pixels[offset + 1] = grain
+            pixels[offset + 2] = grain
+            pixels[offset + 3] = alpha
+        }
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData) else { return nil }
+        return CGImage(
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bitsPerPixel: 32,
+            bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        )
+    }()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         hardwareGradient.type = .radial
-        hardwareGradient.startPoint = CGPoint(x: 0.62, y: 0.48)
-        hardwareGradient.endPoint = CGPoint(x: 1, y: 0.48)
-        hardwareGradient.isHidden = true
+        hardwareGradient.startPoint = CGPoint(x: 0.58, y: 0.43)
+        hardwareGradient.endPoint = CGPoint(x: 1.04, y: 0.55)
+        hardwareGradient.name = "kiki.card.radial-depth"
+        verticalDepth.startPoint = CGPoint(x: 0.5, y: 0)
+        verticalDepth.endPoint = CGPoint(x: 0.5, y: 1)
+        verticalDepth.name = "kiki.card.vertical-depth"
+        textureLayer.contents = Self.cardTexture
+        textureLayer.contentsGravity = .resizeAspectFill
+        textureLayer.magnificationFilter = .nearest
+        textureLayer.minificationFilter = .nearest
+        textureLayer.opacity = 0.16
+        textureLayer.masksToBounds = true
+        textureLayer.name = "kiki.card.texture"
+        innerBorder.fillColor = nil
+        innerBorder.lineWidth = 1
+        innerBorder.name = "kiki.card.inner-border"
         layer?.addSublayer(hardwareGradient)
-        fasteners.forEach {
-            $0.isHidden = true
-            layer?.addSublayer($0)
-        }
+        layer?.addSublayer(verticalDepth)
+        layer?.addSublayer(textureLayer)
+        layer?.addSublayer(innerBorder)
         updateStyle()
     }
 
@@ -206,93 +261,62 @@ class KikiCardView: NSView {
 
     override func layout() {
         super.layout()
-        hardwareGradient.frame = bounds
-        hardwareGradient.cornerRadius = cardCornerRadius
-        let size: CGFloat = 9
-        let positions = [
-            CGPoint(x: 5, y: 9),
-            CGPoint(x: max(7, bounds.width - 7 - size), y: 9),
-            CGPoint(x: 5, y: max(9, bounds.height - 9 - size)),
-            CGPoint(x: max(7, bounds.width - 7 - size), y: max(9, bounds.height - 9 - size)),
-        ]
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        for (fastener, point) in zip(fasteners, positions) {
-            fastener.frame = CGRect(origin: point, size: CGSize(width: size, height: size))
-        }
+        hardwareGradient.frame = bounds
+        hardwareGradient.cornerRadius = cardCornerRadius
+        verticalDepth.frame = bounds
+        verticalDepth.cornerRadius = cardCornerRadius
+        textureLayer.frame = bounds
+        textureLayer.cornerRadius = cardCornerRadius
+        innerBorder.frame = bounds
+        innerBorder.path = CGPath(
+            roundedRect: bounds.insetBy(dx: 1.5, dy: 1.5),
+            cornerWidth: max(0, cardCornerRadius - 1.5),
+            cornerHeight: max(0, cardCornerRadius - 1.5),
+            transform: nil
+        )
+        layer?.shadowPath = CGPath(
+            roundedRect: bounds,
+            cornerWidth: cardCornerRadius,
+            cornerHeight: cardCornerRadius,
+            transform: nil
+        )
         CATransaction.commit()
-    }
-
-    private func updateFasteners() {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            fasteners.enumerated().forEach { index, fastener in
-                fastener.isHidden = !showsFasteners || (!showsBottomFasteners && index < 2)
-                fastener.applyColors(
-                    face: KikiPalette.fastenerFace,
-                    edge: KikiPalette.strongStroke,
-                    slot: KikiPalette.canvas
-                )
-            }
-        }
-        needsLayout = true
     }
 
     func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.cornerRadius = cardCornerRadius
             layer?.cornerCurve = .continuous
-            let useGradient = usesHardwareGradient && !(selected && usesSelectionFill)
             layer?.backgroundColor = (selected && usesSelectionFill ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
-            hardwareGradient.isHidden = !useGradient
+            hardwareGradient.isHidden = !usesHardwareGradient
             hardwareGradient.colors = [
-                KikiPalette.hardwareCardCenter.cgColor,
-                KikiPalette.hardwareCardEdge.cgColor,
+                KikiPalette.cardCenterLight.cgColor,
+                NSColor.clear.cgColor,
+                KikiPalette.cardEdgeShade.cgColor,
             ]
-            hardwareGradient.locations = [0, 1]
+            hardwareGradient.locations = [0, 0.56, 1]
             hardwareGradient.cornerRadius = cardCornerRadius
+            verticalDepth.isHidden = !usesHardwareGradient
+            verticalDepth.colors = [
+                KikiPalette.cardInnerStroke.cgColor,
+                NSColor.clear.cgColor,
+                KikiPalette.cardBottomShade.cgColor,
+            ]
+            verticalDepth.locations = [0, 0.42, 1]
+            textureLayer.isHidden = !usesHardwareGradient
+            innerBorder.isHidden = !usesHardwareGradient
+            innerBorder.strokeColor = KikiPalette.cardInnerStroke.cgColor
             layer?.borderWidth = 1
             layer?.borderColor = (selected && usesSelectionBorder ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
-            layer?.shadowOpacity = selected ? 0.12 : 0.04
-            layer?.shadowRadius = selected ? 9 : 4
+            let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            textureLayer.opacity = isDark ? 0.16 : 0.04
+            layer?.shadowOpacity = isDark ? (selected ? 0.42 : 0.32) : (selected ? 0.18 : 0.12)
+            layer?.shadowRadius = selected ? 9 : 6
             layer?.shadowOffset = CGSize(width: 0, height: -2)
-            updateFasteners()
         }
-    }
-}
-
-private final class KikiFastenerLayer: CALayer {
-    private let slot = CALayer()
-    private let highlight = CALayer()
-
-    override init() {
-        super.init()
-        cornerRadius = 5
-        borderWidth = 1
-        shadowColor = NSColor.black.cgColor
-        shadowOpacity = 0.35
-        shadowRadius = 1.5
-        shadowOffset = CGSize(width: 0, height: -1)
-        slot.cornerRadius = 0.5
-        slot.setAffineTransform(CGAffineTransform(rotationAngle: -.pi / 4))
-        highlight.cornerRadius = 1
-        addSublayer(slot)
-        addSublayer(highlight)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    override func layoutSublayers() {
-        super.layoutSublayers()
-        slot.frame = CGRect(x: bounds.midX - 0.55, y: bounds.midY - 3, width: 1.1, height: 6)
-        highlight.frame = CGRect(x: 2, y: bounds.height - 4, width: 2, height: 2)
-    }
-
-    func applyColors(face: NSColor, edge: NSColor, slot slotColor: NSColor) {
-        backgroundColor = face.cgColor
-        borderColor = edge.cgColor
-        slot.backgroundColor = slotColor.withAlphaComponent(0.8).cgColor
-        highlight.backgroundColor = NSColor.white.withAlphaComponent(0.55).cgColor
     }
 }
 
@@ -443,7 +467,7 @@ final class KikiActionButton: NSButton {
         setButtonType(.momentaryPushIn)
         isBordered = false
         focusRingType = .none
-        font = .systemFont(ofSize: kind == .hardware ? 12 : 13, weight: kind == .hardware ? .medium : .semibold)
+        font = .systemFont(ofSize: kind == .hardware ? 11.5 : 13, weight: kind == .hardware ? .regular : .semibold)
         lineBreakMode = .byTruncatingTail
         cell?.wraps = false
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -487,10 +511,10 @@ final class KikiActionButton: NSButton {
                     contentTintColor = KikiPalette.tertiaryText
                 case .hardware:
                     alphaValue = 1
-                    layer?.backgroundColor = KikiPalette.hardwareControl.withAlphaComponent(0.90).cgColor
+                    layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                     layer?.borderWidth = 1
-                    layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.42).cgColor
-                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.84)
+                    layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
+                    contentTintColor = KikiPalette.secondaryText.withAlphaComponent(0.82)
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
@@ -512,14 +536,14 @@ final class KikiActionButton: NSButton {
                 layer?.borderColor = KikiPalette.strongStroke.cgColor
                 contentTintColor = KikiPalette.primaryText
             case .hardware:
-                layer?.backgroundColor = KikiPalette.hardwareControl.cgColor
+                layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                 layer?.borderWidth = 1
-                layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.5).cgColor
+                layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
                 layer?.shadowColor = NSColor.black.cgColor
                 layer?.shadowOpacity = 0.28
                 layer?.shadowRadius = 2
                 layer?.shadowOffset = CGSize(width: 0, height: -1)
-                contentTintColor = KikiPalette.hardwareControlText
+                contentTintColor = KikiPalette.secondaryText
             case .quiet:
                 layer?.backgroundColor = NSColor.clear.cgColor
                 layer?.borderWidth = 0
@@ -688,29 +712,22 @@ final class KikiAnalogMeterView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            let panelRect = bounds.insetBy(dx: 0.5, dy: 0.5)
-            let panel = NSBezierPath(roundedRect: panelRect, xRadius: 5, yRadius: 5)
-            KikiPalette.hardwareControl.withAlphaComponent(0.96).setFill()
-            panel.fill()
-            NSColor.black.withAlphaComponent(0.76).setStroke()
-            panel.lineWidth = 1
-            panel.stroke()
-
             let labels = ["-30", "-18", "-12", "-6", "0"]
             let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 6.5, weight: .medium),
-                .foregroundColor: KikiPalette.secondaryText,
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 8.5, weight: .medium),
+                .foregroundColor: KikiPalette.meterAccent,
             ]
-            let baselineY: CGFloat = 20.5
-            let left: CGFloat = 7
-            let right = bounds.width - 7
+            let baselineY: CGFloat = 18.5
+            let arcLeft: CGFloat = 17
+            let arcRight = bounds.width - 8
+            let labelPositions: [CGFloat] = [14, 35, 56, 76, 93]
 
             let arc = NSBezierPath()
-            arc.move(to: CGPoint(x: left, y: 15))
+            arc.move(to: CGPoint(x: arcLeft, y: 7.5))
             arc.curve(
-                to: CGPoint(x: right, y: 15),
-                controlPoint1: CGPoint(x: bounds.width * 0.32, y: 5),
-                controlPoint2: CGPoint(x: bounds.width * 0.68, y: 5)
+                to: CGPoint(x: arcRight, y: 7.5),
+                controlPoint1: CGPoint(x: 36, y: 18),
+                controlPoint2: CGPoint(x: 71, y: 18)
             )
             KikiPalette.meterAccent.setStroke()
             arc.lineWidth = 1.2
@@ -718,26 +735,25 @@ final class KikiAnalogMeterView: NSView {
 
             for (index, label) in labels.enumerated() {
                 let progress = CGFloat(index) / CGFloat(labels.count - 1)
-                let x = left + progress * (right - left)
-                let curveY = 15 - sin(progress * .pi) * 7.5
-                let height: CGFloat = index == 0 || index == labels.count - 1 ? 7 : 5
+                let x = labelPositions[index]
+                let curveY = 7.5 + sin(progress * .pi) * 7
                 let tick = NSBezierPath()
-                tick.move(to: CGPoint(x: x, y: curveY - 1))
-                tick.line(to: CGPoint(x: x, y: curveY + height))
+                if index == 0 {
+                    tick.move(to: CGPoint(x: arcLeft, y: 7.5))
+                    tick.line(to: CGPoint(x: 9, y: 14))
+                } else if index == labels.count - 1 {
+                    tick.move(to: CGPoint(x: arcRight, y: 7.5))
+                    tick.line(to: CGPoint(x: bounds.width - 3, y: 14.5))
+                } else {
+                    tick.move(to: CGPoint(x: x, y: curveY))
+                    tick.line(to: CGPoint(x: x, y: curveY + 5.5))
+                }
                 KikiPalette.meterAccent.setStroke()
                 tick.lineWidth = 1
                 tick.stroke()
                 let size = label.size(withAttributes: attributes)
                 label.draw(at: CGPoint(x: x - size.width / 2, y: baselineY), withAttributes: attributes)
             }
-
-            let needle = NSBezierPath()
-            needle.move(to: CGPoint(x: bounds.width * 0.68, y: 8))
-            needle.line(to: CGPoint(x: bounds.width * 0.75, y: 20))
-            KikiPalette.khaki.setStroke()
-            needle.lineWidth = 1.5
-            needle.lineCapStyle = .round
-            needle.stroke()
         }
     }
 }

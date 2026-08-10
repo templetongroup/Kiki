@@ -389,8 +389,8 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeModelsPage() -> NSView {
-        modelCards = TranscriptionModelID.allCases.enumerated().map { index, model in
-            let card = ModelCardView(model: model, isLast: index == TranscriptionModelID.allCases.count - 1)
+        modelCards = TranscriptionModelID.allCases.map { model in
+            let card = ModelCardView(model: model)
             card.onUse = { [weak self] model in self?.use(model: model) }
             return card
         }
@@ -698,7 +698,6 @@ final class SettingsWindowController: NSWindowController {
 private final class SettingsCard: KikiCardView {
     init(title: String, subtitle: String, views: [NSView]) {
         super.init(frame: .zero)
-        showsFasteners = true
 
         let titleLabel = kikiLabel(title, size: 16.5, weight: .semibold)
         let subtitleLabel = kikiLabel(subtitle, size: 12.5, color: KikiPalette.secondaryText)
@@ -730,14 +729,11 @@ private final class ModelCardView: KikiCardView {
     private let activeLabel = kikiLabel("ACTIVE", size: 9, weight: .semibold, color: KikiPalette.accentText)
     private let meter = KikiAnalogMeterView()
 
-    init(model: TranscriptionModelID, isLast: Bool) {
+    init(model: TranscriptionModelID) {
         self.model = model
         super.init(frame: .zero)
-        showsFasteners = true
-        showsBottomFasteners = isLast
         usesSelectionFill = false
         usesSelectionBorder = false
-        usesHardwareGradient = true
         cardCornerRadius = 5
         identifier = NSUserInterfaceItemIdentifier("kiki.model.card.\(model.rawValue)")
         dial.translatesAutoresizingMaskIntoConstraints = false
