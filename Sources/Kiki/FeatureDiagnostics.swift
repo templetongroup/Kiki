@@ -217,7 +217,9 @@ enum FeatureDiagnostics {
               quietLevel > 0.1,
               conversationalLevel > quietLevel,
               speakingLevel > conversationalLevel,
+              HUDPanel.waveformUsesClearSurface,
               KikiWaveformView.barCount == 38,
+              KikiWaveformView.usesAdaptiveOutline,
               KikiWaveformView.preferredSize == NSSize(width: 220, height: 34)
         else { throw failure("listening display modes") }
     }

@@ -4,6 +4,8 @@ import CoreGraphics
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
 final class HUDPanel {
+    static let waveformUsesClearSurface = true
+
     private let panel: NSPanel
     private let effect: NSView
     private let logoView: NSImageView
@@ -85,8 +87,8 @@ final class HUDPanel {
     }
 
     func show(_ text: String) {
-        applyAppearance()
         presentation = .message
+        applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
@@ -100,9 +102,9 @@ final class HUDPanel {
     }
 
     func showListening(transcript: String? = nil) {
-        applyAppearance()
         let needsPresentation = presentation != .transcript || !panel.isVisible
         presentation = .transcript
+        applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
@@ -116,9 +118,9 @@ final class HUDPanel {
     }
 
     func showWaveform(level: CGFloat, reset: Bool = false) {
-        applyAppearance()
         let needsPresentation = presentation != .waveform || !panel.isVisible
         presentation = .waveform
+        applyAppearance()
         logoView.isHidden = true
         textStack.isHidden = true
         waveformView.isHidden = false
@@ -128,8 +130,8 @@ final class HUDPanel {
     }
 
     func showTranscribing(transcript: String? = nil) {
-        applyAppearance()
         presentation = .transcript
+        applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
@@ -254,11 +256,17 @@ final class HUDPanel {
     private func applyAppearance() {
         panel.appearance = Settings.appearanceMode.appearance
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-            effect.layer?.backgroundColor = KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
-            effect.layer?.borderWidth = 1
-            effect.layer?.borderColor = KikiPalette.strongStroke.cgColor
+            let isClearWaveform = presentation == .waveform && Self.waveformUsesClearSurface
+            panel.hasShadow = !isClearWaveform
+            effect.layer?.backgroundColor = isClearWaveform
+                ? NSColor.clear.cgColor
+                : KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
+            effect.layer?.borderWidth = isClearWaveform ? 0 : 1
+            effect.layer?.borderColor = isClearWaveform
+                ? NSColor.clear.cgColor
+                : KikiPalette.strongStroke.cgColor
             effect.layer?.shadowColor = NSColor.black.cgColor
-            effect.layer?.shadowOpacity = 0.18
+            effect.layer?.shadowOpacity = isClearWaveform ? 0 : 0.18
             effect.layer?.shadowRadius = 16
         }
     }
@@ -297,6 +305,7 @@ enum VoiceLevelMeter {
 final class KikiWaveformView: NSView {
     static let preferredSize = NSSize(width: 220, height: 34)
     static let barCount = 38
+    static let usesAdaptiveOutline = true
 
     var level: CGFloat = 0 {
         didSet {
@@ -359,13 +368,6 @@ final class KikiWaveformView: NSView {
         let startX = (bounds.width - totalWidth) / 2
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            let centerLine = NSBezierPath()
-            centerLine.move(to: NSPoint(x: startX, y: bounds.midY))
-            centerLine.line(to: NSPoint(x: startX + totalWidth, y: bounds.midY))
-            centerLine.lineWidth = 1
-            KikiPalette.strongStroke.withAlphaComponent(0.22).setStroke()
-            centerLine.stroke()
-
             for (index, sample) in history.enumerated() {
                 let progress = CGFloat(index) / CGFloat(max(Self.barCount - 1, 1))
                 let spatialMotion = 0.68 + 0.32 * ((sin(CGFloat(index) * 1.19 + phase * 0.72) + 1) / 2)
@@ -378,6 +380,15 @@ final class KikiWaveformView: NSView {
                     width: barWidth,
                     height: height
                 )
+                if Self.usesAdaptiveOutline {
+                    let outlineRect = rect.insetBy(dx: -0.8, dy: -1)
+                    KikiPalette.canvas.withAlphaComponent(0.82).setFill()
+                    NSBezierPath(
+                        roundedRect: outlineRect,
+                        xRadius: outlineRect.width / 2,
+                        yRadius: outlineRect.width / 2
+                    ).fill()
+                }
                 let headMix = max(0, (progress - 0.78) / 0.22) * 0.42
                 let color = KikiPalette.accentText.blended(withFraction: headMix, of: KikiPalette.khaki)
                     ?? KikiPalette.accentText
