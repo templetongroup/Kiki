@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.16</title>
+            <pubDate>Mon, 10 Aug 2026 18:52:56 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.16</link>
+            <sparkle:version>31</sparkle:version>
+            <sparkle:shortVersionString>0.5.16</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.16
+
+- Raises the live waveform capture cadence from roughly 12 updates per second to roughly 47 on a typical 48 kHz microphone, eliminating the visible stepping between buffers.
+- Recalibrates the waveform meter with RMS-led analysis and additional headroom so ordinary speech no longer looks like clipping or shouting.
+- Retunes attack and release smoothing for the higher update rate, keeping motion fluid while remaining directly driven by microphone samples.
+- Adds regression checks for capture cadence, normal-speech headroom, forceful-speech range, silence, and deterministic sample tracking.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.16/Kiki-0.5.16-macOS.zip" length="53491713" type="application/octet-stream" sparkle:edSignature="eK6paj1BW6xGr5Q22oX3oqvoSj8AOpYdVB9FV0Rv2ov5iZxiqbxm6KWF8kOxnIonWaeQwwcY4wfLkXERm+8cDA=="/>
+        </item>
+        <item>
             <title>0.5.15</title>
             <pubDate>Mon, 10 Aug 2026 18:44:08 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.15</link>
@@ -75,24 +92,6 @@
 - Adds a regression check that prevents the radial-glare and texture layers from returning.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.12/Kiki-0.5.12-macOS.zip" length="53486803" type="application/octet-stream" sparkle:edSignature="SaqQC4YqTmt/sdA4S7BZAhxAmuyQ/NzQOVOVHCrkzrpqas7qpnwD4gs+kK6zzixz6Q7H8pHnW/kdnNqTUHUFAg=="/>
-        </item>
-        <item>
-            <title>0.5.11</title>
-            <pubDate>Mon, 10 Aug 2026 13:40:44 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.11</link>
-            <sparkle:version>26</sparkle:version>
-            <sparkle:shortVersionString>0.5.11</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.11
-
-- Matches the active Models meter to the approved Studio Hardware mockup, including its narrowed arch, angled end ticks, sage markings, and compact scale.
-- Corrects hardware-button typography and label padding across the Models page.
-- Gives every shared card the same shaded, dimensional, subtly textured Studio Hardware surface in both light and dark appearances.
-- Removes the decorative corner rivets from Models, Settings, Voice Studio, and What’s New cards.
-- Adds regression checks for the shared card-depth layers and compact hardware-control typography.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.11/Kiki-0.5.11-macOS.zip" length="53489033" type="application/octet-stream" sparkle:edSignature="5YqW3oY3vegR2Z0HiLVerDqcSfndJOqQtc2flRa+/4fkOSWpEIkvgOHKjmt6EYAKvRtNOeOwqUZrcjLtwK0XBQ=="/>
         </item>
     </channel>
 </rss>
