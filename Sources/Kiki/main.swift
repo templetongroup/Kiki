@@ -230,6 +230,9 @@ if args.count >= 2, args[1] == "--preview-settings" {
             app.appearance = NSAppearance(named: .aqua)
         }
         let controller = SettingsWindowController()
+        controller.onModelChange = { model in
+            Settings.transcriptionModel = model
+        }
         let previewPage = args.count >= 3 ? Int(args[2]) : nil
         controller.show(page: previewPage)
         app.run()

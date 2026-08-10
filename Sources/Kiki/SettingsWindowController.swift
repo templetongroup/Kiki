@@ -389,8 +389,8 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeModelsPage() -> NSView {
-        modelCards = TranscriptionModelID.allCases.map { model in
-            let card = ModelCardView(model: model)
+        modelCards = TranscriptionModelID.allCases.enumerated().map { index, model in
+            let card = ModelCardView(model: model, isLast: index == TranscriptionModelID.allCases.count - 1)
             card.onUse = { [weak self] model in self?.use(model: model) }
             return card
         }
@@ -488,7 +488,7 @@ final class SettingsWindowController: NSWindowController {
         NSLayoutConstraint.activate([
             document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
             stack.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 7),
-            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -27),
+            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -30),
             stack.topAnchor.constraint(equalTo: document.topAnchor),
             stack.bottomAnchor.constraint(equalTo: document.bottomAnchor),
         ])
@@ -730,20 +730,27 @@ private final class ModelCardView: KikiCardView {
     private let activeLabel = kikiLabel("ACTIVE", size: 9, weight: .semibold, color: KikiPalette.accentText)
     private let meter = KikiAnalogMeterView()
 
-    init(model: TranscriptionModelID) {
+    init(model: TranscriptionModelID, isLast: Bool) {
         self.model = model
         super.init(frame: .zero)
         showsFasteners = true
+        showsBottomFasteners = isLast
         usesSelectionFill = false
+        usesSelectionBorder = false
+        usesHardwareGradient = true
+        cardCornerRadius = 5
         identifier = NSUserInterfaceItemIdentifier("kiki.model.card.\(model.rawValue)")
         dial.translatesAutoresizingMaskIntoConstraints = false
         activeLabel.translatesAutoresizingMaskIntoConstraints = false
         meter.translatesAutoresizingMaskIntoConstraints = false
 
-        let title = kikiLabel(model.displayName, size: 16, weight: .medium)
-        let detail = kikiLabel(model.detail, size: 11.5, color: KikiPalette.secondaryText)
+        let title = kikiLabel(model.displayName, size: 15, weight: .regular)
+        let detailText = model == .parakeetEnglish
+            ? model.detail.replacingOccurrences(of: " About 500 MB.", with: "")
+            : model.detail
+        let detail = kikiLabel(detailText, size: 9.75, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 2
-        statusLabel.font = .systemFont(ofSize: 11.5, weight: .regular)
+        statusLabel.font = .systemFont(ofSize: 11, weight: .regular)
         button.target = self
         button.action = #selector(useModel)
         button.identifier = NSUserInterfaceItemIdentifier("kiki.model.action")
@@ -752,7 +759,7 @@ private final class ModelCardView: KikiCardView {
         let labels = NSStackView(views: [title, detail, statusLabel])
         labels.orientation = .vertical
         labels.alignment = .leading
-        labels.spacing = 4
+        labels.spacing = 6
         labels.translatesAutoresizingMaskIntoConstraints = false
         labels.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -784,24 +791,31 @@ private final class ModelCardView: KikiCardView {
             divider.topAnchor.constraint(equalTo: topAnchor, constant: 1),
             divider.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
             divider.widthAnchor.constraint(equalToConstant: 1),
-            dial.centerXAnchor.constraint(equalTo: bay.centerXAnchor),
-            dial.centerYAnchor.constraint(equalTo: bay.centerYAnchor, constant: model == .parakeetEnglish ? 8 : 0),
+            dial.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
+            dial.centerYAnchor.constraint(equalTo: bay.centerYAnchor, constant: -6),
             dial.widthAnchor.constraint(equalToConstant: 42),
             dial.heightAnchor.constraint(equalToConstant: 42),
-            activeLabel.centerXAnchor.constraint(equalTo: bay.centerXAnchor),
-            activeLabel.topAnchor.constraint(equalTo: dial.bottomAnchor, constant: 5),
+            activeLabel.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
+            activeLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
             labels.leadingAnchor.constraint(equalTo: divider.trailingAnchor, constant: 15),
             labels.trailingAnchor.constraint(equalTo: button.leadingAnchor, constant: -10),
             labels.widthAnchor.constraint(greaterThanOrEqualToConstant: 158),
-            labels.centerYAnchor.constraint(equalTo: centerYAnchor, constant: model == .parakeetEnglish ? -3 : 0),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            labels.topAnchor.constraint(equalTo: topAnchor, constant: 22),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
             button.topAnchor.constraint(equalTo: topAnchor, constant: 22),
-            meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -13),
-            meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            meter.widthAnchor.constraint(equalToConstant: 94),
-            meter.heightAnchor.constraint(equalToConstant: 33),
+            meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -11),
+            meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            meter.widthAnchor.constraint(equalToConstant: 100),
+            meter.heightAnchor.constraint(equalToConstant: 34),
             detail.widthAnchor.constraint(equalTo: labels.widthAnchor),
         ])
+        let targetButtonWidth: CGFloat
+        switch model {
+        case .parakeetEnglish: targetButtonWidth = 65
+        case .parakeetMultilingual: targetButtonWidth = 78
+        default: targetButtonWidth = 101
+        }
+        button.widthAnchor.constraint(equalToConstant: targetButtonWidth).isActive = true
         refresh()
     }
 
@@ -820,7 +834,8 @@ private final class ModelCardView: KikiCardView {
             button.title = "Unavailable"
             button.isEnabled = false
         } else if selected {
-            statusLabel.stringValue = ""
+            statusLabel.stringValue = model == .parakeetEnglish ? "About 500 MB." : ""
+            statusLabel.textColor = KikiPalette.secondaryText
             button.title = "Using"
             button.isEnabled = false
         } else {

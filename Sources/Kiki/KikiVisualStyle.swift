@@ -20,15 +20,23 @@ enum KikiPalette {
         light: NSColor(red: 0.925, green: 0.908, blue: 0.866, alpha: 1)
     )
     static let surface = adaptive(
-        dark: NSColor(red: 0.114, green: 0.114, blue: 0.118, alpha: 1),
+        dark: NSColor(red: 0.106, green: 0.106, blue: 0.114, alpha: 1),
         light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
+    )
+    static let hardwareCardCenter = adaptive(
+        dark: NSColor(red: 0.125, green: 0.125, blue: 0.133, alpha: 1),
+        light: NSColor(red: 0.992, green: 0.984, blue: 0.961, alpha: 1)
+    )
+    static let hardwareCardEdge = adaptive(
+        dark: NSColor(red: 0.094, green: 0.098, blue: 0.106, alpha: 1),
+        light: NSColor(red: 0.949, green: 0.937, blue: 0.902, alpha: 1)
     )
     static let elevatedSurface = adaptive(
         dark: NSColor(red: 0.137, green: 0.137, blue: 0.141, alpha: 1),
         light: NSColor(red: 0.929, green: 0.918, blue: 0.882, alpha: 1)
     )
     static let stroke = adaptive(
-        dark: NSColor(red: 0.620, green: 0.600, blue: 0.475, alpha: 0.22),
+        dark: NSColor(red: 0.450, green: 0.450, blue: 0.465, alpha: 0.23),
         light: NSColor(red: 0.160, green: 0.175, blue: 0.150, alpha: 0.16)
     )
     static let strongStroke = adaptive(
@@ -36,15 +44,15 @@ enum KikiPalette {
         light: NSColor(red: 0.160, green: 0.175, blue: 0.150, alpha: 0.28)
     )
     static let primaryText = adaptive(
-        dark: NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1),
+        dark: NSColor(red: 0.933, green: 0.929, blue: 0.922, alpha: 1),
         light: NSColor(red: 0.137, green: 0.143, blue: 0.122, alpha: 1)
     )
     static let secondaryText = adaptive(
-        dark: NSColor(red: 0.735, green: 0.712, blue: 0.643, alpha: 1),
+        dark: NSColor(red: 0.702, green: 0.698, blue: 0.678, alpha: 1),
         light: NSColor(red: 0.335, green: 0.347, blue: 0.302, alpha: 1)
     )
     static let tertiaryText = adaptive(
-        dark: NSColor(red: 0.545, green: 0.533, blue: 0.475, alpha: 1),
+        dark: NSColor(red: 0.560, green: 0.555, blue: 0.530, alpha: 1),
         light: NSColor(red: 0.455, green: 0.459, blue: 0.400, alpha: 1)
     )
     static let accent = adaptive(
@@ -67,11 +75,19 @@ enum KikiPalette {
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
+    static let fastenerFace = adaptive(
+        dark: NSColor(red: 0.380, green: 0.240, blue: 0.080, alpha: 1),
+        light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
+    )
     static let hardwareControl = NSColor(red: 0.094, green: 0.094, blue: 0.098, alpha: 1)
     static let hardwareControlText = NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1)
     static let meterTrack = adaptive(
         dark: NSColor(red: 0.038, green: 0.043, blue: 0.037, alpha: 1),
         light: NSColor(red: 0.865, green: 0.847, blue: 0.800, alpha: 1)
+    )
+    static let meterAccent = adaptive(
+        dark: NSColor(red: 0.500, green: 0.540, blue: 0.270, alpha: 1),
+        light: NSColor(red: 0.420, green: 0.475, blue: 0.250, alpha: 1)
     )
     static let violet = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
@@ -158,12 +174,22 @@ final class KikiSidebarView: NSView {
 class KikiCardView: NSView {
     var selected = false { didSet { updateStyle() } }
     var usesSelectionFill = true { didSet { updateStyle() } }
+    var usesSelectionBorder = true { didSet { updateStyle() } }
+    var cardCornerRadius: CGFloat = 8 { didSet { updateStyle() } }
+    var usesHardwareGradient = false { didSet { updateStyle() } }
     var showsFasteners = false { didSet { updateFasteners() } }
+    var showsBottomFasteners = true { didSet { updateFasteners() } }
     private let fasteners = (0..<4).map { _ in KikiFastenerLayer() }
+    private let hardwareGradient = CAGradientLayer()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        hardwareGradient.type = .radial
+        hardwareGradient.startPoint = CGPoint(x: 0.62, y: 0.48)
+        hardwareGradient.endPoint = CGPoint(x: 1, y: 0.48)
+        hardwareGradient.isHidden = true
+        layer?.addSublayer(hardwareGradient)
         fasteners.forEach {
             $0.isHidden = true
             layer?.addSublayer($0)
@@ -180,13 +206,14 @@ class KikiCardView: NSView {
 
     override func layout() {
         super.layout()
-        let inset: CGFloat = 7
-        let size: CGFloat = 10
+        hardwareGradient.frame = bounds
+        hardwareGradient.cornerRadius = cardCornerRadius
+        let size: CGFloat = 9
         let positions = [
-            CGPoint(x: inset, y: inset),
-            CGPoint(x: max(inset, bounds.width - inset - size), y: inset),
-            CGPoint(x: inset, y: max(inset, bounds.height - inset - size)),
-            CGPoint(x: max(inset, bounds.width - inset - size), y: max(inset, bounds.height - inset - size)),
+            CGPoint(x: 5, y: 9),
+            CGPoint(x: max(7, bounds.width - 7 - size), y: 9),
+            CGPoint(x: 5, y: max(9, bounds.height - 9 - size)),
+            CGPoint(x: max(7, bounds.width - 7 - size), y: max(9, bounds.height - 9 - size)),
         ]
         CATransaction.begin()
         CATransaction.setDisableActions(true)
@@ -198,10 +225,10 @@ class KikiCardView: NSView {
 
     private func updateFasteners() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            fasteners.forEach {
-                $0.isHidden = !showsFasteners
-                $0.applyColors(
-                    face: KikiPalette.khaki,
+            fasteners.enumerated().forEach { index, fastener in
+                fastener.isHidden = !showsFasteners || (!showsBottomFasteners && index < 2)
+                fastener.applyColors(
+                    face: KikiPalette.fastenerFace,
                     edge: KikiPalette.strongStroke,
                     slot: KikiPalette.canvas
                 )
@@ -212,11 +239,19 @@ class KikiCardView: NSView {
 
     func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.cornerRadius = 8
+            layer?.cornerRadius = cardCornerRadius
             layer?.cornerCurve = .continuous
+            let useGradient = usesHardwareGradient && !(selected && usesSelectionFill)
             layer?.backgroundColor = (selected && usesSelectionFill ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
+            hardwareGradient.isHidden = !useGradient
+            hardwareGradient.colors = [
+                KikiPalette.hardwareCardCenter.cgColor,
+                KikiPalette.hardwareCardEdge.cgColor,
+            ]
+            hardwareGradient.locations = [0, 1]
+            hardwareGradient.cornerRadius = cardCornerRadius
             layer?.borderWidth = 1
-            layer?.borderColor = (selected ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
+            layer?.borderColor = (selected && usesSelectionBorder ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
             layer?.shadowOpacity = selected ? 0.12 : 0.04
             layer?.shadowRadius = selected ? 9 : 4
@@ -408,7 +443,7 @@ final class KikiActionButton: NSButton {
         setButtonType(.momentaryPushIn)
         isBordered = false
         focusRingType = .none
-        font = .systemFont(ofSize: kind == .hardware ? 12 : 13, weight: .semibold)
+        font = .systemFont(ofSize: kind == .hardware ? 12 : 13, weight: kind == .hardware ? .medium : .semibold)
         lineBreakMode = .byTruncatingTail
         cell?.wraps = false
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -451,10 +486,11 @@ final class KikiActionButton: NSButton {
                     layer?.borderWidth = 0
                     contentTintColor = KikiPalette.tertiaryText
                 case .hardware:
-                    layer?.backgroundColor = KikiPalette.hardwareControl.withAlphaComponent(0.72).cgColor
+                    alphaValue = 1
+                    layer?.backgroundColor = KikiPalette.hardwareControl.withAlphaComponent(0.90).cgColor
                     layer?.borderWidth = 1
-                    layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.34).cgColor
-                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.62)
+                    layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.42).cgColor
+                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.84)
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
@@ -578,6 +614,7 @@ final class KikiHardwareDialView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        identifier = NSUserInterfaceItemIdentifier("kiki.model.dial")
         setAccessibilityElement(false)
     }
 
@@ -591,31 +628,44 @@ final class KikiHardwareDialView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            let side = min(bounds.width, bounds.height) - 2
-            let dialRect = CGRect(
-                x: bounds.midX - side / 2,
-                y: bounds.midY - side / 2,
-                width: side,
-                height: side
-            )
-            KikiPalette.meterTrack.setFill()
-            NSBezierPath(ovalIn: dialRect).fill()
+            let housing = CGRect(x: bounds.midX - 17, y: bounds.midY - 17, width: 34, height: 34)
+            let shadow = NSBezierPath(roundedRect: housing.offsetBy(dx: 0, dy: -1), xRadius: 6, yRadius: 6)
+            NSColor.black.withAlphaComponent(0.68).setFill()
+            shadow.fill()
+
+            let face = NSBezierPath(roundedRect: housing, xRadius: 6, yRadius: 6)
+            KikiPalette.hardwareControl.setFill()
+            face.fill()
             KikiPalette.strongStroke.setStroke()
-            let ring = NSBezierPath(ovalIn: dialRect.insetBy(dx: 0.5, dy: 0.5))
-            ring.lineWidth = 1
-            ring.stroke()
+            face.lineWidth = 1
+            face.stroke()
 
-            let inner = dialRect.insetBy(dx: 7, dy: 7)
-            (isActive ? KikiPalette.khaki : KikiPalette.elevatedSurface).setFill()
-            NSBezierPath(ovalIn: inner).fill()
+            let insetPanel = NSBezierPath(roundedRect: housing.insetBy(dx: 4, dy: 4), xRadius: 5, yRadius: 5)
+            NSColor.black.withAlphaComponent(0.52).setFill()
+            insetPanel.fill()
+            KikiPalette.stroke.setStroke()
+            insetPanel.lineWidth = 1
+            insetPanel.stroke()
 
-            let indicator = NSBezierPath()
-            indicator.move(to: CGPoint(x: bounds.midX, y: bounds.midY + 3))
-            indicator.line(to: CGPoint(x: bounds.midX + side * 0.18, y: bounds.midY + side * 0.25))
-            (isActive ? KikiPalette.accentText : KikiPalette.tertiaryText).setStroke()
-            indicator.lineWidth = 2
-            indicator.lineCapStyle = .round
-            indicator.stroke()
+            let knobRect = housing.insetBy(dx: 8, dy: 8)
+            let knob = NSBezierPath(ovalIn: knobRect)
+            (isActive
+                ? NSColor(red: 0.320, green: 0.315, blue: 0.290, alpha: 1)
+                : NSColor(red: 0.205, green: 0.205, blue: 0.205, alpha: 1)
+            ).setFill()
+            knob.fill()
+            NSColor.black.withAlphaComponent(0.72).setStroke()
+            knob.lineWidth = 1
+            knob.stroke()
+
+            let highlightRect = CGRect(
+                x: knobRect.minX + 3,
+                y: knobRect.maxY - 6,
+                width: 5,
+                height: 3
+            )
+            NSColor.white.withAlphaComponent(isActive ? 0.26 : 0.14).setFill()
+            NSBezierPath(ovalIn: highlightRect).fill()
         }
     }
 }
@@ -638,34 +688,43 @@ final class KikiAnalogMeterView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         effectiveAppearance.performAsCurrentDrawingAppearance {
+            let panelRect = bounds.insetBy(dx: 0.5, dy: 0.5)
+            let panel = NSBezierPath(roundedRect: panelRect, xRadius: 5, yRadius: 5)
+            KikiPalette.hardwareControl.withAlphaComponent(0.96).setFill()
+            panel.fill()
+            NSColor.black.withAlphaComponent(0.76).setStroke()
+            panel.lineWidth = 1
+            panel.stroke()
+
             let labels = ["-30", "-18", "-12", "-6", "0"]
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: 6.5, weight: .medium),
                 .foregroundColor: KikiPalette.secondaryText,
             ]
-            let baselineY: CGFloat = 21
-            let left: CGFloat = 5
-            let right = bounds.width - 5
+            let baselineY: CGFloat = 20.5
+            let left: CGFloat = 7
+            let right = bounds.width - 7
 
-            KikiPalette.stroke.setStroke()
             let arc = NSBezierPath()
-            arc.move(to: CGPoint(x: left, y: 8))
+            arc.move(to: CGPoint(x: left, y: 15))
             arc.curve(
-                to: CGPoint(x: right, y: 8),
-                controlPoint1: CGPoint(x: bounds.width * 0.33, y: 18),
-                controlPoint2: CGPoint(x: bounds.width * 0.67, y: 18)
+                to: CGPoint(x: right, y: 15),
+                controlPoint1: CGPoint(x: bounds.width * 0.32, y: 5),
+                controlPoint2: CGPoint(x: bounds.width * 0.68, y: 5)
             )
-            arc.lineWidth = 1
+            KikiPalette.meterAccent.setStroke()
+            arc.lineWidth = 1.2
             arc.stroke()
 
             for (index, label) in labels.enumerated() {
                 let progress = CGFloat(index) / CGFloat(labels.count - 1)
                 let x = left + progress * (right - left)
-                let height: CGFloat = index == 0 || index == labels.count - 1 ? 8 : 6
+                let curveY = 15 - sin(progress * .pi) * 7.5
+                let height: CGFloat = index == 0 || index == labels.count - 1 ? 7 : 5
                 let tick = NSBezierPath()
-                tick.move(to: CGPoint(x: x, y: 7))
-                tick.line(to: CGPoint(x: x, y: 7 + height))
-                KikiPalette.khaki.setStroke()
+                tick.move(to: CGPoint(x: x, y: curveY - 1))
+                tick.line(to: CGPoint(x: x, y: curveY + height))
+                KikiPalette.meterAccent.setStroke()
                 tick.lineWidth = 1
                 tick.stroke()
                 let size = label.size(withAttributes: attributes)
@@ -673,9 +732,9 @@ final class KikiAnalogMeterView: NSView {
             }
 
             let needle = NSBezierPath()
-            needle.move(to: CGPoint(x: bounds.midX, y: 4))
-            needle.line(to: CGPoint(x: bounds.width * 0.72, y: 15))
-            KikiPalette.accentText.setStroke()
+            needle.move(to: CGPoint(x: bounds.width * 0.68, y: 8))
+            needle.line(to: CGPoint(x: bounds.width * 0.75, y: 20))
+            KikiPalette.khaki.setStroke()
             needle.lineWidth = 1.5
             needle.lineCapStyle = .round
             needle.stroke()
