@@ -339,15 +339,15 @@ enum FeatureDiagnostics {
         let depthLayerNames = Set((hardwareCard.layer?.sublayers ?? []).compactMap(\.name))
         let hardwareButton = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
         guard depthLayerNames.isSuperset(of: [
-                  "kiki.card.radial-depth",
-                  "kiki.card.vertical-depth",
-                  "kiki.card.texture",
+                  "kiki.card.matte-depth",
                   "kiki.card.inner-border",
               ]),
+              !depthLayerNames.contains("kiki.card.radial-depth"),
+              !depthLayerNames.contains("kiki.card.texture"),
               hardwareButton.intrinsicContentSize.height < 40,
               abs((hardwareButton.font?.pointSize ?? 0) - 11.5) < 0.1,
               hardwareButton.layer?.borderWidth == 1 else {
-            throw failure("Studio Hardware depth treatment and compact controls")
+            throw failure("Studio Hardware matte depth treatment and compact controls")
         }
 
         let focusProbe = KikiActionButton("Focus Probe", target: nil, action: nil)

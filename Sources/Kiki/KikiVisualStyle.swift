@@ -23,21 +23,17 @@ enum KikiPalette {
         dark: NSColor(red: 0.106, green: 0.106, blue: 0.114, alpha: 1),
         light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
     )
-    static let cardCenterLight = adaptive(
-        dark: NSColor.white.withAlphaComponent(0.055),
-        light: NSColor.white.withAlphaComponent(0.10)
-    )
-    static let cardEdgeShade = adaptive(
-        dark: NSColor.black.withAlphaComponent(0.18),
-        light: NSColor.black.withAlphaComponent(0.035)
+    static let cardTopTint = adaptive(
+        dark: NSColor.white.withAlphaComponent(0.025),
+        light: NSColor.white.withAlphaComponent(0.06)
     )
     static let cardBottomShade = adaptive(
-        dark: NSColor.black.withAlphaComponent(0.18),
-        light: NSColor.black.withAlphaComponent(0.04)
+        dark: NSColor.black.withAlphaComponent(0.10),
+        light: NSColor.black.withAlphaComponent(0.025)
     )
     static let cardInnerStroke = adaptive(
-        dark: NSColor.white.withAlphaComponent(0.050),
-        light: NSColor.white.withAlphaComponent(0.24)
+        dark: NSColor.white.withAlphaComponent(0.035),
+        light: NSColor.white.withAlphaComponent(0.20)
     )
     static let elevatedSurface = adaptive(
         dark: NSColor(red: 0.137, green: 0.137, blue: 0.141, alpha: 1),
@@ -188,66 +184,20 @@ class KikiCardView: NSView {
     var usesSelectionFill = true { didSet { updateStyle() } }
     var usesSelectionBorder = true { didSet { updateStyle() } }
     var cardCornerRadius: CGFloat = 8 { didSet { updateStyle() } }
-    var usesHardwareGradient = true { didSet { updateStyle() } }
-    private let hardwareGradient = CAGradientLayer()
+    var usesHardwareDepth = true { didSet { updateStyle() } }
     private let verticalDepth = CAGradientLayer()
-    private let textureLayer = CALayer()
     private let innerBorder = CAShapeLayer()
-
-    private static let cardTexture: CGImage? = {
-        let width = 256
-        let height = 256
-        var seed: UInt64 = 0x4B49_4B49_5354_5544
-        var pixels = [UInt8](repeating: 0, count: width * height * 4)
-        for index in 0..<(width * height) {
-            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
-            let grain = UInt8(104 + ((seed >> 32) % 49))
-            let alpha = UInt8(16 + ((seed >> 48) % 15))
-            let offset = index * 4
-            pixels[offset] = grain
-            pixels[offset + 1] = grain
-            pixels[offset + 2] = grain
-            pixels[offset + 3] = alpha
-        }
-        guard let provider = CGDataProvider(data: Data(pixels) as CFData) else { return nil }
-        return CGImage(
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bitsPerPixel: 32,
-            bytesPerRow: width * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
-            provider: provider,
-            decode: nil,
-            shouldInterpolate: false,
-            intent: .defaultIntent
-        )
-    }()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        hardwareGradient.type = .radial
-        hardwareGradient.startPoint = CGPoint(x: 0.58, y: 0.43)
-        hardwareGradient.endPoint = CGPoint(x: 1.04, y: 0.55)
-        hardwareGradient.name = "kiki.card.radial-depth"
         verticalDepth.startPoint = CGPoint(x: 0.5, y: 0)
         verticalDepth.endPoint = CGPoint(x: 0.5, y: 1)
-        verticalDepth.name = "kiki.card.vertical-depth"
-        textureLayer.contents = Self.cardTexture
-        textureLayer.contentsGravity = .resizeAspectFill
-        textureLayer.magnificationFilter = .nearest
-        textureLayer.minificationFilter = .nearest
-        textureLayer.opacity = 0.16
-        textureLayer.masksToBounds = true
-        textureLayer.name = "kiki.card.texture"
+        verticalDepth.name = "kiki.card.matte-depth"
         innerBorder.fillColor = nil
         innerBorder.lineWidth = 1
         innerBorder.name = "kiki.card.inner-border"
-        layer?.addSublayer(hardwareGradient)
         layer?.addSublayer(verticalDepth)
-        layer?.addSublayer(textureLayer)
         layer?.addSublayer(innerBorder)
         updateStyle()
     }
@@ -263,12 +213,8 @@ class KikiCardView: NSView {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        hardwareGradient.frame = bounds
-        hardwareGradient.cornerRadius = cardCornerRadius
         verticalDepth.frame = bounds
         verticalDepth.cornerRadius = cardCornerRadius
-        textureLayer.frame = bounds
-        textureLayer.cornerRadius = cardCornerRadius
         innerBorder.frame = bounds
         innerBorder.path = CGPath(
             roundedRect: bounds.insetBy(dx: 1.5, dy: 1.5),
@@ -290,32 +236,22 @@ class KikiCardView: NSView {
             layer?.cornerRadius = cardCornerRadius
             layer?.cornerCurve = .continuous
             layer?.backgroundColor = (selected && usesSelectionFill ? KikiPalette.selectionSurface : KikiPalette.surface).cgColor
-            hardwareGradient.isHidden = !usesHardwareGradient
-            hardwareGradient.colors = [
-                KikiPalette.cardCenterLight.cgColor,
-                NSColor.clear.cgColor,
-                KikiPalette.cardEdgeShade.cgColor,
-            ]
-            hardwareGradient.locations = [0, 0.56, 1]
-            hardwareGradient.cornerRadius = cardCornerRadius
-            verticalDepth.isHidden = !usesHardwareGradient
+            verticalDepth.isHidden = !usesHardwareDepth
             verticalDepth.colors = [
-                KikiPalette.cardInnerStroke.cgColor,
+                KikiPalette.cardTopTint.cgColor,
                 NSColor.clear.cgColor,
                 KikiPalette.cardBottomShade.cgColor,
             ]
-            verticalDepth.locations = [0, 0.42, 1]
-            textureLayer.isHidden = !usesHardwareGradient
-            innerBorder.isHidden = !usesHardwareGradient
+            verticalDepth.locations = [0, 0.55, 1]
+            innerBorder.isHidden = !usesHardwareDepth
             innerBorder.strokeColor = KikiPalette.cardInnerStroke.cgColor
             layer?.borderWidth = 1
             layer?.borderColor = (selected && usesSelectionBorder ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
             let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            textureLayer.opacity = isDark ? 0.16 : 0.04
-            layer?.shadowOpacity = isDark ? (selected ? 0.42 : 0.32) : (selected ? 0.18 : 0.12)
-            layer?.shadowRadius = selected ? 9 : 6
-            layer?.shadowOffset = CGSize(width: 0, height: -2)
+            layer?.shadowOpacity = isDark ? (selected ? 0.24 : 0.18) : (selected ? 0.12 : 0.08)
+            layer?.shadowRadius = selected ? 8 : 4
+            layer?.shadowOffset = CGSize(width: 0, height: -1)
         }
     }
 }
