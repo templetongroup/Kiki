@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.13</title>
+            <pubDate>Mon, 10 Aug 2026 14:55:12 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.13</link>
+            <sparkle:version>28</sparkle:version>
+            <sparkle:shortVersionString>0.5.13</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.13
+
+- Replaces the Listening Display's seven-dot meter with a wide, animated 38-bar waveform.
+- Uses a logarithmic microphone meter so quiet and conversational speech create visible movement instead of remaining nearly flat.
+- Adds fast attack, natural decay, scrolling history, and a restrained sage-to-khaki live edge.
+- Keeps Waveform mode compact while making its response clearly readable in both light and dark appearances.
+- Adds signal-response diagnostics and a dedicated packaged waveform preview for visual release checks.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.13/Kiki-0.5.13-macOS.zip" length="53491724" type="application/octet-stream" sparkle:edSignature="CSgL5JInn+IKPCo3iKGQcZzRcX0QXHNNC7QN7RrHxDvbOhq7GHbDTe8sBhTIBVX0WdhDWW9fZxkVeF+3F/SgBg=="/>
+        </item>
+        <item>
             <title>0.5.12</title>
             <pubDate>Mon, 10 Aug 2026 14:23:33 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.12</link>
@@ -78,26 +96,6 @@
 - Adds regression checks for the Models geometry, hardware details, and every enabled control hit target.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.9/Kiki-0.5.9-macOS.zip" length="53486239" type="application/octet-stream" sparkle:edSignature="tk9Ey+f9JlTbVklYJFn0CsbGCNsgU/TGA0v/v/kQRG3s8sJ9zMeUMFc7lveQua8aC6Bcbv/W1miATjNr5xCsBA=="/>
-        </item>
-        <item>
-            <title>0.5.8</title>
-            <pubDate>Mon, 10 Aug 2026 11:06:59 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.8</link>
-            <sparkle:version>23</sparkle:version>
-            <sparkle:shortVersionString>0.5.8</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.8
-
-- Adds Meeting Speaker Identity: add people, assign transcript rows, and rename a speaker everywhere before exporting.
-- Carries corrected speaker names into Markdown, plain-text, SRT, and WebVTT meeting exports.
-- Adds TXT, Markdown, RTF, and PDF export choices for audio-file transcription.
-- Restores Command-A and the standard Edit commands in every Kiki text field.
-- Removes the blue focus outline from the Voice Studio splash action.
-- Adds seven Listening Display positions, including each screen corner and hover-near-target placement.
-- Brings Models closer to the approved Studio Hardware design with dimensional brass screws and compact dark controls.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.8/Kiki-0.5.8-macOS.zip" length="53479362" type="application/octet-stream" sparkle:edSignature="y14Emn4+A0Bj1JYRpl4ilbDkae4KTikVwJejsaUjBa/ok6QFuY9WswHD3ZqdF+xmjLxe7Yc/S7X93Jazgv9fDg=="/>
         </item>
     </channel>
 </rss>
