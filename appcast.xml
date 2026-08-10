@@ -6,6 +6,25 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.10</title>
+            <pubDate>Mon, 10 Aug 2026 12:55:38 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.10</link>
+            <sparkle:version>25</sparkle:version>
+            <sparkle:shortVersionString>0.5.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.10
+
+- Reconstructs the Models cards from the approved Studio Hardware mockup at the component level.
+- Matches the 440-by-109 active module, 72-point dial bay, compact hardware button, top-only brass screws, and boxed analog meter.
+- Restores the mockup's typography, text wrapping, neutral charcoal surfaces, subtle hardware shading, and compact spacing.
+- Keeps the Models geometry identical in light and dark appearances while changing only the theme colors.
+- Adds regression checks for the exact active-card, dial, meter, divider, control-bay, and button dimensions.
+- Makes the packaged preview exercise the real model-selection callback so model buttons can be interaction-tested before publication.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.10/Kiki-0.5.10-macOS.zip" length="53489691" type="application/octet-stream" sparkle:edSignature="85Qc5/mWjwuYVZ8DaeHGc7FVzgANRHHuA4SX68d/tr+c5jOQl25PPb1guzAmmS2ZZoBQBXmwQHUBek7LwiktBg=="/>
+        </item>
+        <item>
             <title>0.5.9</title>
             <pubDate>Mon, 10 Aug 2026 12:02:35 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.9</link>
@@ -83,27 +102,6 @@ Voice Studio now matches the Studio Hardware design in both light and dark mode:
 
 Kiki remains fully local, Developer ID signed, and notarized by Apple.
 ]]></description>
-        </item>
-        <item>
-            <title>0.5.5</title>
-            <pubDate>Sun, 09 Aug 2026 19:01:04 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.5</link>
-            <sparkle:version>20</sparkle:version>
-            <sparkle:shortVersionString>0.5.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.5
-
-## Fixed
-
-- Settings buttons, navigation, checkboxes, segmented controls, and pop-up menus now respond reliably to normal mouse clicks.
-- Settings navigation uses native AppKit mouse tracking instead of custom click handling.
-- The full-size Settings window no longer treats control clicks as attempts to drag the window.
-- A release diagnostic now blocks future builds if either unsafe interaction behavior returns.
-
-This update is Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.5/Kiki-0.5.5-macOS.zip" length="52704108" type="application/octet-stream" sparkle:edSignature="fVQDhwoGYkbUccQzEG+XGBSusgn4rFLqtYkKxmv3f6vQU3RkuZKZrnb54OWnHNymoAor6RbTVnW3x4t3hgEkCQ=="/>
         </item>
     </channel>
 </rss>
