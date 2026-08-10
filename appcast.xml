@@ -6,6 +6,29 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.6</title>
+            <pubDate>Sun, 09 Aug 2026 22:40:45 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.6</link>
+            <sparkle:version>21</sparkle:version>
+            <sparkle:shortVersionString>0.5.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.6/Kiki-0.5.6-macOS.zip" length="53437753" type="application/octet-stream" sparkle:edSignature="M/yvonPYdMgIVpJpxFA1nSCDLhX/wEILm0nKV7JN5lhexhC7ahj4HLlOzKwlHyucVjv05gRdaZWdLlJoeFrFAw=="/>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.6
+
+Voice Studio now matches the Studio Hardware design in both light and dark mode:
+
+- A full-width Kiki-with-headphones hero uses the same artwork and layout in both appearances.
+- Kiki’s face and studio microphone remain correctly framed at the real window size.
+- Quick and Full voice setup remain available with clearer private-on-this-Mac language.
+- Preview can be stopped, generation can be cancelled, and finished playback reliably returns to Play.
+- Delete Voice and Remove Voice Engine default to Cancel for safer confirmation.
+- Settings, Voice Studio, Meeting Mode, Personalization, History, Dictionary, and File Transcription use native AppKit click handling so buttons respond normally.
+
+Kiki remains fully local, Developer ID signed, and notarized by Apple.
+]]></description>
+        </item>
+        <item>
             <title>0.5.5</title>
             <pubDate>Sun, 09 Aug 2026 19:01:04 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.5</link>
@@ -89,28 +112,6 @@ This update is fully local, Developer ID signed, notarized by Apple, and availab
 This update is fully local, Developer ID signed, notarized by Apple, and available through Kiki's built-in updater.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.2/Kiki-0.5.2-macOS.zip" length="51214821" type="application/octet-stream" sparkle:edSignature="7kU5StdocU1OL64VfKjJh5qMGnyEUpWAe7DZ2o4bf8hApuiKIfKtiY4xcJ5KFVJbCJFISN0AP37Ys2ibCI8wAA=="/>
-        </item>
-        <item>
-            <title>0.5.1</title>
-            <pubDate>Sat, 08 Aug 2026 00:13:49 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.1</link>
-            <sparkle:version>16</sparkle:version>
-            <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.1
-
-Voice Studio is now a clear, guided three-step workflow:
-
-- Read the complete enrollment passage at a larger 16-point size without scrolling.
-- Record, preview, and save your voice with distinct controls and immediate confirmation.
-- Install the local voice engine with accurate progress and plain-language instructions.
-- See exactly why voice generation is unavailable and what step remains.
-- Generate automatically unlocks when your saved voice, local engine, and text are ready.
-
-This update also prevents recording playback from continuing after Save Voice and keeps every action button on one readable line.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.1/Kiki-0.5.1-macOS.zip" length="51212318" type="application/octet-stream" sparkle:edSignature="uXLSzopAx6wbVct3CD4bdrAlRnk09Xu4k/GuV/eT8TZ26WlzG+7GdlW2Y57hEcmADhSYBAusbLaG9Up316sECQ=="/>
         </item>
     </channel>
 </rss>
