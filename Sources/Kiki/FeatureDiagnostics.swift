@@ -72,7 +72,10 @@ enum FeatureDiagnostics {
               findView(in: contentView, identifier: "kiki.voice.enrollment-mode") is NSSegmentedControl,
               findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
               findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-panel") is KikiInsetPanelView,
               let consent = findView(in: contentView, identifier: "kiki.voice.consent") as? NSButton,
+              let deleteVoice = findButton(in: contentView, title: "Delete Voice"),
+              deleteVoice.layer?.borderWidth == 1,
               !consent.title.localizedCaseInsensitiveContains("consent"),
               consent.title.localizedCaseInsensitiveContains("my own voice"),
               consent.title.localizedCaseInsensitiveContains("private on this Mac") else {
@@ -228,6 +231,35 @@ enum FeatureDiagnostics {
               !overridesMouseDown else {
             throw failure("interactive windows must use native AppKit mouse tracking")
         }
+
+        var hitTestFailures: [String] = []
+        for controller in interactiveWindows {
+            guard let contentView = controller.window?.contentView else {
+                throw failure("interactive window content")
+            }
+            contentView.layoutSubtreeIfNeeded()
+            let controls = descendants(of: contentView).compactMap { $0 as? NSControl }
+                .filter { !($0 is NSScroller) }
+                .filter { !$0.isHidden && $0.alphaValue > 0.01 && $0.isEnabled && $0.action != nil }
+            for control in controls {
+                let center = NSPoint(x: control.bounds.midX, y: control.bounds.midY)
+                let pointInContent = control.convert(center, to: contentView)
+                let hit = contentView.hitTest(pointInContent)
+                guard let hit, hit === control || hit.isDescendant(of: control) else {
+                    let buttonTitle = (control as? NSButton)?.title ?? ""
+                    let label = (!buttonTitle.isEmpty ? buttonTitle : control.toolTip)
+                        ?? control.identifier?.rawValue
+                        ?? String(describing: type(of: control))
+                    hitTestFailures.append(
+                        "\(controller.window?.title ?? "interactive window"): \(label) hit \(hit.map { String(describing: type(of: $0)) } ?? "nothing")"
+                    )
+                    continue
+                }
+            }
+        }
+        guard hitTestFailures.isEmpty else {
+            throw failure("control hit testing [\(hitTestFailures.joined(separator: "; "))]")
+        }
     }
 
     private static func temporaryFile(_ name: String) -> URL {
@@ -242,6 +274,18 @@ enum FeatureDiagnostics {
             if let match = findView(in: subview, identifier: identifier) { return match }
         }
         return nil
+    }
+
+    private static func findButton(in root: NSView, title: String) -> NSButton? {
+        if let button = root as? NSButton, button.title == title { return button }
+        for subview in root.subviews {
+            if let match = findButton(in: subview, title: title) { return match }
+        }
+        return nil
+    }
+
+    private static func descendants(of root: NSView) -> [NSView] {
+        root.subviews.flatMap { [$0] + descendants(of: $0) }
     }
 
     private static func failure(_ name: String) -> KikiError {

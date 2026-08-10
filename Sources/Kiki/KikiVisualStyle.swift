@@ -294,7 +294,7 @@ final class KikiNavButton: NSButton {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard !isHidden, alphaValue > 0.01, bounds.contains(point) else { return nil }
+        guard !isHidden, alphaValue > 0.01, frame.contains(point) else { return nil }
         return self
     }
 
@@ -400,6 +400,8 @@ final class KikiActionButton: NSButton {
 
 @MainActor
 final class KikiScrollView: NSScrollView {
+    var fillsBackground = true { didSet { updateStyle() } }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         drawsBackground = false
@@ -426,10 +428,45 @@ final class KikiScrollView: NSScrollView {
 
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.54).cgColor
+            layer?.backgroundColor = fillsBackground
+                ? KikiPalette.canvas.withAlphaComponent(0.54).cgColor
+                : NSColor.clear.cgColor
+            layer?.borderWidth = fillsBackground ? 1 : 0
             layer?.borderColor = KikiPalette.stroke.cgColor
             let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             scrollerKnobStyle = isDark ? .light : .dark
+        }
+    }
+}
+
+@MainActor
+final class KikiInsetPanelView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 12
+        layer?.cornerCurve = .continuous
+        layer?.borderWidth = 1
+        layer?.masksToBounds = true
+        updateStyle()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateStyle()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateStyle()
+    }
+
+    private func updateStyle() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+            layer?.borderColor = KikiPalette.strongStroke.cgColor
         }
     }
 }

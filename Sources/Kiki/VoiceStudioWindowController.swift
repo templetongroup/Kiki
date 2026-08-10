@@ -37,7 +37,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private lazy var recordButton = KikiActionButton("Start Recording", kind: .primary, target: self, action: #selector(toggleRecording))
     private lazy var saveVoiceButton = KikiActionButton("Save Voice", kind: .primary, target: self, action: #selector(saveVoice))
     private lazy var playReferenceButton = KikiActionButton("Play Preview", kind: .secondary, target: self, action: #selector(playReference))
-    private lazy var deleteVoiceButton = KikiActionButton("Delete Voice", kind: .quiet, target: self, action: #selector(deleteVoice))
+    private lazy var deleteVoiceButton = KikiActionButton("Delete Voice", kind: .secondary, target: self, action: #selector(deleteVoice))
     private let recordingTimeLabel = NSTextField(labelWithString: "00:00")
     private let recordingMeter = NSProgressIndicator()
     private let qualityLabel = NSTextField(wrappingLabelWithString: "Read naturally in a quiet room. Aim for 30–60 seconds.")
@@ -212,19 +212,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         scriptView.setAccessibilityLabel("Voice enrollment passage")
 
         let scriptScroll = KikiScrollView()
+        scriptScroll.fillsBackground = false
         scriptScroll.drawsBackground = false
         scriptScroll.borderType = .noBorder
         scriptScroll.hasVerticalScroller = true
         scriptScroll.autohidesScrollers = true
         scriptScroll.documentView = scriptView
-        let scriptPanel = NSView()
-        scriptPanel.wantsLayer = true
-        scriptPanel.layer?.cornerRadius = 12
-        scriptPanel.layer?.cornerCurve = .continuous
-        scriptPanel.layer?.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.52).cgColor
-        scriptPanel.layer?.borderWidth = 1
-        scriptPanel.layer?.borderColor = KikiPalette.stroke.cgColor
-        scriptPanel.layer?.masksToBounds = true
+        let scriptPanel = KikiInsetPanelView()
+        scriptPanel.identifier = NSUserInterfaceItemIdentifier("kiki.voice.enrollment-panel")
         scriptScroll.translatesAutoresizingMaskIntoConstraints = false
         scriptPanel.addSubview(scriptScroll)
         NSLayoutConstraint.activate([
