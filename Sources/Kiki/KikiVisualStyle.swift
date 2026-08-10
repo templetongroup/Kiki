@@ -67,6 +67,8 @@ enum KikiPalette {
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
+    static let hardwareControl = NSColor(red: 0.095, green: 0.103, blue: 0.094, alpha: 1)
+    static let hardwareControlText = NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1)
     static let meterTrack = adaptive(
         dark: NSColor(red: 0.038, green: 0.043, blue: 0.037, alpha: 1),
         light: NSColor(red: 0.865, green: 0.847, blue: 0.800, alpha: 1)
@@ -156,13 +158,12 @@ final class KikiSidebarView: NSView {
 class KikiCardView: NSView {
     var selected = false { didSet { updateStyle() } }
     var showsFasteners = false { didSet { updateFasteners() } }
-    private let fasteners = (0..<4).map { _ in CALayer() }
+    private let fasteners = (0..<4).map { _ in KikiFastenerLayer() }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         fasteners.forEach {
-            $0.cornerRadius = 2
             $0.isHidden = true
             layer?.addSublayer($0)
         }
@@ -179,7 +180,7 @@ class KikiCardView: NSView {
     override func layout() {
         super.layout()
         let inset: CGFloat = 7
-        let size: CGFloat = 4
+        let size: CGFloat = 10
         let positions = [
             CGPoint(x: inset, y: inset),
             CGPoint(x: max(inset, bounds.width - inset - size), y: inset),
@@ -198,9 +199,11 @@ class KikiCardView: NSView {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             fasteners.forEach {
                 $0.isHidden = !showsFasteners
-                $0.backgroundColor = KikiPalette.khaki.withAlphaComponent(0.72).cgColor
-                $0.borderWidth = 0.5
-                $0.borderColor = KikiPalette.strongStroke.cgColor
+                $0.applyColors(
+                    face: KikiPalette.khaki,
+                    edge: KikiPalette.strongStroke,
+                    slot: KikiPalette.canvas
+                )
             }
         }
         needsLayout = true
@@ -222,6 +225,41 @@ class KikiCardView: NSView {
     }
 }
 
+private final class KikiFastenerLayer: CALayer {
+    private let slot = CALayer()
+    private let highlight = CALayer()
+
+    override init() {
+        super.init()
+        cornerRadius = 5
+        borderWidth = 1
+        shadowColor = NSColor.black.cgColor
+        shadowOpacity = 0.35
+        shadowRadius = 1.5
+        shadowOffset = CGSize(width: 0, height: -1)
+        slot.cornerRadius = 0.5
+        slot.setAffineTransform(CGAffineTransform(rotationAngle: -.pi / 4))
+        highlight.cornerRadius = 1
+        addSublayer(slot)
+        addSublayer(highlight)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSublayers() {
+        super.layoutSublayers()
+        slot.frame = CGRect(x: bounds.midX - 0.55, y: bounds.midY - 3, width: 1.1, height: 6)
+        highlight.frame = CGRect(x: 2, y: bounds.height - 4, width: 2, height: 2)
+    }
+
+    func applyColors(face: NSColor, edge: NSColor, slot slotColor: NSColor) {
+        backgroundColor = face.cgColor
+        borderColor = edge.cgColor
+        slot.backgroundColor = slotColor.withAlphaComponent(0.8).cgColor
+        highlight.backgroundColor = NSColor.white.withAlphaComponent(0.55).cgColor
+    }
+}
+
 @MainActor
 final class KikiNavButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
@@ -234,7 +272,7 @@ final class KikiNavButton: NSButton {
         super.init(frame: .zero)
         self.title = ""
         isBordered = false
-        focusRingType = .exterior
+        focusRingType = .none
         self.target = target
         self.action = action
         setAccessibilityLabel(title)
@@ -315,7 +353,7 @@ final class KikiNavButton: NSButton {
 
 @MainActor
 final class KikiActionButton: NSButton {
-    enum Kind { case primary, secondary, quiet, danger }
+    enum Kind { case primary, secondary, hardware, quiet, danger }
     private let kind: Kind
 
     init(_ title: String, kind: Kind = .secondary, target: AnyObject?, action: Selector?) {
@@ -326,8 +364,8 @@ final class KikiActionButton: NSButton {
         self.action = action
         setButtonType(.momentaryPushIn)
         isBordered = false
-        focusRingType = .exterior
-        font = .systemFont(ofSize: 13, weight: .semibold)
+        focusRingType = .none
+        font = .systemFont(ofSize: kind == .hardware ? 12 : 13, weight: .semibold)
         lineBreakMode = .byTruncatingTail
         cell?.wraps = false
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -335,7 +373,7 @@ final class KikiActionButton: NSButton {
         layer?.cornerRadius = 6
         layer?.cornerCurve = .continuous
         alignment = .center
-        heightAnchor.constraint(greaterThanOrEqualToConstant: 42).isActive = true
+        heightAnchor.constraint(greaterThanOrEqualToConstant: kind == .hardware ? 32 : 42).isActive = true
         updateStyle()
     }
 
@@ -345,6 +383,9 @@ final class KikiActionButton: NSButton {
 
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
+        if kind == .hardware {
+            return NSSize(width: ceil(base.width) + 24, height: max(32, ceil(base.height) + 12))
+        }
         return NSSize(width: ceil(base.width) + 40, height: max(42, ceil(base.height) + 18))
     }
 
@@ -365,12 +406,18 @@ final class KikiActionButton: NSButton {
                 case .quiet:
                     layer?.backgroundColor = NSColor.clear.cgColor
                     layer?.borderWidth = 0
+                    contentTintColor = KikiPalette.tertiaryText
+                case .hardware:
+                    layer?.backgroundColor = KikiPalette.hardwareControl.withAlphaComponent(0.72).cgColor
+                    layer?.borderWidth = 1
+                    layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.34).cgColor
+                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.62)
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
                     layer?.borderColor = KikiPalette.stroke.cgColor
+                    contentTintColor = KikiPalette.tertiaryText
                 }
-                contentTintColor = KikiPalette.tertiaryText
                 return
             }
             alphaValue = 1
@@ -385,6 +432,15 @@ final class KikiActionButton: NSButton {
                 layer?.borderWidth = 1
                 layer?.borderColor = KikiPalette.strongStroke.cgColor
                 contentTintColor = KikiPalette.primaryText
+            case .hardware:
+                layer?.backgroundColor = KikiPalette.hardwareControl.cgColor
+                layer?.borderWidth = 1
+                layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.5).cgColor
+                layer?.shadowColor = NSColor.black.cgColor
+                layer?.shadowOpacity = 0.28
+                layer?.shadowRadius = 2
+                layer?.shadowOffset = CGSize(width: 0, height: -1)
+                contentTintColor = KikiPalette.hardwareControlText
             case .quiet:
                 layer?.backgroundColor = NSColor.clear.cgColor
                 layer?.borderWidth = 0

@@ -186,7 +186,7 @@ final class DictationController {
         )
         let systemSegments = try await transcribeMeetingTrack(
             systemSamples,
-            speaker: "Others"
+            speaker: "Speaker 1"
         )
         let segments = (microphoneSegments + systemSegments).sorted {
             if $0.startTime == $1.startTime { return $0.speaker < $1.speaker }
@@ -244,8 +244,8 @@ final class DictationController {
             }
             let text = TranscriptPostProcessor.process(raw, context: nil)
             guard !text.isEmpty else { continue }
-            segments.append(
-                MeetingTranscriptSegment(
+            segments.append(contentsOf:
+                MeetingTranscriptSegment.sentenceSegments(
                     startTime: Double(end - chunk.count) / AudioRecorder.sampleRate,
                     endTime: Double(end) / AudioRecorder.sampleRate,
                     speaker: speaker,

@@ -160,7 +160,7 @@ final class HUDPanel {
     }
 
     private func positionedFrame(width: CGFloat, height: CGFloat) -> NSRect {
-        if Settings.showHUDNearCaret,
+        if Settings.listeningDisplayPosition == .nearTargetWindow,
            let caret = AppContextSnapshot.caretScreenRect(),
            let placement = caretPlacement(for: caret) {
             return clampedFrame(
@@ -176,12 +176,37 @@ final class HUDPanel {
             ?? NSScreen.main
             ?? NSScreen.screens.first
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: width, height: height)
-        return NSRect(
-            x: visible.midX - width / 2,
-            y: visible.minY + 60,
+        return Self.fixedFrame(
+            position: Settings.listeningDisplayPosition,
+            visibleFrame: visible,
             width: width,
             height: height
         )
+    }
+
+    static func fixedFrame(
+        position: ListeningDisplayPosition,
+        visibleFrame visible: NSRect,
+        width: CGFloat,
+        height: CGFloat
+    ) -> NSRect {
+        let horizontalMargin: CGFloat = 24
+        let verticalMargin: CGFloat = 32
+        let centeredX = visible.midX - width / 2
+        let topY = visible.maxY - height - verticalMargin
+        let bottomY = visible.minY + verticalMargin
+        let leftX = visible.minX + horizontalMargin
+        let rightX = visible.maxX - width - horizontalMargin
+        let origin: NSPoint
+        switch position {
+        case .top: origin = NSPoint(x: centeredX, y: topY)
+        case .topLeft: origin = NSPoint(x: leftX, y: topY)
+        case .topRight: origin = NSPoint(x: rightX, y: topY)
+        case .bottomLeft: origin = NSPoint(x: leftX, y: bottomY)
+        case .bottomRight: origin = NSPoint(x: rightX, y: bottomY)
+        case .bottom, .nearTargetWindow: origin = NSPoint(x: centeredX, y: bottomY)
+        }
+        return NSRect(origin: origin, size: NSSize(width: width, height: height))
     }
 
     private func caretPlacement(for caret: CGRect) -> (point: NSPoint, screen: NSScreen)? {

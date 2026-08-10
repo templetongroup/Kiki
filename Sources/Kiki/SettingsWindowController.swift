@@ -13,6 +13,7 @@ final class SettingsWindowController: NSWindowController {
     private let speechProfilePopup = NSPopUpButton()
     private let appearancePopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
+    private let listeningPositionPopup = NSPopUpButton()
     private let listeningDisplayControl = NSSegmentedControl(
         labels: ListeningDisplayMode.allCases.map(\.title),
         trackingMode: .selectOne,
@@ -44,7 +45,6 @@ final class SettingsWindowController: NSWindowController {
     private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
     private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
     private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
-    private let caretHUDCheckbox = NSButton(checkboxWithTitle: "Keep the listening window near my cursor", target: nil, action: nil)
     private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
     private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
     private let learningCheckbox = NSButton(checkboxWithTitle: "Notice corrections and suggest what Kiki should learn", target: nil, action: nil)
@@ -220,7 +220,7 @@ final class SettingsWindowController: NSWindowController {
     private func configureControls() {
         let checkboxes = [
             launchAtLoginCheckbox, automaticUpdatesCheckbox, silenceAudioCheckbox,
-            caretHUDCheckbox, zeroWaitCheckbox,
+            zeroWaitCheckbox,
             continuationsCheckbox, learningCheckbox, contextCheckbox,
             confidenceCheckbox, historyCheckbox,
         ]
@@ -245,8 +245,13 @@ final class SettingsWindowController: NSWindowController {
         for index in 0..<listeningDisplayControl.segmentCount {
             listeningDisplayControl.setWidth(150, forSegment: index)
         }
-        caretHUDCheckbox.target = self
-        caretHUDCheckbox.action = #selector(caretHUDChanged)
+        listeningPositionPopup.addItems(withTitles: ListeningDisplayPosition.allCases.map(\.title))
+        listeningPositionPopup.identifier = NSUserInterfaceItemIdentifier("kiki.listening-display-position")
+        listeningPositionPopup.target = self
+        listeningPositionPopup.action = #selector(listeningPositionChanged)
+        listeningPositionPopup.controlSize = .large
+        listeningPositionPopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        listeningPositionPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
         zeroWaitCheckbox.target = self
         zeroWaitCheckbox.action = #selector(zeroWaitChanged)
         continuationsCheckbox.target = self
@@ -331,11 +336,7 @@ final class SettingsWindowController: NSWindowController {
                 views: [
                     listeningDisplayControl,
                     listeningDisplayDescriptionLabel,
-                    informativeToggle(
-                        caretHUDCheckbox,
-                        title: "Keep the listening display near my cursor",
-                        detail: "Places the transcript or waveform beside the insertion point when Kiki can detect it. Otherwise, it appears near the bottom of the active screen."
-                    ),
+                    labeledRow("Position", controls: [listeningPositionPopup]),
                 ]
             ),
             SettingsCard(
@@ -484,8 +485,8 @@ final class SettingsWindowController: NSWindowController {
         let listeningMode = Settings.listeningDisplayMode
         listeningDisplayControl.selectedSegment = ListeningDisplayMode.allCases.firstIndex(of: listeningMode) ?? 0
         listeningDisplayDescriptionLabel.stringValue = listeningMode.detail
-        caretHUDCheckbox.state = Settings.showHUDNearCaret ? .on : .off
-        caretHUDCheckbox.isEnabled = listeningMode != .hidden
+        listeningPositionPopup.selectItem(at: ListeningDisplayPosition.allCases.firstIndex(of: Settings.listeningDisplayPosition) ?? 0)
+        listeningPositionPopup.isEnabled = listeningMode != .hidden
         zeroWaitCheckbox.state = Settings.enableZeroWaitChaining ? .on : .off
         continuationsCheckbox.state = Settings.enableVoiceContinuations ? .on : .off
         learningCheckbox.state = Settings.learnFromCorrections ? .on : .off
@@ -629,7 +630,10 @@ final class SettingsWindowController: NSWindowController {
         Settings.listeningDisplayMode = ListeningDisplayMode.allCases[listeningDisplayControl.selectedSegment]
         refresh()
     }
-    @objc private func caretHUDChanged() { Settings.showHUDNearCaret = caretHUDCheckbox.state == .on }
+    @objc private func listeningPositionChanged() {
+        guard ListeningDisplayPosition.allCases.indices.contains(listeningPositionPopup.indexOfSelectedItem) else { return }
+        Settings.listeningDisplayPosition = ListeningDisplayPosition.allCases[listeningPositionPopup.indexOfSelectedItem]
+    }
     @objc private func zeroWaitChanged() { Settings.enableZeroWaitChaining = zeroWaitCheckbox.state == .on; onSettingsChange?(Settings.dictationShortcut, Settings.activationMode) }
     @objc private func continuationsChanged() { Settings.enableVoiceContinuations = continuationsCheckbox.state == .on }
     @objc private func learningChanged() { Settings.learnFromCorrections = learningCheckbox.state == .on }
@@ -669,7 +673,7 @@ private final class ModelCardView: KikiCardView {
     let model: TranscriptionModelID
     var onUse: ((TranscriptionModelID) -> Void)?
     private let statusLabel = NSTextField(labelWithString: "")
-    private let button = KikiActionButton("Use Model", kind: .primary, target: nil, action: nil)
+    private let button = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
     private let dial = KikiHardwareDialView()
 
     init(model: TranscriptionModelID) {
@@ -683,6 +687,7 @@ private final class ModelCardView: KikiCardView {
         statusLabel.font = .systemFont(ofSize: 12, weight: .medium)
         button.target = self
         button.action = #selector(useModel)
+        button.identifier = NSUserInterfaceItemIdentifier("kiki.model.action")
 
         let labels = NSStackView(views: [title, detail, statusLabel])
         labels.orientation = .vertical

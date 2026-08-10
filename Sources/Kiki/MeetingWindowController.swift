@@ -14,12 +14,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private let statusLabel = NSTextField(wrappingLabelWithString: "Ready — Kiki verifies both your microphone and remote meeting audio before recording.")
     private let textView = NSTextView()
     private let formatPopup = NSPopUpButton()
+    private lazy var identifySpeakersButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: self, action: #selector(identifySpeakers))
     private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
     private var isRecording = false
     private var timer: Timer?
     private var startedAt: Date?
     private var transcript: MeetingTranscript?
     private var liveTranscription: MeetingLiveTranscription?
+    private var speakerEditor: MeetingSpeakerEditorWindowController?
 
     init() {
         let window = NSWindow(
@@ -50,6 +52,15 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func showPreview(transcript: MeetingTranscript) {
+        self.transcript = transcript
+        titleField.stringValue = transcript.title
+        textView.string = transcript.markdown
+        identifySpeakersButton.isEnabled = !transcript.segments.isEmpty
+        statusLabel.stringValue = "Preview complete — identify speakers before exporting."
+        show()
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -126,7 +137,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         footer.alignment = .centerY
         footer.spacing = 8
 
-        let stack = NSStackView(views: [header, titleField, controls, statusLabel, scroll, footer])
+        identifySpeakersButton.isEnabled = false
+        identifySpeakersButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.identify-speakers")
+        let speakerTools = NSStackView(views: [identifySpeakersButton, kikiLabel("Rename once to update every transcript row and export.", size: 12, color: KikiPalette.secondaryText), NSView()])
+        speakerTools.orientation = .horizontal
+        speakerTools.alignment = .centerY
+        speakerTools.spacing = 10
+
+        let stack = NSStackView(views: [header, titleField, controls, statusLabel, speakerTools, scroll, footer])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -144,6 +162,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             titleField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             controls.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            speakerTools.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 360),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -178,7 +197,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 textView.string = preview == nil
                     ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
                     : "LIVE DRAFT · YOU\n\nListening…"
-                statusLabel.stringValue = "Recording locally — remote audio is active. Live draft shows You; the final transcript labels You and Others."
+                statusLabel.stringValue = "Recording locally — remote audio is active. Live draft shows You; identify the other speakers after transcription."
                 startTimer()
             } catch {
                 captureSession.setMicrophoneSamplesHandler(nil)
@@ -248,7 +267,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 let result = try await onTranscribe(capture, title.isEmpty ? "Meeting" : title)
                 transcript = result
                 textView.string = result.markdown
-                statusLabel.stringValue = "Complete — \(result.segments.count) local source-labelled segments.\(archiveMessage)"
+                identifySpeakersButton.isEnabled = !result.segments.isEmpty
+                statusLabel.stringValue = "Complete — \(result.segments.count) segments. Identify speakers before exporting.\(archiveMessage)"
             } catch {
                 statusLabel.stringValue = "Meeting transcription failed: \(error.localizedDescription)"
             }
@@ -281,8 +301,27 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func copyTranscript() {
-        TextInserter.copyOnly(textView.string)
+        TextInserter.copyOnly(transcript?.markdown ?? textView.string)
         statusLabel.stringValue = "Transcript copied."
+    }
+
+    @objc private func identifySpeakers() {
+        guard let transcript else {
+            statusLabel.stringValue = "Record and transcribe a meeting before identifying speakers."
+            return
+        }
+        let editor = MeetingSpeakerEditorWindowController(transcript: transcript)
+        editor.onApply = { [weak self] revised in
+            guard let self else { return }
+            self.transcript = revised
+            self.textView.string = revised.markdown
+            self.statusLabel.stringValue = "Speaker names updated everywhere and will be used by every export."
+            self.speakerEditor = nil
+        }
+        speakerEditor = editor
+        editor.showWindow(nil)
+        editor.window?.center()
+        editor.window?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func exportTranscript() {
@@ -294,7 +333,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         let ext = ["md", "txt", "srt", "vtt"][max(0, min(index, 3))]
         let contents: String
         switch index {
-        case 1: contents = textView.string
+        case 1: contents = transcript.plainText
         case 2: contents = transcript.srt
         case 3: contents = transcript.vtt
         default: contents = transcript.markdown

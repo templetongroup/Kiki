@@ -20,6 +20,29 @@ struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
         self.speaker = speaker
         self.text = text
     }
+
+    static func sentenceSegments(
+        startTime: TimeInterval,
+        endTime: TimeInterval,
+        speaker: String,
+        text: String
+    ) -> [MeetingTranscriptSegment] {
+        let pattern = "[^.!?]+[.!?]+|[^.!?]+$"
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        let pieces = (try? NSRegularExpression(pattern: pattern))?
+            .matches(in: text, range: range)
+            .compactMap { Range($0.range, in: text).map { String(text[$0]).trimmingCharacters(in: .whitespacesAndNewlines) } }
+            .filter { !$0.isEmpty } ?? [text]
+        guard pieces.count > 1 else {
+            return [MeetingTranscriptSegment(startTime: startTime, endTime: endTime, speaker: speaker, text: text)]
+        }
+        let duration = max(0.001, endTime - startTime)
+        return pieces.enumerated().map { index, piece in
+            let pieceStart = startTime + duration * Double(index) / Double(pieces.count)
+            let pieceEnd = startTime + duration * Double(index + 1) / Double(pieces.count)
+            return MeetingTranscriptSegment(startTime: pieceStart, endTime: pieceEnd, speaker: speaker, text: piece)
+        }
+    }
 }
 
 struct MeetingTranscript: Codable, Sendable {
@@ -28,6 +51,49 @@ struct MeetingTranscript: Codable, Sendable {
     let duration: TimeInterval
     let segments: [MeetingTranscriptSegment]
     let actionItems: [String]
+
+    var speakerNames: [String] {
+        var seen = Set<String>()
+        return segments.compactMap { seen.insert($0.speaker).inserted ? $0.speaker : nil }
+    }
+
+    func renamingSpeaker(from oldName: String, to newName: String) -> MeetingTranscript {
+        let replacement = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !replacement.isEmpty else { return self }
+        let revised = segments.map { segment in
+            MeetingTranscriptSegment(
+                id: segment.id,
+                startTime: segment.startTime,
+                endTime: segment.endTime,
+                speaker: segment.speaker == oldName ? replacement : segment.speaker,
+                text: segment.text
+            )
+        }
+        return replacingSegments(revised)
+    }
+
+    func assigningSpeaker(_ speaker: String, to segmentIDs: Set<UUID>) -> MeetingTranscript {
+        let revised = segments.map { segment in
+            MeetingTranscriptSegment(
+                id: segment.id,
+                startTime: segment.startTime,
+                endTime: segment.endTime,
+                speaker: segmentIDs.contains(segment.id) ? speaker : segment.speaker,
+                text: segment.text
+            )
+        }
+        return replacingSegments(revised)
+    }
+
+    private func replacingSegments(_ revised: [MeetingTranscriptSegment]) -> MeetingTranscript {
+        MeetingTranscript(
+            title: title,
+            createdAt: createdAt,
+            duration: duration,
+            segments: revised,
+            actionItems: Self.actionItems(from: revised)
+        )
+    }
 
     var plainText: String {
         segments.map { "[\(Self.timestamp($0.startTime))] \($0.speaker): \($0.text)" }
@@ -102,4 +168,3 @@ struct MeetingTranscript: Codable, Sendable {
         )
     }
 }
-

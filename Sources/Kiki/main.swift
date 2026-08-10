@@ -7,6 +7,10 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+MainActor.assumeIsolated {
+    _ = NSApplication.shared
+    ApplicationMenu.install()
+}
 if args.count >= 2, args[1] == "--preview-voice-studio" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
@@ -20,6 +24,47 @@ if args.count >= 2, args[1] == "--preview-voice-studio" {
         }
         let controller = VoiceStudioWindowController()
         controller.show()
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-file-transcription" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let controller = FileTranscriptionWindowController()
+        controller.showPreview(
+            transcription: "Tony welcomed Anna to the meeting and reviewed the launch plan.",
+            sourceURL: URL(fileURLWithPath: "/tmp/Launch Interview.m4a")
+        )
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-meeting-speakers" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let segments = [
+            MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "You", text: "Let’s review the launch plan."),
+            MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Speaker 1", text: "I’ll send the final artwork this afternoon."),
+            MeetingTranscriptSegment(startTime: 19, endTime: 28, speaker: "Speaker 1", text: "The production schedule is ready."),
+        ]
+        let meeting = MeetingTranscript(
+            title: "Launch Planning",
+            createdAt: Date(),
+            duration: 28,
+            segments: segments,
+            actionItems: MeetingTranscript.actionItems(from: segments)
+        )
+        let controller = MeetingSpeakerEditorWindowController(transcript: meeting)
+        controller.showWindow(nil)
+        controller.window?.center()
+        controller.window?.makeKeyAndOrderFront(nil)
         app.run()
     }
 }
@@ -179,6 +224,11 @@ if args.count >= 2, args[1] == "--preview-settings" {
         app.setActivationPolicy(.accessory)
         app.finishLaunching()
         AppearanceController.apply()
+        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
+            app.appearance = NSAppearance(named: .darkAqua)
+        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
+            app.appearance = NSAppearance(named: .aqua)
+        }
         let controller = SettingsWindowController()
         let previewPage = args.count >= 3 ? Int(args[2]) : nil
         controller.show(page: previewPage)

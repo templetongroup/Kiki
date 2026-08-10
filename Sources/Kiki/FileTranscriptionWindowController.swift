@@ -10,7 +10,9 @@ final class FileTranscriptionWindowController: NSWindowController {
     private let progressIndicator = NSProgressIndicator()
     private let textView = NSTextView()
     private let copyButton = KikiActionButton("Copy", kind: .secondary, target: nil, action: nil)
-    private let saveButton = KikiActionButton("Save Text", kind: .primary, target: nil, action: nil)
+    private let exportFormatPopup = NSPopUpButton()
+    private let exportButton = KikiActionButton("Export Transcript", kind: .primary, target: nil, action: nil)
+    private var sourceURL: URL?
 
     init() {
         let window = NSWindow(
@@ -35,6 +37,16 @@ final class FileTranscriptionWindowController: NSWindowController {
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func showPreview(transcription: String, sourceURL: URL) {
+        self.sourceURL = sourceURL
+        textView.string = transcription
+        statusLabel.stringValue = "Finished \(sourceURL.lastPathComponent) • preview"
+        copyButton.isEnabled = true
+        exportFormatPopup.isEnabled = true
+        exportButton.isEnabled = true
+        show()
     }
 
     private func buildContent() {
@@ -80,13 +92,19 @@ final class FileTranscriptionWindowController: NSWindowController {
 
         copyButton.target = self
         copyButton.action = #selector(copyText)
-        saveButton.target = self
-        saveButton.action = #selector(saveText)
+        exportFormatPopup.addItems(withTitles: FileTranscriptExportFormat.allCases.map(\.title))
+        exportFormatPopup.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.export-format")
+        exportFormatPopup.controlSize = .large
+        exportFormatPopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        exportButton.target = self
+        exportButton.action = #selector(exportText)
+        exportButton.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.export")
         copyButton.isEnabled = false
-        saveButton.isEnabled = false
+        exportFormatPopup.isEnabled = false
+        exportButton.isEnabled = false
         let privacy = NSTextField(labelWithString: "Local proof: no network used for transcription")
         privacy.textColor = KikiPalette.secondaryText
-        let actions = NSStackView(views: [privacy, NSView(), copyButton, saveButton])
+        let actions = NSStackView(views: [privacy, NSView(), exportFormatPopup, copyButton, exportButton])
         actions.spacing = 10
 
         let stack = NSStackView(views: [eyebrow, title, detail, dropView, statusRow, outputScroll, actions])
@@ -123,9 +141,11 @@ final class FileTranscriptionWindowController: NSWindowController {
     private func startTranscription(_ url: URL) {
         guard let onTranscribe else { return }
         statusLabel.stringValue = "Transcribing \(url.lastPathComponent)…"
+        sourceURL = url
         progressIndicator.startAnimation(nil)
         copyButton.isEnabled = false
-        saveButton.isEnabled = false
+        exportFormatPopup.isEnabled = false
+        exportButton.isEnabled = false
         textView.string = ""
         Task { [weak self] in
             do {
@@ -136,7 +156,8 @@ final class FileTranscriptionWindowController: NSWindowController {
                     ? "No speech detected in \(url.lastPathComponent)"
                     : "Finished \(url.lastPathComponent) • \(Settings.transcriptionModel.displayName)"
                 self.copyButton.isEnabled = !text.isEmpty
-                self.saveButton.isEnabled = !text.isEmpty
+                self.exportFormatPopup.isEnabled = !text.isEmpty
+                self.exportButton.isEnabled = !text.isEmpty
                 self.progressIndicator.stopAnimation(nil)
             } catch {
                 guard let self else { return }
@@ -152,17 +173,89 @@ final class FileTranscriptionWindowController: NSWindowController {
         NSPasteboard.general.setString(textView.string, forType: .string)
     }
 
-    @objc private func saveText() {
+    @objc private func exportText() {
         guard !textView.string.isEmpty else { return }
+        let formats = FileTranscriptExportFormat.allCases
+        let index = exportFormatPopup.indexOfSelectedItem
+        guard formats.indices.contains(index) else { return }
+        let format = formats[index]
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.plainText]
-        panel.nameFieldStringValue = "Kiki Transcription.txt"
+        panel.allowedContentTypes = [format.contentType]
+        let sourceName = sourceURL?.deletingPathExtension().lastPathComponent ?? "Kiki Transcription"
+        panel.nameFieldStringValue = "\(sourceName).\(format.fileExtension)"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try textView.string.write(to: url, atomically: true, encoding: .utf8)
-            statusLabel.stringValue = "Saved \(url.lastPathComponent)"
+            let data = try format.data(text: textView.string, sourceName: sourceName)
+            try data.write(to: url, options: .atomic)
+            statusLabel.stringValue = "Exported \(url.lastPathComponent)"
         } catch {
-            statusLabel.stringValue = "Could not save: \(error.localizedDescription)"
+            statusLabel.stringValue = "Could not export: \(error.localizedDescription)"
+        }
+    }
+}
+
+enum FileTranscriptExportFormat: String, CaseIterable {
+    case plainText
+    case markdown
+    case richText
+    case pdf
+
+    var title: String {
+        switch self {
+        case .plainText: "Plain Text (.txt)"
+        case .markdown: "Markdown (.md)"
+        case .richText: "Rich Text (.rtf)"
+        case .pdf: "PDF Document (.pdf)"
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+        case .plainText: "txt"
+        case .markdown: "md"
+        case .richText: "rtf"
+        case .pdf: "pdf"
+        }
+    }
+
+    var contentType: UTType {
+        switch self {
+        case .plainText: .plainText
+        case .markdown: UTType(filenameExtension: "md") ?? .plainText
+        case .richText: .rtf
+        case .pdf: .pdf
+        }
+    }
+
+    @MainActor
+    func data(text: String, sourceName: String) throws -> Data {
+        switch self {
+        case .plainText:
+            return Data(text.utf8)
+        case .markdown:
+            return Data("# \(sourceName)\n\n\(text)\n".utf8)
+        case .richText:
+            let attributed = NSAttributedString(
+                string: text,
+                attributes: [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.textColor]
+            )
+            return try attributed.data(
+                from: NSRange(location: 0, length: attributed.length),
+                documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
+            )
+        case .pdf:
+            let page = NSTextView(frame: NSRect(x: 0, y: 0, width: 540, height: 720))
+            page.isVerticallyResizable = true
+            page.textContainer?.containerSize = NSSize(width: 476, height: CGFloat.greatestFiniteMagnitude)
+            page.textContainer?.widthTracksTextView = true
+            page.string = text
+            page.font = .systemFont(ofSize: 13)
+            page.textContainerInset = NSSize(width: 32, height: 32)
+            if let container = page.textContainer, let layoutManager = page.layoutManager {
+                layoutManager.ensureLayout(for: container)
+                page.frame.size.height = max(720, layoutManager.usedRect(for: container).height + 64)
+            }
+            return page.dataWithPDF(inside: page.bounds)
         }
     }
 }

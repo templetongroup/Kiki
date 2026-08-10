@@ -130,9 +130,20 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "enableVoiceContinuations") }
     }
 
-    static var showHUDNearCaret: Bool {
-        get { bool(forKey: "showHUDNearCaret", default: true) }
-        set { UserDefaults.standard.set(newValue, forKey: "showHUDNearCaret") }
+    static var listeningDisplayPosition: ListeningDisplayPosition {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: "listeningDisplayPosition"),
+               let position = ListeningDisplayPosition(rawValue: raw) {
+                return position
+            }
+            // Preserve the former near-cursor preference when upgrading.
+            if UserDefaults.standard.object(forKey: "showHUDNearCaret") != nil,
+               !UserDefaults.standard.bool(forKey: "showHUDNearCaret") {
+                return .bottom
+            }
+            return .nearTargetWindow
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "listeningDisplayPosition") }
     }
 
     static var enableConfidenceVerification: Bool {
@@ -194,6 +205,28 @@ enum ListeningDisplayMode: String, CaseIterable {
             "Shows only a compact sound wave that responds to your voice."
         case .hidden:
             "Keeps the screen completely clear while Kiki listens and transcribes."
+        }
+    }
+}
+
+enum ListeningDisplayPosition: String, CaseIterable {
+    case bottom
+    case top
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
+    case nearTargetWindow
+
+    var title: String {
+        switch self {
+        case .bottom: "Bottom of Screen"
+        case .top: "Top of Screen"
+        case .topLeft: "Top Left"
+        case .topRight: "Top Right"
+        case .bottomLeft: "Bottom Left"
+        case .bottomRight: "Bottom Right"
+        case .nearTargetWindow: "Hover Near Target Window"
         }
     }
 }

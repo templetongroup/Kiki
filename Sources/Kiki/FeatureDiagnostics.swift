@@ -9,6 +9,7 @@ enum FeatureDiagnostics {
         try checkVoiceSnippets()
         try checkContextVocabulary()
         try checkMeetingExports()
+        try checkFileTranscriptExports()
         try checkPhraseBoundaries()
         try checkWindowInteractions()
         try checkVoiceStudio()
@@ -151,7 +152,7 @@ enum FeatureDiagnostics {
         let permissionError = MeetingCaptureStartError.systemAudioPermissionRequired
         let segments = [
             MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "You", text: "I will send the proposal."),
-            MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Others", text: "Please schedule the review."),
+            MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review."),
         ]
         let meeting = MeetingTranscript(
             title: "Planning",
@@ -160,14 +161,41 @@ enum FeatureDiagnostics {
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
+        let renamed = meeting.renamingSpeaker(from: "Speaker 1", to: "Tony")
+        let assigned = renamed.assigningSpeaker("Anna", to: [segments[0].id])
+        let sentenceRows = MeetingTranscriptSegment.sentenceSegments(
+            startTime: 0,
+            endTime: 12,
+            speaker: "Speaker 1",
+            text: "First person speaking. Second person answering!"
+        )
         guard meeting.markdown.contains("Possible action items"),
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
               meeting.actionItems.count == 2,
+              !renamed.markdown.contains("Speaker 1"),
+              renamed.markdown.contains("Tony"),
+              renamed.srt.contains("Tony:"),
+              renamed.vtt.contains("<v Tony>"),
+              assigned.speakerNames == ["Anna", "Tony"],
+              sentenceRows.count == 2,
+              sentenceRows[0].endTime == sentenceRows[1].startTime,
               permissionError.requiresScreenRecordingSettings,
               permissionError.localizedDescription.contains("Zoom"),
               !MeetingCaptureStartError.microphoneUnavailable("test").requiresScreenRecordingSettings
         else { throw failure("meeting exports") }
+    }
+
+    private static func checkFileTranscriptExports() throws {
+        let richText = try FileTranscriptExportFormat.richText.data(text: "Hello", sourceName: "Interview")
+        let pdf = try FileTranscriptExportFormat.pdf.data(text: String(repeating: "A complete local transcript. ", count: 500), sourceName: "Interview")
+        guard FileTranscriptExportFormat.allCases == [.plainText, .markdown, .richText, .pdf],
+              FileTranscriptExportFormat.allCases.map(\.fileExtension) == ["txt", "md", "rtf", "pdf"],
+              String(data: try FileTranscriptExportFormat.markdown.data(text: "Hello", sourceName: "Interview"), encoding: .utf8) == "# Interview\n\nHello\n",
+              richText.count > 100,
+              pdf.starts(with: Data("%PDF".utf8)),
+              pdf.count > 1_000
+        else { throw failure("file transcript export formats") }
     }
 
     private static func checkPhraseBoundaries() throws {
@@ -176,7 +204,13 @@ enum FeatureDiagnostics {
 
         let silentLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0, count: 128))
         let speakingLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.12, count: 128))
+        let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
+        let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
+        let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
         guard ListeningDisplayMode.allCases == [.fullTranscript, .waveform, .hidden],
+              ListeningDisplayPosition.allCases == [.bottom, .top, .topLeft, .topRight, .bottomLeft, .bottomRight, .nearTargetWindow],
+              topRight.origin == NSPoint(x: 876, y: 908),
+              bottomLeft.origin == NSPoint(x: 124, y: 232),
               silentLevel == 0,
               speakingLevel > 0.5
         else { throw failure("listening display modes") }
@@ -218,10 +252,21 @@ enum FeatureDiagnostics {
                 method_getName($0) == mouseDownSelector
             }
         } ?? false
+        let diagnosticMeeting = MeetingTranscript(
+            title: "Diagnostic Meeting",
+            createdAt: Date(timeIntervalSince1970: 0),
+            duration: 12,
+            segments: [
+                MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "You", text: "Opening note."),
+                MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Second note."),
+            ],
+            actionItems: []
+        )
         let interactiveWindows: [NSWindowController] = [
             SettingsWindowController(),
             VoiceStudioWindowController(),
             MeetingWindowController(),
+            MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting),
             PersonalizationWindowController(),
             FileTranscriptionWindowController(),
             HistoryWindowController(),
@@ -260,6 +305,29 @@ enum FeatureDiagnostics {
         guard hitTestFailures.isEmpty else {
             throw failure("control hit testing [\(hitTestFailures.joined(separator: "; "))]")
         }
+
+        let hardwareCard = KikiCardView()
+        hardwareCard.showsFasteners = true
+        hardwareCard.frame = NSRect(x: 0, y: 0, width: 240, height: 100)
+        hardwareCard.layoutSubtreeIfNeeded()
+        let fasteners = hardwareCard.layer?.sublayers ?? []
+        let hardwareButton = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
+        guard fasteners.count == 4,
+              fasteners.allSatisfy({ $0.bounds.width >= 9 && ($0.sublayers?.count ?? 0) >= 2 }),
+              hardwareButton.intrinsicContentSize.height < 40,
+              hardwareButton.layer?.borderWidth == 1 else {
+            throw failure("Studio Hardware fasteners and compact controls")
+        }
+
+        let focusProbe = KikiActionButton("Focus Probe", target: nil, action: nil)
+        guard focusProbe.focusRingType == .none else {
+            throw failure("custom action buttons must not draw the system blue focus ring")
+        }
+
+        guard let mainMenu = NSApp.mainMenu,
+              menuItem(in: mainMenu, action: #selector(NSText.selectAll(_:)), keyEquivalent: "a") != nil else {
+            throw failure("Command-A must route Select All through the application Edit menu")
+        }
     }
 
     private static func temporaryFile(_ name: String) -> URL {
@@ -286,6 +354,17 @@ enum FeatureDiagnostics {
 
     private static func descendants(of root: NSView) -> [NSView] {
         root.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
+
+    private static func menuItem(in menu: NSMenu, action: Selector, keyEquivalent: String) -> NSMenuItem? {
+        for item in menu.items {
+            if item.action == action, item.keyEquivalent == keyEquivalent { return item }
+            if let submenu = item.submenu,
+               let match = menuItem(in: submenu, action: action, keyEquivalent: keyEquivalent) {
+                return match
+            }
+        }
+        return nil
     }
 
     private static func failure(_ name: String) -> KikiError {
