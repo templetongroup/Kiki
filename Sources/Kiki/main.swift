@@ -198,12 +198,19 @@ if args.count >= 2, args[1] == "--preview-waveform" {
         }
         let hud = HUDPanel()
         let previewLevels: [CGFloat] = [0.10, 0.28, 0.62, 0.88, 0.46, 0.74, 0.22, 0.54]
+        let previewSamples: (CGFloat) -> [Float] = { level in
+            (0..<760).map { index in
+                let carrier = sin(Float(index) * 0.31)
+                let contour = 0.35 + 0.65 * abs(sin(Float(index) * 0.037))
+                return Float(level) * carrier * contour
+            }
+        }
         var previewIndex = 0
-        hud.showWaveform(level: previewLevels[previewIndex], reset: true)
+        hud.showWaveform(samples: previewSamples(previewLevels[previewIndex]), reset: true)
         Timer.scheduledTimer(withTimeInterval: 0.11, repeats: true) { _ in
             MainActor.assumeIsolated {
                 previewIndex = (previewIndex + 1) % previewLevels.count
-                hud.showWaveform(level: previewLevels[previewIndex])
+                hud.showWaveform(samples: previewSamples(previewLevels[previewIndex]))
             }
         }
         app.run()
@@ -221,7 +228,7 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                 fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)
                 exit(1)
             }
-            hud.showWaveform(level: 0.8)
+            hud.showWaveform(samples: [Float](repeating: 0.08, count: 760))
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 guard hud.isVisibleOnScreen else {
                     fputs("Error: Kiki waveform is not visible on any screen.\n", stderr)

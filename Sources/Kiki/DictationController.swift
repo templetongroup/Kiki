@@ -486,13 +486,12 @@ final class DictationController {
 
         if mode == .waveform {
             recorder.setSamplesHandler { [weak self] samples in
-                let level = VoiceLevelMeter.normalizedLevel(for: samples)
                 DispatchQueue.main.async {
                     guard let self,
                           self.state == .recording,
                           self.livePreviewID == currentID
                     else { return }
-                    self.hud.showWaveform(level: level)
+                    self.hud.showWaveform(samples: samples)
                 }
             }
             return
@@ -518,7 +517,7 @@ final class DictationController {
     private func showListeningPresentation() {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showListening()
-        case .waveform: hud.showWaveform(level: 0, reset: true)
+        case .waveform: hud.showWaveform(samples: [], reset: true)
         case .hidden: hud.hide()
         }
     }
@@ -526,7 +525,7 @@ final class DictationController {
     private func showTranscribingPresentation(transcript: String? = nil) {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showTranscribing(transcript: transcript)
-        case .waveform: hud.showWaveform(level: 0, reset: true)
+        case .waveform: hud.showWaveform(samples: [], reset: true)
         case .hidden: hud.hide()
         }
     }

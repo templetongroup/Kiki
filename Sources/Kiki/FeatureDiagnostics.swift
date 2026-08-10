@@ -206,6 +206,20 @@ enum FeatureDiagnostics {
         let quietLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.006, count: 128))
         let conversationalLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.03, count: 128))
         let speakingLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.12, count: 128))
+        let silentBars = VoiceLevelMeter.waveformBars(
+            for: [Float](repeating: 0, count: 380),
+            barCount: KikiWaveformView.barCount
+        )
+        var pulseSamples = [Float](repeating: 0, count: 380)
+        pulseSamples.replaceSubrange(190..<200, with: [Float](repeating: 0.25, count: 10))
+        let pulseBars = VoiceLevelMeter.waveformBars(
+            for: pulseSamples,
+            barCount: KikiWaveformView.barCount
+        )
+        let repeatedPulseBars = VoiceLevelMeter.waveformBars(
+            for: pulseSamples,
+            barCount: KikiWaveformView.barCount
+        )
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
@@ -217,6 +231,12 @@ enum FeatureDiagnostics {
               quietLevel > 0.1,
               conversationalLevel > quietLevel,
               speakingLevel > conversationalLevel,
+              silentBars.allSatisfy({ $0 == 0 }),
+              pulseBars == repeatedPulseBars,
+              pulseBars[19] > 0.1,
+              pulseBars.enumerated().allSatisfy({ index, level in
+                  (19...20).contains(index) || level == 0
+              }),
               HUDPanel.waveformUsesClearSurface,
               KikiWaveformView.barCount == 38,
               KikiWaveformView.usesAdaptiveOutline,

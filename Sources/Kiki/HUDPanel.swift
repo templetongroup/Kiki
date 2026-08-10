@@ -92,7 +92,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
-        waveformView.stopAnimating()
+        waveformView.reset()
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -108,7 +108,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
-        waveformView.stopAnimating()
+        waveformView.reset()
         statusLabel.stringValue = "Listening"
         statusLabel.textColor = KikiPalette.accentText
         transcriptLabel.stringValue = displayText(transcript)
@@ -117,7 +117,7 @@ final class HUDPanel {
         if needsPresentation { showExpanded() }
     }
 
-    func showWaveform(level: CGFloat, reset: Bool = false) {
+    func showWaveform(samples: [Float], reset: Bool = false) {
         let needsPresentation = presentation != .waveform || !panel.isVisible
         presentation = .waveform
         applyAppearance()
@@ -125,7 +125,7 @@ final class HUDPanel {
         textStack.isHidden = true
         waveformView.isHidden = false
         if reset { waveformView.reset() }
-        waveformView.level = level
+        waveformView.update(samples: samples)
         if needsPresentation { present(width: 252, height: 62) }
     }
 
@@ -135,7 +135,7 @@ final class HUDPanel {
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
         waveformView.isHidden = true
-        waveformView.stopAnimating()
+        waveformView.reset()
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -273,8 +273,7 @@ final class HUDPanel {
 
     func hide() {
         presentation = nil
-        waveformView.level = 0
-        waveformView.stopAnimating()
+        waveformView.reset()
         panel.orderOut(nil)
     }
 
@@ -285,6 +284,10 @@ final class HUDPanel {
 
 enum VoiceLevelMeter {
     static func normalizedLevel(for samples: [Float]) -> CGFloat {
+        normalizedLevel(for: samples[...])
+    }
+
+    private static func normalizedLevel(for samples: ArraySlice<Float>) -> CGFloat {
         guard !samples.isEmpty else { return 0 }
         let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count)
         let rms = meanSquare.squareRoot()
@@ -299,6 +302,18 @@ enum VoiceLevelMeter {
         let normalized = min(max((decibels + 52) / 40, 0), 1)
         return CGFloat(pow(normalized, 0.72))
     }
+
+    static func waveformBars(for samples: [Float], barCount: Int) -> [CGFloat] {
+        guard barCount > 0 else { return [] }
+        guard !samples.isEmpty else { return [CGFloat](repeating: 0, count: barCount) }
+
+        return (0..<barCount).map { index in
+            let start = index * samples.count / barCount
+            let end = (index + 1) * samples.count / barCount
+            guard start < end else { return 0 }
+            return normalizedLevel(for: samples[start..<end])
+        }
+    }
 }
 
 @MainActor
@@ -307,54 +322,19 @@ final class KikiWaveformView: NSView {
     static let barCount = 38
     static let usesAdaptiveOutline = true
 
-    var level: CGFloat = 0 {
-        didSet {
-            targetLevel = min(max(level, 0), 1)
-            startAnimating()
+    private var bars = [CGFloat](repeating: 0, count: barCount)
+
+    func update(samples: [Float]) {
+        let incoming = VoiceLevelMeter.waveformBars(for: samples, barCount: Self.barCount)
+        bars = zip(bars, incoming).map { current, next in
+            let response: CGFloat = next > current ? 0.82 : 0.52
+            return current + (next - current) * response
         }
+        needsDisplay = true
     }
-    private var targetLevel: CGFloat = 0
-    private var envelope: CGFloat = 0
-    private var phase: CGFloat = 0
-    private var history = [CGFloat](repeating: 0.055, count: barCount)
-    private var animationTimer: Timer?
 
     func reset() {
-        targetLevel = 0
-        envelope = 0
-        phase = 0
-        history = [CGFloat](repeating: 0.055, count: Self.barCount)
-        needsDisplay = true
-        startAnimating()
-    }
-
-    func stopAnimating() {
-        animationTimer?.invalidate()
-        animationTimer = nil
-    }
-
-    private func startAnimating() {
-        guard animationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1 / 30, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.advanceFrame() }
-        }
-        timer.tolerance = 0.006
-        RunLoop.main.add(timer, forMode: .common)
-        animationTimer = timer
-    }
-
-    private func advanceFrame() {
-        let response: CGFloat = targetLevel > envelope ? 0.62 : 0.16
-        envelope += (targetLevel - envelope) * response
-        targetLevel *= 0.93
-        phase += 0.31
-
-        let idlePulse = 0.055 + ((sin(phase * 0.58) + 1) * 0.014)
-        let voiceMotion = envelope * (0.78 + 0.22 * sin(phase * 1.41))
-        let transient = max(0, sin(phase * 0.73)) * envelope * 0.16
-        let sample = min(1, max(idlePulse, voiceMotion + transient))
-        history.removeFirst()
-        history.append(sample)
+        bars = [CGFloat](repeating: 0, count: Self.barCount)
         needsDisplay = true
     }
 
@@ -368,12 +348,10 @@ final class KikiWaveformView: NSView {
         let startX = (bounds.width - totalWidth) / 2
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            for (index, sample) in history.enumerated() {
+            for (index, sample) in bars.enumerated() {
                 let progress = CGFloat(index) / CGFloat(max(Self.barCount - 1, 1))
-                let spatialMotion = 0.68 + 0.32 * ((sin(CGFloat(index) * 1.19 + phase * 0.72) + 1) / 2)
-                let neighboringLift = index > 0 ? history[index - 1] * 0.16 : 0
-                let amplitude = min(1, max(0.045, sample * spatialMotion + neighboringLift))
-                let height = max(3, 3 + amplitude * (bounds.height - 5))
+                let amplitude = min(1, max(0, sample))
+                let height = 2.5 + amplitude * (bounds.height - 4.5)
                 let rect = NSRect(
                     x: startX + CGFloat(index) * (barWidth + spacing),
                     y: (bounds.height - height) / 2,
