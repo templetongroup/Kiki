@@ -38,7 +38,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         window.title = "Kiki Personalization Studio"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.minSize = NSSize(width: 900, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)

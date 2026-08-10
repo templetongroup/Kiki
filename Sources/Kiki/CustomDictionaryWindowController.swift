@@ -17,7 +17,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         window.title = "Kiki Dictionary"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()

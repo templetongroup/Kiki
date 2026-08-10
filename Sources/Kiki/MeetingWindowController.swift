@@ -31,7 +31,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         window.title = "Kiki Meeting Mode"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.minSize = NSSize(width: 820, height: 640)
         window.isReleasedWhenClosed = false
         super.init(window: window)

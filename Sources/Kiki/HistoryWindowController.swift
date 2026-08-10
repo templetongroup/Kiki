@@ -24,7 +24,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         window.title = "Kiki History"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()

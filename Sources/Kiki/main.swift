@@ -13,6 +13,11 @@ if args.count >= 2, args[1] == "--preview-voice-studio" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
+        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
+            app.appearance = NSAppearance(named: .darkAqua)
+        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
+            app.appearance = NSAppearance(named: .aqua)
+        }
         let controller = VoiceStudioWindowController()
         controller.show()
         app.run()
@@ -27,6 +32,22 @@ if args.count >= 3, args[1] == "--self-test-splash-artwork" {
                 referenceURL: URL(fileURLWithPath: args[2])
             )
             print("Kiki splash artwork diagnostic passed")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
+if args.count >= 3, args[1] == "--self-test-voice-studio-hero" {
+    MainActor.assumeIsolated {
+        do {
+            _ = NSApplication.shared
+            try FeatureDiagnostics.checkVoiceStudioHero(
+                referenceURL: URL(fileURLWithPath: args[2])
+            )
+            print("Kiki Voice Studio hero diagnostic passed")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)

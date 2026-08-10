@@ -22,7 +22,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         window.title = "Transcribe a File with Kiki"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()

@@ -41,6 +41,7 @@ fi
 cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
 cp Resources/MenuBarIcon.png "$APP/Contents/Resources/MenuBarIcon.png"
 cp Assets/kiki-portrait.png "$APP/Contents/Resources/SplashArtwork.png"
+cp Assets/kiki-studio-hero.png "$APP/Contents/Resources/VoiceStudioHero.png"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.

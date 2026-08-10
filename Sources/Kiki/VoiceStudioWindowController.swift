@@ -33,7 +33,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     )
     private let enrollmentModeDetailLabel = NSTextField(wrappingLabelWithString: "")
     private let scriptView = NSTextView()
-    private let consentCheckbox = NSButton(checkboxWithTitle: "This is my voice, and I consent to creating a private local voice model.", target: nil, action: nil)
+    private let consentCheckbox = NSButton(checkboxWithTitle: "I’m using my own voice and want Kiki to keep this recording private on this Mac.", target: nil, action: nil)
     private lazy var recordButton = KikiActionButton("Start Recording", kind: .primary, target: self, action: #selector(toggleRecording))
     private lazy var saveVoiceButton = KikiActionButton("Save Voice", kind: .primary, target: self, action: #selector(saveVoice))
     private lazy var playReferenceButton = KikiActionButton("Play Preview", kind: .secondary, target: self, action: #selector(playReference))
@@ -63,16 +63,16 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1080, height: 840),
+            contentRect: NSRect(x: 0, y: 0, width: 1080, height: 930),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "Kiki Voice Studio"
-        window.titleVisibility = .hidden
+        window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.minSize = NSSize(width: 1020, height: 840)
+        window.isMovableByWindowBackground = false
+        window.minSize = NSSize(width: 1020, height: 930)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         selectedEnrollmentMode = profile?.enrollmentMode ?? .quick
@@ -115,39 +115,35 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         ])
 
         let artwork = NSImageView()
-        if let url = Bundle.main.url(forResource: "SplashArtwork", withExtension: "png") {
-            artwork.image = NSImage(contentsOf: url)
-        } else if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png") {
+        artwork.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero-artwork")
+        if let url = Bundle.main.url(forResource: "VoiceStudioHero", withExtension: "png") {
             artwork.image = NSImage(contentsOf: url)
         }
         artwork.imageScaling = .scaleProportionallyUpOrDown
-        artwork.wantsLayer = true
-        artwork.layer?.cornerRadius = 6
-        artwork.layer?.cornerCurve = .continuous
-        artwork.layer?.masksToBounds = true
+        artwork.imageAlignment = .alignTopRight
+        artwork.translatesAutoresizingMaskIntoConstraints = false
         let eyebrow = kikiLabel("VOICE STUDIO · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Kiki is ready", size: 28, weight: .bold)
-        let subtitle = kikiLabel("Professional voice recording with local intelligence. Voice, text, and generated audio stay on this Mac.", size: 12.5, color: KikiPalette.secondaryText)
+        let title = kikiLabel("Kiki is ready", size: 30, weight: .bold)
+        let subtitle = kikiLabel("Professional voice recording with local intelligence. Everything stays on this Mac.", size: 13, color: KikiPalette.secondaryText)
         let headerText = NSStackView(views: [eyebrow, title, subtitle])
+        headerText.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero-copy")
         headerText.orientation = .vertical
         headerText.alignment = .leading
-        headerText.spacing = 5
-        let headerRow = NSStackView(views: [headerText, NSView(), artwork])
-        headerRow.orientation = .horizontal
-        headerRow.alignment = .centerY
-        headerRow.spacing = 18
-        headerRow.translatesAutoresizingMaskIntoConstraints = false
+        headerText.spacing = 7
+        headerText.translatesAutoresizingMaskIntoConstraints = false
         let header = KikiCardView()
-        header.showsFasteners = true
-        header.addSubview(headerRow)
+        header.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero")
+        header.layer?.masksToBounds = true
+        header.addSubview(artwork)
+        header.addSubview(headerText)
         NSLayoutConstraint.activate([
-            headerRow.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 20),
-            headerRow.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -14),
-            headerRow.topAnchor.constraint(equalTo: header.topAnchor, constant: 10),
-            headerRow.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -10),
-            artwork.widthAnchor.constraint(equalToConstant: 176),
-            artwork.heightAnchor.constraint(equalToConstant: 104),
-            subtitle.widthAnchor.constraint(lessThanOrEqualToConstant: 620),
+            artwork.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -35),
+            artwork.topAnchor.constraint(equalTo: header.topAnchor, constant: 2),
+            artwork.widthAnchor.constraint(equalToConstant: 615),
+            artwork.heightAnchor.constraint(equalToConstant: 228),
+            headerText.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 28),
+            headerText.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            subtitle.widthAnchor.constraint(equalToConstant: 310),
         ])
 
         let leftCard = makeVoiceCard()
@@ -171,9 +167,9 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             root.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
             root.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
             header.widthAnchor.constraint(equalTo: root.widthAnchor),
-            header.heightAnchor.constraint(equalToConstant: 124),
+            header.heightAnchor.constraint(equalToConstant: 230),
             columns.widthAnchor.constraint(equalTo: root.widthAnchor),
-            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -140),
+            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -246),
             leftCard.widthAnchor.constraint(equalToConstant: 450),
             rightCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
             rightCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
@@ -241,6 +237,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
         consentCheckbox.target = self
         consentCheckbox.action = #selector(consentChanged)
+        consentCheckbox.identifier = NSUserInterfaceItemIdentifier("kiki.voice.consent")
         consentCheckbox.font = .systemFont(ofSize: 11.5)
         consentCheckbox.contentTintColor = KikiPalette.accent
         consentCheckbox.lineBreakMode = .byWordWrapping
@@ -662,10 +659,10 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let alert = NSAlert()
         alert.messageText = "Delete your Kiki voice?"
         alert.informativeText = "The reference recording and local voice profile will be permanently removed from this Mac. Generated audio is kept."
-        alert.addButton(withTitle: "Delete Voice")
         alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Delete Voice")
         alert.alertStyle = .warning
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
         do {
             stopAnyPlayback()
             try VoiceProfileStore.delete()
@@ -684,10 +681,10 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             let alert = NSAlert()
             alert.messageText = "Remove the local voice engine?"
             alert.informativeText = "This frees approximately 2.0 GB. Your voice recording and generated audio will remain on this Mac."
-            alert.addButton(withTitle: "Remove Model")
             alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "Remove Model")
             alert.alertStyle = .warning
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard alert.runModal() == .alertSecondButtonReturn else { return }
             Task { [weak self] in
                 guard let self else { return }
                 await synthesisEngine.unload()
@@ -861,12 +858,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
                 if isOutput {
                     self.playbackProgress.doubleValue = player.currentTime / player.duration
                 }
-                if !player.isPlaying && player.currentTime >= player.duration - 0.05 {
+                if !player.isPlaying {
                     self.playbackTimer?.invalidate()
                     self.playbackTimer = nil
                     if isOutput {
                         self.playOutputButton.title = "Play"
-                        self.playbackProgress.doubleValue = 1
+                        if player.currentTime >= player.duration - 0.05 {
+                            self.playbackProgress.doubleValue = 1
+                        }
                     } else {
                         self.playReferenceButton.title = "Play Preview"
                     }

@@ -10,7 +10,7 @@ enum FeatureDiagnostics {
         try checkContextVocabulary()
         try checkMeetingExports()
         try checkPhraseBoundaries()
-        try checkSettingsInteractions()
+        try checkWindowInteractions()
         try checkVoiceStudio()
     }
 
@@ -71,8 +71,47 @@ enum FeatureDiagnostics {
         guard let contentView = controller.window?.contentView,
               findView(in: contentView, identifier: "kiki.voice.enrollment-mode") is NSSegmentedControl,
               findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView else {
+              findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView,
+              let consent = findView(in: contentView, identifier: "kiki.voice.consent") as? NSButton,
+              !consent.title.localizedCaseInsensitiveContains("consent"),
+              consent.title.localizedCaseInsensitiveContains("my own voice"),
+              consent.title.localizedCaseInsensitiveContains("private on this Mac") else {
             throw failure("voice enrollment mode interface")
+        }
+    }
+
+    static func checkVoiceStudioHero(referenceURL: URL) throws {
+        guard let referenceImage = NSImage(contentsOf: referenceURL),
+              let referenceData = referenceImage.tiffRepresentation else {
+            throw failure("voice studio hero reference")
+        }
+
+        let controller = VoiceStudioWindowController()
+        guard let contentView = controller.window?.contentView,
+              let heroView = findView(in: contentView, identifier: "kiki.voice.studio-hero"),
+              let artworkView = findView(
+                  in: contentView,
+                  identifier: "kiki.voice.studio-hero-artwork"
+              ) as? NSImageView,
+              let copyView = findView(in: contentView, identifier: "kiki.voice.studio-hero-copy"),
+              let renderedData = artworkView.image?.tiffRepresentation,
+              renderedData == referenceData else {
+            throw failure("voice studio hero artwork")
+        }
+
+        contentView.layoutSubtreeIfNeeded()
+        let heroFrame = heroView.convert(heroView.bounds, to: contentView)
+        let artworkFrame = artworkView.convert(artworkView.bounds, to: contentView)
+        let copyFrame = copyView.convert(copyView.bounds, to: contentView)
+        let artworkRatio = referenceImage.size.width / referenceImage.size.height
+        guard heroFrame.width >= 1_000,
+              heroFrame.height >= 225,
+              artworkRatio >= 2.5,
+              artworkFrame.width >= 610,
+              artworkFrame.height >= 225,
+              copyFrame.minX >= heroFrame.minX,
+              copyFrame.maxX <= heroFrame.midX else {
+            throw failure("voice studio hero layout")
         }
     }
 
@@ -167,7 +206,7 @@ enum FeatureDiagnostics {
         }
     }
 
-    private static func checkSettingsInteractions() throws {
+    private static func checkWindowInteractions() throws {
         let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
         var methodCount: UInt32 = 0
         let methods = class_copyMethodList(KikiNavButton.self, &methodCount)
@@ -176,10 +215,18 @@ enum FeatureDiagnostics {
                 method_getName($0) == mouseDownSelector
             }
         } ?? false
-        let controller = SettingsWindowController()
-        guard controller.window?.isMovableByWindowBackground == false,
+        let interactiveWindows: [NSWindowController] = [
+            SettingsWindowController(),
+            VoiceStudioWindowController(),
+            MeetingWindowController(),
+            PersonalizationWindowController(),
+            FileTranscriptionWindowController(),
+            HistoryWindowController(),
+            CustomDictionaryWindowController(),
+        ]
+        guard interactiveWindows.allSatisfy({ $0.window?.isMovableByWindowBackground == false }),
               !overridesMouseDown else {
-            throw failure("settings controls must use native AppKit mouse tracking")
+            throw failure("interactive windows must use native AppKit mouse tracking")
         }
     }
 
