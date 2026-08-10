@@ -6,6 +6,26 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.8</title>
+            <pubDate>Mon, 10 Aug 2026 11:06:59 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.8</link>
+            <sparkle:version>23</sparkle:version>
+            <sparkle:shortVersionString>0.5.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.8
+
+- Adds Meeting Speaker Identity: add people, assign transcript rows, and rename a speaker everywhere before exporting.
+- Carries corrected speaker names into Markdown, plain-text, SRT, and WebVTT meeting exports.
+- Adds TXT, Markdown, RTF, and PDF export choices for audio-file transcription.
+- Restores Command-A and the standard Edit commands in every Kiki text field.
+- Removes the blue focus outline from the Voice Studio splash action.
+- Adds seven Listening Display positions, including each screen corner and hover-near-target placement.
+- Brings Models closer to the approved Studio Hardware design with dimensional brass screws and compact dark controls.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.8/Kiki-0.5.8-macOS.zip" length="53479362" type="application/octet-stream" sparkle:edSignature="y14Emn4+A0Bj1JYRpl4ilbDkae4KTikVwJejsaUjBa/ok6QFuY9WswHD3ZqdF+xmjLxe7Yc/S7X93Jazgv9fDg=="/>
+        </item>
+        <item>
             <title>0.5.7</title>
             <pubDate>Mon, 10 Aug 2026 10:12:07 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.7</link>
@@ -91,27 +111,6 @@ This update is Developer ID signed, notarized by Apple, and available through Ki
 This update remains fully local, Developer ID signed, notarized by Apple, and available through Kiki’s built-in updater.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.4/Kiki-0.5.4-macOS.zip" length="52705055" type="application/octet-stream" sparkle:edSignature="7q2oyqzd2xLR8o+93AVvlay9VYE8nDc4Qa7OghS3co5tIR8wqlXnB4CMrMVRQRBvQ9+rpsyCXVP1hTnoK9+6Cg=="/>
-        </item>
-        <item>
-            <title>0.5.3</title>
-            <pubDate>Sun, 09 Aug 2026 17:39:31 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.3</link>
-            <sparkle:version>18</sparkle:version>
-            <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.3
-
-Voice Studio enrollment is clearer and more flexible:
-
-- Choose **Quick** for a shorter setup or **Full** for a longer, more accurate voice sample.
-- The Full script uses the complete guided recording passage, while Quick keeps the faster existing path.
-- The Quick passage now ends with natural privacy language instead of legal-sounding consent copy.
-- The Voice Studio welcome screen gives Kiki's portrait much more presence, with the artwork on the left and the introduction on the right.
-
-This update is fully local, Developer ID signed, notarized by Apple, and available through Kiki's built-in updater.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.3/Kiki-0.5.3-macOS.zip" length="52697771" type="application/octet-stream" sparkle:edSignature="+MFHcR0FpVPPuPxhXV1UapB4dKWaEc0XtPgOVY/6CNY3r7xHVIfbPCF8PPuGlSD0DxcFc669/pWBchriq1I9BQ=="/>
         </item>
     </channel>
 </rss>
