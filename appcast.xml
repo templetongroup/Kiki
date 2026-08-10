@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.7</title>
+            <pubDate>Mon, 10 Aug 2026 10:12:07 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.7</link>
+            <sparkle:version>22</sparkle:version>
+            <sparkle:shortVersionString>0.5.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.7
+
+- Restores reliable mouse clicks for sidebar navigation in Settings and Personalization Studio.
+- Adds packaged diagnostics that verify visible controls receive clicks at their actual on-screen locations.
+- Replaces the Voice Studio reading passage's accidental grey background with the Studio Hardware surface in light and dark appearances.
+- Gives Delete Voice the same clear bordered treatment as the adjacent secondary controls.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.7/Kiki-0.5.7-macOS.zip" length="53440462" type="application/octet-stream" sparkle:edSignature="R5j3nLljDiPG9GR1+GjoOV+aCPgPsdUwYOOYaxbMPua/Xd+wWjSzid3zV676TCkEIRTKF0LDLC5b9enBDpvbDQ=="/>
+        </item>
+        <item>
             <title>0.5.6</title>
             <pubDate>Sun, 09 Aug 2026 22:40:45 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.6</link>
@@ -95,23 +112,6 @@ Voice Studio enrollment is clearer and more flexible:
 This update is fully local, Developer ID signed, notarized by Apple, and available through Kiki's built-in updater.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.3/Kiki-0.5.3-macOS.zip" length="52697771" type="application/octet-stream" sparkle:edSignature="+MFHcR0FpVPPuPxhXV1UapB4dKWaEc0XtPgOVY/6CNY3r7xHVIfbPCF8PPuGlSD0DxcFc669/pWBchriq1I9BQ=="/>
-        </item>
-        <item>
-            <title>0.5.2</title>
-            <pubDate>Sat, 08 Aug 2026 00:33:58 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.2</link>
-            <sparkle:version>17</sparkle:version>
-            <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[## Fixed
-
-- **Open Voice Studio now opens reliably.** Splash-screen actions use native macOS button tracking and no longer conflict with window dragging.
-- The splash screen now uses Kiki's full dog-and-microphone app icon.
-
-This update is fully local, Developer ID signed, notarized by Apple, and available through Kiki's built-in updater.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.2/Kiki-0.5.2-macOS.zip" length="51214821" type="application/octet-stream" sparkle:edSignature="7kU5StdocU1OL64VfKjJh5qMGnyEUpWAe7DZ2o4bf8hApuiKIfKtiY4xcJ5KFVJbCJFISN0AP37Ys2ibCI8wAA=="/>
         </item>
     </channel>
 </rss>
