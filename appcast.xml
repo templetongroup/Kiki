@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.11</title>
+            <pubDate>Mon, 10 Aug 2026 13:40:44 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.11</link>
+            <sparkle:version>26</sparkle:version>
+            <sparkle:shortVersionString>0.5.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.11
+
+- Matches the active Models meter to the approved Studio Hardware mockup, including its narrowed arch, angled end ticks, sage markings, and compact scale.
+- Corrects hardware-button typography and label padding across the Models page.
+- Gives every shared card the same shaded, dimensional, subtly textured Studio Hardware surface in both light and dark appearances.
+- Removes the decorative corner rivets from Models, Settings, Voice Studio, and What’s New cards.
+- Adds regression checks for the shared card-depth layers and compact hardware-control typography.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.11/Kiki-0.5.11-macOS.zip" length="53489033" type="application/octet-stream" sparkle:edSignature="5YqW3oY3vegR2Z0HiLVerDqcSfndJOqQtc2flRa+/4fkOSWpEIkvgOHKjmt6EYAKvRtNOeOwqUZrcjLtwK0XBQ=="/>
+        </item>
+        <item>
             <title>0.5.10</title>
             <pubDate>Mon, 10 Aug 2026 12:55:38 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.10</link>
@@ -79,29 +97,6 @@
 - Gives Delete Voice the same clear bordered treatment as the adjacent secondary controls.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.7/Kiki-0.5.7-macOS.zip" length="53440462" type="application/octet-stream" sparkle:edSignature="R5j3nLljDiPG9GR1+GjoOV+aCPgPsdUwYOOYaxbMPua/Xd+wWjSzid3zV676TCkEIRTKF0LDLC5b9enBDpvbDQ=="/>
-        </item>
-        <item>
-            <title>0.5.6</title>
-            <pubDate>Sun, 09 Aug 2026 22:40:45 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.6</link>
-            <sparkle:version>21</sparkle:version>
-            <sparkle:shortVersionString>0.5.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.6/Kiki-0.5.6-macOS.zip" length="53437753" type="application/octet-stream" sparkle:edSignature="M/yvonPYdMgIVpJpxFA1nSCDLhX/wEILm0nKV7JN5lhexhC7ahj4HLlOzKwlHyucVjv05gRdaZWdLlJoeFrFAw=="/>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.6
-
-Voice Studio now matches the Studio Hardware design in both light and dark mode:
-
-- A full-width Kiki-with-headphones hero uses the same artwork and layout in both appearances.
-- Kiki’s face and studio microphone remain correctly framed at the real window size.
-- Quick and Full voice setup remain available with clearer private-on-this-Mac language.
-- Preview can be stopped, generation can be cancelled, and finished playback reliably returns to Play.
-- Delete Voice and Remove Voice Engine default to Cancel for safer confirmation.
-- Settings, Voice Studio, Meeting Mode, Personalization, History, Dictionary, and File Transcription use native AppKit click handling so buttons respond normally.
-
-Kiki remains fully local, Developer ID signed, and notarized by Apple.
-]]></description>
         </item>
     </channel>
 </rss>
