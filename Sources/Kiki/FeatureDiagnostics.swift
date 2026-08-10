@@ -84,6 +84,33 @@ enum FeatureDiagnostics {
         }
     }
 
+    static func checkWaveformAudio(referenceURL: URL) throws {
+        let samples = try AudioFileLoader.load16kMono(url: referenceURL)
+        let chunkSize = 341
+        var waveformModel = VoiceWaveformModel(barCount: KikiWaveformView.barCount)
+        var renderedLevels: [CGFloat] = []
+        let levels = stride(from: 0, through: max(0, samples.count - chunkSize), by: chunkSize)
+            .map { start -> CGFloat in
+                let chunk = Array(samples[start..<(start + chunkSize)])
+                waveformModel.ingest(samples: chunk)
+                waveformModel.advanceFrame()
+                renderedLevels.append(waveformModel.bars.last ?? 0)
+                return VoiceLevelMeter.normalizedLevel(for: chunk)
+            }
+            .filter { $0 > 0 }
+            .sorted()
+        guard !levels.isEmpty else { throw failure("waveform audio fixture") }
+        let p90 = levels[Int(Double(levels.count - 1) * 0.90)]
+        let sortedRenderedLevels = renderedLevels.sorted()
+        let renderedP90 = sortedRenderedLevels[Int(Double(sortedRenderedLevels.count - 1) * 0.90)]
+        guard p90 < 0.60,
+              levels.last ?? 1 < 0.80,
+              renderedP90 < 0.55,
+              sortedRenderedLevels.last ?? 1 < 0.70,
+              renderedLevels.allSatisfy({ $0 < 0.80 })
+        else { throw failure("waveform real-voice headroom") }
+    }
+
     static func checkVoiceStudioHero(referenceURL: URL) throws {
         guard let referenceImage = NSImage(contentsOf: referenceURL),
               let referenceData = referenceImage.tiffRepresentation else {
@@ -206,34 +233,21 @@ enum FeatureDiagnostics {
         let quietLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.006, count: 128))
         let conversationalLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.03, count: 128))
         let speakingLevel = VoiceLevelMeter.normalizedLevel(for: [Float](repeating: 0.12, count: 128))
-        let silentBars = VoiceLevelMeter.waveformBars(
-            for: [Float](repeating: 0, count: 380),
-            barCount: KikiWaveformView.barCount
-        )
-        var pulseSamples = [Float](repeating: 0, count: 380)
-        pulseSamples.replaceSubrange(190..<200, with: [Float](repeating: 0.25, count: 10))
-        let pulseBars = VoiceLevelMeter.waveformBars(
-            for: pulseSamples,
-            barCount: KikiWaveformView.barCount
-        )
-        let repeatedPulseBars = VoiceLevelMeter.waveformBars(
-            for: pulseSamples,
-            barCount: KikiWaveformView.barCount
-        )
         let normalSpeech = (0..<760).map { index in
             Float(0.08 * sin(Double(index) * 0.31))
         }
         let forcefulSpeech = (0..<760).map { index in
             Float(0.55 * sin(Double(index) * 0.31))
         }
-        let normalSpeechPeak = VoiceLevelMeter.waveformBars(
-            for: normalSpeech,
-            barCount: KikiWaveformView.barCount
-        ).max() ?? 0
-        let forcefulSpeechPeak = VoiceLevelMeter.waveformBars(
-            for: forcefulSpeech,
-            barCount: KikiWaveformView.barCount
-        ).max() ?? 0
+        let normalSpeechLevel = VoiceLevelMeter.normalizedLevel(for: normalSpeech)
+        let forcefulSpeechLevel = VoiceLevelMeter.normalizedLevel(for: forcefulSpeech)
+        var waveformModel = VoiceWaveformModel(barCount: KikiWaveformView.barCount)
+        waveformModel.ingest(samples: normalSpeech)
+        waveformModel.advanceFrame()
+        let firstHistoryFrame = waveformModel.bars
+        waveformModel.ingest(samples: forcefulSpeech)
+        waveformModel.advanceFrame()
+        let secondHistoryFrame = waveformModel.bars
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
@@ -245,16 +259,15 @@ enum FeatureDiagnostics {
               quietLevel > 0,
               conversationalLevel > quietLevel,
               speakingLevel > conversationalLevel,
-              silentBars.allSatisfy({ $0 == 0 }),
-              pulseBars == repeatedPulseBars,
-              pulseBars[19] > 0.1,
-              pulseBars.enumerated().allSatisfy({ index, level in
-                  (19...20).contains(index) || level == 0
-              }),
+              firstHistoryFrame.dropLast().allSatisfy({ $0 == 0 }),
+              firstHistoryFrame.last ?? 0 > 0,
+              secondHistoryFrame[KikiWaveformView.barCount - 2] == firstHistoryFrame.last,
+              secondHistoryFrame.last ?? 0 > firstHistoryFrame.last ?? 0,
               AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
-              normalSpeechPeak < 0.65,
-              forcefulSpeechPeak > 0.82,
-              forcefulSpeechPeak < 0.97,
+              VoiceWaveformModel.frameRate == 30,
+              normalSpeechLevel < 0.40,
+              forcefulSpeechLevel > 0.65,
+              forcefulSpeechLevel < 0.85,
               HUDPanel.waveformUsesClearSurface,
               KikiWaveformView.barCount == 38,
               KikiWaveformView.usesAdaptiveOutline,

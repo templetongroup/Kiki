@@ -291,27 +291,44 @@ enum VoiceLevelMeter {
         guard !samples.isEmpty else { return 0 }
         let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count)
         let rms = meanSquare.squareRoot()
-        let peak = samples.reduce(0.0) { max($0, Double(abs($1))) }
-        guard peak > 0.0015 else { return 0 }
+        guard rms > 0.003 else { return 0 }
 
-        // Short waveform windows contain sharp peaks, so let RMS drive the meter
-        // and reserve enough headroom for genuinely forceful speech.
-        let weightedAmplitude = max((rms * 0.90) + (peak * 0.10), 0.000_001)
-        let decibels = 20 * log10(weightedAmplitude)
-        let normalized = min(max((decibels + 50) / 47, 0), 1)
-        return CGFloat(pow(normalized, 1.35))
+        // Map the whole capture chunk by RMS. The saved normal-voice fixture
+        // calibrates this curve so conversational speech retains ample headroom.
+        let decibels = 20 * log10(max(rms, 0.000_001))
+        let normalized = min(max((decibels + 45) / 44, 0), 1)
+        return CGFloat(pow(normalized, 1.9))
+    }
+}
+
+struct VoiceWaveformModel {
+    static let frameRate: TimeInterval = 30
+
+    let barCount: Int
+    private(set) var bars: [CGFloat]
+    private var targetLevel: CGFloat = 0
+    private var displayedLevel: CGFloat = 0
+
+    init(barCount: Int) {
+        self.barCount = max(1, barCount)
+        bars = [CGFloat](repeating: 0, count: max(1, barCount))
     }
 
-    static func waveformBars(for samples: [Float], barCount: Int) -> [CGFloat] {
-        guard barCount > 0 else { return [] }
-        guard !samples.isEmpty else { return [CGFloat](repeating: 0, count: barCount) }
+    mutating func ingest(samples: [Float]) {
+        targetLevel = VoiceLevelMeter.normalizedLevel(for: samples)
+    }
 
-        return (0..<barCount).map { index in
-            let start = index * samples.count / barCount
-            let end = (index + 1) * samples.count / barCount
-            guard start < end else { return 0 }
-            return normalizedLevel(for: samples[start..<end])
-        }
+    mutating func advanceFrame() {
+        let response: CGFloat = targetLevel > displayedLevel ? 0.45 : 0.22
+        displayedLevel += (targetLevel - displayedLevel) * response
+        bars.removeFirst()
+        bars.append(displayedLevel)
+    }
+
+    mutating func reset() {
+        targetLevel = 0
+        displayedLevel = 0
+        bars = [CGFloat](repeating: 0, count: barCount)
     }
 }
 
@@ -321,20 +338,33 @@ final class KikiWaveformView: NSView {
     static let barCount = 38
     static let usesAdaptiveOutline = true
 
-    private var bars = [CGFloat](repeating: 0, count: barCount)
+    private var model = VoiceWaveformModel(barCount: barCount)
+    private var animationTimer: Timer?
 
     func update(samples: [Float]) {
-        let incoming = VoiceLevelMeter.waveformBars(for: samples, barCount: Self.barCount)
-        bars = zip(bars, incoming).map { current, next in
-            let response: CGFloat = next > current ? 0.58 : 0.30
-            return current + (next - current) * response
-        }
-        needsDisplay = true
+        model.ingest(samples: samples)
+        startAnimating()
     }
 
     func reset() {
-        bars = [CGFloat](repeating: 0, count: Self.barCount)
+        animationTimer?.invalidate()
+        animationTimer = nil
+        model.reset()
         needsDisplay = true
+    }
+
+    private func startAnimating() {
+        guard animationTimer == nil else { return }
+        let timer = Timer(timeInterval: 1 / VoiceWaveformModel.frameRate, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.model.advanceFrame()
+                self.needsDisplay = true
+            }
+        }
+        timer.tolerance = 0.003
+        RunLoop.main.add(timer, forMode: .common)
+        animationTimer = timer
     }
 
     override var isFlipped: Bool { true }
@@ -347,7 +377,7 @@ final class KikiWaveformView: NSView {
         let startX = (bounds.width - totalWidth) / 2
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            for (index, sample) in bars.enumerated() {
+            for (index, sample) in model.bars.enumerated() {
                 let progress = CGFloat(index) / CGFloat(max(Self.barCount - 1, 1))
                 let amplitude = min(1, max(0, sample))
                 let height = 2.5 + amplitude * (bounds.height - 4.5)

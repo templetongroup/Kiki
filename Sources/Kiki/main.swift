@@ -117,6 +117,21 @@ if args.count >= 3, args[1] == "--self-test-voice-enrollment" {
     }
 }
 
+if args.count >= 3, args[1] == "--self-test-waveform-audio" {
+    MainActor.assumeIsolated {
+        do {
+            try FeatureDiagnostics.checkWaveformAudio(
+                referenceURL: URL(fileURLWithPath: args[2])
+            )
+            print("Kiki real-voice waveform diagnostic passed")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
 if args.count >= 3, args[1] == "--create-local-voice-profile" {
     do {
         let source = URL(fileURLWithPath: args[2])
