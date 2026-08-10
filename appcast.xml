@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.5.12</title>
+            <pubDate>Mon, 10 Aug 2026 14:23:33 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.12</link>
+            <sparkle:version>27</sparkle:version>
+            <sparkle:shortVersionString>0.5.12</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.12
+
+- Removes the distracting radial glare that repeated across cards and panels.
+- Removes the synthetic grain texture from shared card surfaces.
+- Replaces both effects with a restrained matte treatment: subtle vertical depth, a hairline inner edge, and a softer shadow.
+- Keeps the same card geometry and Studio Hardware colors in light and dark appearances.
+- Adds a regression check that prevents the radial-glare and texture layers from returning.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.12/Kiki-0.5.12-macOS.zip" length="53486803" type="application/octet-stream" sparkle:edSignature="SaqQC4YqTmt/sdA4S7BZAhxAmuyQ/NzQOVOVHCrkzrpqas7qpnwD4gs+kK6zzixz6Q7H8pHnW/kdnNqTUHUFAg=="/>
+        </item>
+        <item>
             <title>0.5.11</title>
             <pubDate>Mon, 10 Aug 2026 13:40:44 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.11</link>
@@ -80,23 +98,6 @@
 - Brings Models closer to the approved Studio Hardware design with dimensional brass screws and compact dark controls.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.8/Kiki-0.5.8-macOS.zip" length="53479362" type="application/octet-stream" sparkle:edSignature="y14Emn4+A0Bj1JYRpl4ilbDkae4KTikVwJejsaUjBa/ok6QFuY9WswHD3ZqdF+xmjLxe7Yc/S7X93Jazgv9fDg=="/>
-        </item>
-        <item>
-            <title>0.5.7</title>
-            <pubDate>Mon, 10 Aug 2026 10:12:07 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.7</link>
-            <sparkle:version>22</sparkle:version>
-            <sparkle:shortVersionString>0.5.7</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.7
-
-- Restores reliable mouse clicks for sidebar navigation in Settings and Personalization Studio.
-- Adds packaged diagnostics that verify visible controls receive clicks at their actual on-screen locations.
-- Replaces the Voice Studio reading passage's accidental grey background with the Studio Hardware surface in light and dark appearances.
-- Gives Delete Voice the same clear bordered treatment as the adjacent secondary controls.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.7/Kiki-0.5.7-macOS.zip" length="53440462" type="application/octet-stream" sparkle:edSignature="R5j3nLljDiPG9GR1+GjoOV+aCPgPsdUwYOOYaxbMPua/Xd+wWjSzid3zV676TCkEIRTKF0LDLC5b9enBDpvbDQ=="/>
         </item>
     </channel>
 </rss>
