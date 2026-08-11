@@ -8,20 +8,19 @@ enum KikiPalette {
         }
     }
 
-    // Studio Hardware: warm enamel in light mode, charcoal equipment panels in dark mode.
-    // Sage and khaki are sampled from the Templeton palette and remain consistent
-    // across both appearances.
+    // Studio Hardware geometry and material treatment stay unchanged. The neutral
+    // ramp comes directly from Templeton Slate; sage remains Kiki's highlight.
     static let canvas = adaptive(
-        dark: NSColor(red: 0.102, green: 0.102, blue: 0.110, alpha: 1),
-        light: NSColor(red: 0.957, green: 0.945, blue: 0.910, alpha: 1)
+        dark: NSColor(red: 0.212, green: 0.235, blue: 0.271, alpha: 1), // #363c45
+        light: NSColor(red: 0.957, green: 0.945, blue: 0.918, alpha: 1) // #f4f1ea
     )
     static let sidebar = adaptive(
-        dark: NSColor(red: 0.094, green: 0.094, blue: 0.102, alpha: 1),
-        light: NSColor(red: 0.925, green: 0.908, blue: 0.866, alpha: 1)
+        dark: NSColor(red: 0.180, green: 0.204, blue: 0.235, alpha: 1), // #2e343c
+        light: NSColor(red: 0.914, green: 0.898, blue: 0.859, alpha: 1) // #e9e5db
     )
     static let surface = adaptive(
-        dark: NSColor(red: 0.106, green: 0.106, blue: 0.114, alpha: 1),
-        light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
+        dark: NSColor(red: 0.192, green: 0.216, blue: 0.251, alpha: 1), // #313740
+        light: NSColor(red: 0.925, green: 0.910, blue: 0.875, alpha: 1) // #ece8df
     )
     static let cardTopTint = adaptive(
         dark: NSColor.white.withAlphaComponent(0.025),
@@ -36,66 +35,66 @@ enum KikiPalette {
         light: NSColor.white.withAlphaComponent(0.20)
     )
     static let elevatedSurface = adaptive(
-        dark: NSColor(red: 0.137, green: 0.137, blue: 0.141, alpha: 1),
-        light: NSColor(red: 0.929, green: 0.918, blue: 0.882, alpha: 1)
+        dark: NSColor(red: 0.251, green: 0.278, blue: 0.318, alpha: 1), // #404751
+        light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
     )
     static let stroke = adaptive(
-        dark: NSColor(red: 0.450, green: 0.450, blue: 0.465, alpha: 0.23),
-        light: NSColor(red: 0.160, green: 0.175, blue: 0.150, alpha: 0.16)
+        dark: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1), // #454c56
+        light: NSColor(red: 0.839, green: 0.816, blue: 0.761, alpha: 1) // #d6d0c2
     )
     static let strongStroke = adaptive(
-        dark: NSColor(red: 0.620, green: 0.600, blue: 0.475, alpha: 0.40),
-        light: NSColor(red: 0.160, green: 0.175, blue: 0.150, alpha: 0.28)
+        dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 0.48),
+        light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 0.38)
     )
     static let primaryText = adaptive(
-        dark: NSColor(red: 0.933, green: 0.929, blue: 0.922, alpha: 1),
-        light: NSColor(red: 0.137, green: 0.143, blue: 0.122, alpha: 1)
+        dark: NSColor(red: 0.906, green: 0.871, blue: 0.784, alpha: 1), // #e7dec8
+        light: NSColor(red: 0.204, green: 0.196, blue: 0.173, alpha: 1) // #34322c
     )
     static let secondaryText = adaptive(
-        dark: NSColor(red: 0.702, green: 0.698, blue: 0.678, alpha: 1),
-        light: NSColor(red: 0.335, green: 0.347, blue: 0.302, alpha: 1)
+        dark: NSColor(red: 0.702, green: 0.667, blue: 0.588, alpha: 1), // #b3aa96
+        light: NSColor(red: 0.420, green: 0.404, blue: 0.341, alpha: 1) // #6b6757
     )
     static let tertiaryText = adaptive(
-        dark: NSColor(red: 0.560, green: 0.555, blue: 0.530, alpha: 1),
-        light: NSColor(red: 0.455, green: 0.459, blue: 0.400, alpha: 1)
+        dark: NSColor(red: 0.514, green: 0.486, blue: 0.424, alpha: 1), // #837c6c
+        light: NSColor(red: 0.604, green: 0.584, blue: 0.525, alpha: 1) // #9a9586
     )
     static let accent = adaptive(
-        dark: NSColor(red: 0.424, green: 0.482, blue: 0.396, alpha: 1),
-        light: NSColor(red: 0.376, green: 0.424, blue: 0.349, alpha: 1)
+        dark: NSColor(red: 0.322, green: 0.400, blue: 0.239, alpha: 1), // #52663d
+        light: NSColor(red: 0.376, green: 0.424, blue: 0.349, alpha: 1) // #606c59
     )
     static let onAccentText = adaptive(
-        dark: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1),
-        light: NSColor(red: 0.985, green: 0.976, blue: 0.949, alpha: 1)
+        dark: NSColor(red: 0.906, green: 0.871, blue: 0.784, alpha: 1),
+        light: NSColor(red: 0.957, green: 0.945, blue: 0.918, alpha: 1)
     )
     static let accentText = adaptive(
-        dark: NSColor(red: 0.653, green: 0.698, blue: 0.604, alpha: 1),
-        light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 1)
+        dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 1), // #a7c080
+        light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 1) // #4e5b48
     )
     static let selectionSurface = adaptive(
-        dark: NSColor(red: 0.231, green: 0.239, blue: 0.196, alpha: 1),
-        light: NSColor(red: 0.855, green: 0.871, blue: 0.824, alpha: 1)
+        dark: NSColor(red: 0.251, green: 0.278, blue: 0.318, alpha: 1), // #404751
+        light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
     )
     static let khaki = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
-    static let hardwareControl = NSColor(red: 0.094, green: 0.094, blue: 0.098, alpha: 1)
-    static let hardwareControlText = NSColor(red: 0.949, green: 0.933, blue: 0.886, alpha: 1)
+    static let hardwareControl = NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1) // #2a2f37
+    static let hardwareControlText = NSColor(red: 0.906, green: 0.871, blue: 0.784, alpha: 1) // #e7dec8
     static let hardwareButtonSurface = adaptive(
-        dark: NSColor(red: 0.165, green: 0.161, blue: 0.149, alpha: 1),
-        light: NSColor(red: 0.165, green: 0.161, blue: 0.149, alpha: 1)
+        dark: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1),
+        light: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1)
     )
     static let hardwareButtonBorder = adaptive(
-        dark: NSColor(red: 0.365, green: 0.357, blue: 0.329, alpha: 1),
-        light: NSColor(red: 0.365, green: 0.357, blue: 0.329, alpha: 1)
+        dark: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1),
+        light: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1)
     )
     static let meterTrack = adaptive(
-        dark: NSColor(red: 0.038, green: 0.043, blue: 0.037, alpha: 1),
-        light: NSColor(red: 0.865, green: 0.847, blue: 0.800, alpha: 1)
+        dark: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1),
+        light: NSColor(red: 0.839, green: 0.816, blue: 0.761, alpha: 1)
     )
     static let meterAccent = adaptive(
-        dark: NSColor(red: 0.553, green: 0.576, blue: 0.447, alpha: 1),
-        light: NSColor(red: 0.420, green: 0.475, blue: 0.250, alpha: 1)
+        dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 1),
+        light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 1)
     )
     static let violet = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
@@ -450,7 +449,7 @@ final class KikiActionButton: NSButton {
                     layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                     layer?.borderWidth = 1
                     layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
-                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.50)
+                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.72)
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
@@ -610,7 +609,7 @@ final class KikiHardwareDialView: NSView {
             let knobRect = housing.insetBy(dx: 8, dy: 8)
             let knob = NSBezierPath(ovalIn: knobRect)
             (isActive
-                ? NSColor(red: 0.320, green: 0.315, blue: 0.290, alpha: 1)
+                ? KikiPalette.primaryText
                 : NSColor(red: 0.205, green: 0.205, blue: 0.205, alpha: 1)
             ).setFill()
             knob.fill()

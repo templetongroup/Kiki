@@ -10,6 +10,7 @@ enum FeatureDiagnostics {
         try checkContextVocabulary()
         try checkMeetingExports()
         try checkFileTranscriptExports()
+        try checkDictationMenuCopy()
         try checkKikiCheckup()
         try checkUndoAndRetry()
         try checkPrivateSession()
@@ -228,6 +229,15 @@ enum FeatureDiagnostics {
               pdf.starts(with: Data("%PDF".utf8)),
               pdf.count > 1_000
         else { throw failure("file transcript export formats") }
+    }
+
+    private static func checkDictationMenuCopy() throws {
+        guard DictationMenuCopy.start == "Start Dictation into Current App (⌃⌥D)",
+              DictationMenuCopy.stop == "Stop, Transcribe, and Insert (⌃⌥D)",
+              DictationMenuCopy.idleStatus.contains("inserts into the current app"),
+              DictationMenuCopy.recordingStatus.contains("Click again to stop and insert") else {
+            throw failure("self-explanatory dictation menu copy")
+        }
     }
 
     private static func checkKikiCheckup() throws {
@@ -544,13 +554,22 @@ enum FeatureDiagnostics {
               findButton(in: pawprintsContent, title: "Reset Pawprints") != nil else {
             throw failure("Pawprints controls")
         }
+        let meetingWindow = MeetingWindowController()
+        guard let meetingContent = meetingWindow.window?.contentView,
+              let identifySpeakers = findButton(in: meetingContent, title: "Identify Speakers…") as? KikiActionButton,
+              !identifySpeakers.isEnabled,
+              identifySpeakers.contentTintColor?.isEqual(
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+              ) == true else {
+            throw failure("disabled Meeting Hardware button contrast")
+        }
         let interactiveWindows: [NSWindowController] = [
             diagnosticSettings,
             checkup,
             pawprints,
             WhatsNewWindowController(),
             VoiceStudioWindowController(),
-            MeetingWindowController(),
+            meetingWindow,
             MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting),
             PersonalizationWindowController(),
             FileTranscriptionWindowController(),
@@ -600,7 +619,7 @@ enum FeatureDiagnostics {
               let divider = findView(in: selectedCard, identifier: "kiki.model.divider"),
               let dial = findView(in: selectedCard, identifier: "kiki.model.dial"),
               let analogMeter = findView(in: selectedCard, identifier: "kiki.model.analog-meter"),
-              let modelAction = findView(in: selectedCard, identifier: "kiki.model.action"),
+              let modelAction = findView(in: selectedCard, identifier: "kiki.model.action") as? KikiActionButton,
               abs(selectedCard.bounds.width - 440) < 1,
               abs(selectedCard.bounds.height - 109) < 1,
               abs(controlBay.bounds.width - 72) < 1,
@@ -610,6 +629,10 @@ enum FeatureDiagnostics {
               abs(analogMeter.bounds.width - 100) < 1,
               abs(analogMeter.bounds.height - 34) < 1,
               abs(modelAction.bounds.width - 65) < 1,
+              !modelAction.isEnabled,
+              modelAction.contentTintColor?.isEqual(
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+              ) == true,
               !analogMeter.isHidden,
               modelsScroll.scrollerStyle == .overlay,
               modelsScroll.autohidesScrollers else {
@@ -621,6 +644,8 @@ enum FeatureDiagnostics {
         hardwareCard.layoutSubtreeIfNeeded()
         let depthLayerNames = Set((hardwareCard.layer?.sublayers ?? []).compactMap(\.name))
         let hardwareButton = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
+        let disabledHardwareButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: nil, action: nil)
+        disabledHardwareButton.isEnabled = false
         guard depthLayerNames.isSuperset(of: [
                   "kiki.card.matte-depth",
                   "kiki.card.inner-border",
@@ -630,7 +655,10 @@ enum FeatureDiagnostics {
               hardwareButton.intrinsicContentSize.height < 40,
               abs((hardwareButton.font?.pointSize ?? 0) - 11.5) < 0.1,
               hardwareButton.layer?.borderWidth == 1,
-              hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true else {
+              hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true,
+              disabledHardwareButton.contentTintColor?.isEqual(
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+              ) == true else {
             throw failure("Studio Hardware matte depth treatment and compact controls")
         }
 

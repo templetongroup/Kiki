@@ -2,6 +2,14 @@ import AppKit
 import AVFoundation
 import UniformTypeIdentifiers
 
+enum DictationMenuCopy {
+    static let start = "Start Dictation into Current App (⌃⌥D)"
+    static let stop = "Stop, Transcribe, and Insert (⌃⌥D)"
+    static let idleStatus = "Records locally, then inserts into the current app"
+    static let recordingStatus = "Recording… Click again to stop and insert"
+    static let privateRecordingStatus = "Recording privately… Click again to stop and insert"
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -114,7 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let stateMenuItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     private let modelMenuItem = NSMenuItem(title: "Model: none", action: nil, keyEquivalent: "")
-    private let toggleMenuItem = NSMenuItem(title: "Start Dictation", action: #selector(toggleDictation), keyEquivalent: "")
+    private let toggleMenuItem = NSMenuItem(title: DictationMenuCopy.start, action: #selector(toggleDictation), keyEquivalent: "")
     private lazy var undoLastDictationMenuItem: NSMenuItem = {
         let item = menuItem("Undo Last Dictation", symbol: "arrow.uturn.backward", action: #selector(undoLastDictation))
         item.isEnabled = false
@@ -194,6 +202,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.environment["KIKI_OPEN_PAWPRINTS"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                 self?.openPawprints()
+            }
+        }
+        if ProcessInfo.processInfo.environment["KIKI_OPEN_MODELS"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.settingsWindow.show(page: 2)
+            }
+        }
+        if ProcessInfo.processInfo.environment["KIKI_OPEN_MEETING"] == "1" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.openMeetingMode()
             }
         }
         if ProcessInfo.processInfo.environment["KIKI_SUPPRESS_WHATS_NEW"] != "1" {
@@ -315,12 +333,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .idle:
             stateMenuItem.title = PrivateSessionController.shared.isActive
                 ? "Private Session — no history or learning"
-                : "Idle — \(Settings.dictationShortcut.displayString) or ⌃⌥D"
-            toggleMenuItem.title = "Start Dictation (⌃⌥D)"
+                : DictationMenuCopy.idleStatus
+            toggleMenuItem.title = DictationMenuCopy.start
             toggleMenuItem.isEnabled = true
         case .recording:
-            stateMenuItem.title = PrivateSessionController.shared.isActive ? "Recording privately…" : "Recording…"
-            toggleMenuItem.title = "Stop && Transcribe (⌃⌥D)"
+            stateMenuItem.title = PrivateSessionController.shared.isActive
+                ? DictationMenuCopy.privateRecordingStatus
+                : DictationMenuCopy.recordingStatus
+            toggleMenuItem.title = DictationMenuCopy.stop
             toggleMenuItem.isEnabled = true
         case .transcribing:
             stateMenuItem.title = "Transcribing…"
