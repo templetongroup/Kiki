@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.1</title>
+            <pubDate>Mon, 10 Aug 2026 22:14:06 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.1</link>
+            <sparkle:version>34</sparkle:version>
+            <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.1
+
+- Applies the Templeton Slate color palette in light and dark appearances while preserving the established Studio Hardware graphics, geometry, spacing, and controls.
+- Uses warm cream for primary text and the active model selector, with sage reserved for highlights and status accents.
+- Improves disabled Studio Hardware button readability and adds diagnostics against the real Models and Meeting controls.
+- Clarifies the menu-bar dictation action: Kiki records locally, then inserts the transcription into the current app.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.1/Kiki-0.6.1-macOS.zip" length="53571581" type="application/octet-stream" sparkle:edSignature="fiBmomwTZ+cKVZxOdcJdNKKswoholsXRb3bqksyiKGFnWTnNn4vOG3X+9TirD1uFsDOL8gYfo3a7RxpRZlwfBw=="/>
+        </item>
+        <item>
             <title>0.6.0</title>
             <pubDate>Mon, 10 Aug 2026 21:03:38 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.0</link>
@@ -76,23 +93,6 @@
 - Adds regression diagnostics for silence, deterministic output, and localized audio pulses.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.15/Kiki-0.5.15-macOS.zip" length="53491773" type="application/octet-stream" sparkle:edSignature="/d+JgaXuMQNFsLQcppd75gX2Qvt/1PL/HRcsV+IA1w0kAADb37NqhposKdXxaE6ddctKLY1jx85VKSiQgDaQCQ=="/>
-        </item>
-        <item>
-            <title>0.5.14</title>
-            <pubDate>Mon, 10 Aug 2026 18:27:58 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.14</link>
-            <sparkle:version>29</sparkle:version>
-            <sparkle:shortVersionString>0.5.14</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.14
-
-- Makes Waveform mode fully transparent so the animated signal floats without a panel, border, or box shadow.
-- Adds a flat adaptive keyline behind each bar to keep the waveform readable over both light and dark content.
-- Leaves Full Transcript and status messages contained for readability.
-- Adds a regression check that keeps the Waveform surface transparent and prevents the adaptive keyline from disappearing.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.14/Kiki-0.5.14-macOS.zip" length="53491885" type="application/octet-stream" sparkle:edSignature="C3q5bbzTWKm8/gZ/bxwO6Uw7Lxbc4WyBCoGkm3Y3yr7siqCKwZD0HbXDZmXda1+WPDNdM5VPsYq9JkrPsiVPAQ=="/>
         </item>
     </channel>
 </rss>
