@@ -246,7 +246,7 @@ final class SettingsWindowController: NSWindowController {
         ]
         checkboxes.forEach {
             $0.font = .systemFont(ofSize: 13)
-            $0.contentTintColor = KikiPalette.accent
+            $0.contentTintColor = KikiPalette.accentText
         }
 
         launchAtLoginCheckbox.target = self

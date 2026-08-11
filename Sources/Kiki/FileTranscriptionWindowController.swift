@@ -285,7 +285,7 @@ final class FileDropView: NSView {
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 14, yRadius: 14)
         path.setLineDash([7, 5], count: 2, phase: 0)
         path.lineWidth = 2
-        KikiPalette.accent.withAlphaComponent(0.72).setStroke()
+        KikiPalette.accentText.withAlphaComponent(0.72).setStroke()
         KikiPalette.violet.withAlphaComponent(0.10).setFill()
         path.fill()
         path.stroke()

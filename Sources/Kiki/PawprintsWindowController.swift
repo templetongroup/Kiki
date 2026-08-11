@@ -52,7 +52,8 @@ final class PawprintsWindowController: NSWindowController {
         backdrop.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(backdrop)
 
-        let eyebrow = kikiLabel("LOCAL ACTIVITY · NO TRANSCRIPTS", size: 11, weight: .bold, color: KikiPalette.accent)
+        let eyebrow = kikiLabel("LOCAL ACTIVITY · NO TRANSCRIPTS", size: 11, weight: .bold, color: KikiPalette.accentText)
+        eyebrow.identifier = NSUserInterfaceItemIdentifier("kiki.pawprints.eyebrow")
         let title = kikiLabel("Pawprints", size: 31, weight: .bold)
         let intro = kikiLabel("A small, private view of how Kiki helps—built from totals only. Dictated text, recordings, app names, and Private Sessions are never included.", size: 14, color: KikiPalette.secondaryText)
         intro.maximumNumberOfLines = 0
@@ -75,7 +76,7 @@ final class PawprintsWindowController: NSWindowController {
         enableCheckbox.identifier = NSUserInterfaceItemIdentifier("kiki.pawprints.enable")
         enableCheckbox.target = self
         enableCheckbox.action = #selector(toggleEnabled)
-        enableCheckbox.contentTintColor = KikiPalette.accent
+        enableCheckbox.contentTintColor = KikiPalette.accentText
         let privacy = kikiLabel("Stored locally as daily counts and durations. Turning this off stops collection; Reset permanently removes every Pawprint.", size: 12, color: KikiPalette.secondaryText)
         privacy.maximumNumberOfLines = 0
         let reset = KikiActionButton("Reset Pawprints", kind: .danger, target: self, action: #selector(resetPawprints))
@@ -146,7 +147,8 @@ final class PawprintsWindowController: NSWindowController {
         statusLabel.stringValue = Settings.pawprintsEnabled
             ? "Pawprints are on · Private Sessions never count"
             : "Pawprints are off"
-        statusLabel.textColor = Settings.pawprintsEnabled ? KikiPalette.accent : KikiPalette.secondaryText
+        statusLabel.textColor = Settings.pawprintsEnabled ? KikiPalette.accentText : KikiPalette.secondaryText
+        statusLabel.identifier = NSUserInterfaceItemIdentifier("kiki.pawprints.status")
     }
 
     @objc private func toggleEnabled() {

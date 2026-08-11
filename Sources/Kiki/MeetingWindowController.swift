@@ -109,7 +109,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         statusLabel.font = .systemFont(ofSize: 12.5)
         saveAudioCheckbox.target = self
         saveAudioCheckbox.action = #selector(saveAudioChanged)
-        saveAudioCheckbox.contentTintColor = KikiPalette.accent
+        saveAudioCheckbox.contentTintColor = KikiPalette.accentText
 
         let controls = NSStackView(views: [recordButton, timerLabel, NSView(), saveAudioCheckbox])
         controls.orientation = .horizontal

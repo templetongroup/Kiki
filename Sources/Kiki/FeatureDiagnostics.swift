@@ -457,7 +457,12 @@ enum FeatureDiagnostics {
                 in: selectionContent,
                 identifier: "kiki.voice.generation-editor"
               ) as? NSTextView,
-              selectionEditor.string == "Read this selection" else {
+              selectionEditor.string == "Read this selection",
+              let consent = findView(
+                in: selectionContent,
+                identifier: "kiki.voice.consent"
+              ) as? NSButton,
+              consent.contentTintColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("Read Selection Voice Studio prefill")
         }
         let sampleCount = Int(21 * AudioRecorder.sampleRate)
@@ -507,6 +512,13 @@ enum FeatureDiagnostics {
         )
         let diagnosticSettings = SettingsWindowController()
         diagnosticSettings.prepareForDiagnostics(page: 2)
+        let checkboxSettings = SettingsWindowController()
+        checkboxSettings.prepareForDiagnostics(page: 0)
+        guard let checkboxSettingsContent = checkboxSettings.window?.contentView,
+              let launchAtLogin = findButton(in: checkboxSettingsContent, title: "Launch Kiki at login"),
+              launchAtLogin.contentTintColor?.isEqual(KikiPalette.accentText) == true else {
+            throw failure("checkbox labels must use the readable accent text token")
+        }
         let checkup = KikiCheckupWindowController()
         guard let checkupContent = checkup.window?.contentView else {
             throw failure("Kiki Checkup content")
@@ -518,7 +530,12 @@ enum FeatureDiagnostics {
               findButton(in: checkupContent, title: "Test Shortcut") != nil,
               findButton(in: checkupContent, title: "Begin Practice Dictation") != nil,
               findButton(in: checkupContent, title: "Refresh Checks") != nil,
-              findView(in: checkupContent, identifier: "kiki.checkup.readiness") is NSTextField else {
+              findView(in: checkupContent, identifier: "kiki.checkup.readiness") is NSTextField,
+              let checkupEyebrow = findView(
+                in: checkupContent,
+                identifier: "kiki.checkup.eyebrow"
+              ) as? NSTextField,
+              checkupEyebrow.textColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("Kiki Checkup controls")
         }
         let footerButtonIDs = [
@@ -549,7 +566,16 @@ enum FeatureDiagnostics {
         }
         let pawprints = PawprintsWindowController()
         guard let pawprintsContent = pawprints.window?.contentView,
-              findView(in: pawprintsContent, identifier: "kiki.pawprints.enable") is NSButton,
+              let pawprintsToggle = findView(
+                in: pawprintsContent,
+                identifier: "kiki.pawprints.enable"
+              ) as? NSButton,
+              pawprintsToggle.contentTintColor?.isEqual(KikiPalette.accentText) == true,
+              let pawprintsEyebrow = findView(
+                in: pawprintsContent,
+                identifier: "kiki.pawprints.eyebrow"
+              ) as? NSTextField,
+              pawprintsEyebrow.textColor?.isEqual(KikiPalette.accentText) == true,
               findView(in: pawprintsContent, identifier: "kiki.pawprints.summary") != nil,
               findButton(in: pawprintsContent, title: "Reset Pawprints") != nil else {
             throw failure("Pawprints controls")
@@ -565,6 +591,7 @@ enum FeatureDiagnostics {
         }
         let interactiveWindows: [NSWindowController] = [
             diagnosticSettings,
+            checkboxSettings,
             checkup,
             pawprints,
             WhatsNewWindowController(),

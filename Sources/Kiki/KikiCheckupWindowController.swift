@@ -148,7 +148,7 @@ final class KikiCheckupWindowController: NSWindowController {
         shortcutRow.setPassed(snapshot.shortcutVerified, detail: snapshot.shortcutVerified ? "Verified" : "Not tested")
         firstDictationRow.setPassed(snapshot.firstDictationCompleted, detail: snapshot.firstDictationCompleted ? "Completed" : "Not completed")
         readinessLabel.stringValue = snapshot.isReady ? "Kiki is ready" : "Finish the checks below"
-        readinessLabel.textColor = snapshot.isReady ? KikiPalette.accent : KikiPalette.primaryText
+        readinessLabel.textColor = snapshot.isReady ? KikiPalette.accentText : KikiPalette.primaryText
     }
 
     private func buildContent() {
@@ -157,7 +157,8 @@ final class KikiCheckupWindowController: NSWindowController {
         backdrop.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(backdrop)
 
-        let eyebrow = kikiLabel("SYSTEM CHECK · FULLY LOCAL", size: 11, weight: .semibold, color: KikiPalette.accent)
+        let eyebrow = kikiLabel("SYSTEM CHECK · FULLY LOCAL", size: 11, weight: .semibold, color: KikiPalette.accentText)
+        eyebrow.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.eyebrow")
         let title = kikiLabel("Kiki Checkup", size: 30, weight: .bold)
         let intro = kikiLabel("Confirm your microphone, local model, shortcut, and first dictation before you rely on Kiki.", size: 14, color: KikiPalette.secondaryText)
         intro.maximumNumberOfLines = 0
@@ -348,7 +349,7 @@ private final class KikiCheckupStatusRow: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func setPassed(_ passed: Bool, detail: String) {
-        indicator.layer?.backgroundColor = (passed ? KikiPalette.accent : KikiPalette.tertiaryText).cgColor
+        indicator.layer?.backgroundColor = (passed ? KikiPalette.accentText : KikiPalette.tertiaryText).cgColor
         detailLabel.stringValue = detail
     }
 }
@@ -373,7 +374,7 @@ private final class KikiCheckupInputMeter: NSView {
         guard normalized > 0 else { return }
         let fillRect = NSRect(x: 0, y: 0, width: bounds.width * normalized, height: bounds.height)
         let fill = NSBezierPath(roundedRect: fillRect, xRadius: 5, yRadius: 5)
-        KikiPalette.accent.setFill()
+        KikiPalette.meterAccent.setFill()
         fill.fill()
     }
 }

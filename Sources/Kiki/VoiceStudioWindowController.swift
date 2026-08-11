@@ -238,7 +238,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         consentCheckbox.action = #selector(consentChanged)
         consentCheckbox.identifier = NSUserInterfaceItemIdentifier("kiki.voice.consent")
         consentCheckbox.font = .systemFont(ofSize: 11.5)
-        consentCheckbox.contentTintColor = KikiPalette.accent
+        consentCheckbox.contentTintColor = KikiPalette.accentText
         consentCheckbox.lineBreakMode = .byWordWrapping
         consentCheckbox.cell?.wraps = true
         consentCheckbox.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
