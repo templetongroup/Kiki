@@ -122,6 +122,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             defer: false
         )
         window.title = "Kiki Workbench"
+        window.appearance = NSAppearance(named: .darkAqua)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -315,6 +316,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private func makeMainArea() -> NSView {
         let main = NSView()
         let contextBar = NSView()
+        contextBar.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.context-bar")
         contextBar.wantsLayer = true
         contextBar.layer?.borderWidth = 1
         contextBar.layer?.borderColor = KikiPalette.stroke.cgColor
@@ -342,6 +344,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         subnavigation.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.subnavigation")
 
         let tabRail = NSView()
+        tabRail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.tab-rail")
         tabRail.wantsLayer = true
         tabRail.layer?.backgroundColor = KikiPalette.sidebar.withAlphaComponent(0.56).cgColor
         tabRail.layer?.borderWidth = 1

@@ -74,11 +74,11 @@ enum Settings {
     static var appearanceMode: AppAppearanceMode {
         get {
             guard let raw = UserDefaults.standard.string(forKey: "appearanceMode") else {
-                return .system
+                return .dark
             }
-            return AppAppearanceMode(rawValue: raw) ?? .system
+            return AppAppearanceMode(rawValue: raw) ?? .dark
         }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: "appearanceMode") }
+        set { UserDefaults.standard.set(AppAppearanceMode.dark.rawValue, forKey: "appearanceMode") }
     }
 
     static var accentColor: KikiAccentColor {

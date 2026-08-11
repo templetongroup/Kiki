@@ -34,9 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onModelChange = { [weak self] model in
             self?.controller.selectModel(model)
         }
-        controller.onAppearanceChange = {
-            AppearanceController.apply()
-        }
         controller.onAutomaticUpdatesChange = { [weak self] enabled in
             self?.updateController.automaticallyChecksForUpdates = enabled
         }
@@ -183,11 +180,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceController.apply()
-        switch ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"]?.lowercased() {
-        case "light": NSApp.appearance = NSAppearance(named: .aqua)
-        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
-        default: break
-        }
         updateController.onUpdateAvailable = { [weak self] available in
             self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }

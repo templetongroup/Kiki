@@ -5,6 +5,7 @@ import ObjectiveC.runtime
 @MainActor
 enum FeatureDiagnostics {
     static func run() throws {
+        try checkDarkOnlyAppearance()
         try checkCorrectionMemory()
         try checkVoiceSnippets()
         try checkContextVocabulary()
@@ -20,6 +21,15 @@ enum FeatureDiagnostics {
         try checkGuidedWorkbench()
         try checkWindowInteractions()
         try checkVoiceStudio()
+    }
+
+    private static func checkDarkOnlyAppearance() throws {
+        AppearanceController.apply()
+        guard Settings.appearanceMode == .dark,
+              AppAppearanceMode.allCases == [.dark],
+              NSApp.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua else {
+            throw failure("dark-only application appearance")
+        }
     }
 
     private static func checkGuidedWorkbench() throws {
@@ -42,12 +52,15 @@ enum FeatureDiagnostics {
         guard let content = controller.window?.contentView,
               findView(in: content, identifier: "kiki.workbench.sidebar") != nil,
               findView(in: content, identifier: "kiki.workbench.content") != nil,
+              findView(in: content, identifier: "kiki.workbench.context-bar")?.layer?.backgroundColor == KikiPalette.surface.cgColor,
+              findView(in: content, identifier: "kiki.workbench.tab-rail")?.layer?.backgroundColor != nil,
               findView(in: content, identifier: "kiki.workbench.subnavigation") is NSSegmentedControl,
               findView(in: content, identifier: "kiki.workbench.quick-dictation") is KikiActionButton,
               GuidedWorkbenchSection.allCases.allSatisfy({
                   findView(in: content, identifier: "kiki.workbench.nav.\($0.rawValue)") is NSButton
               }),
               controller.window?.isMovableByWindowBackground == false,
+              controller.window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
               (controller.window?.minSize.width ?? 0) >= 900 else {
             throw failure("Guided Workbench shell")
         }

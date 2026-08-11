@@ -4,14 +4,12 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     var onSettingsChange: (@MainActor (DictationShortcut, ActivationMode) -> Void)?
     var onModelChange: (@MainActor (TranscriptionModelID) -> Void)?
-    var onAppearanceChange: (@MainActor () -> Void)?
     var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
     var onOpenPersonalization: (@MainActor () -> Void)?
 
     private let shortcutButton = NSButton(title: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
     private let speechProfilePopup = NSPopUpButton()
-    private let appearancePopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
     private let listeningPositionPopup = NSPopUpButton()
     private let listeningDisplayControl = NSSegmentedControl(
@@ -28,14 +26,14 @@ final class SettingsWindowController: NSWindowController {
     private let pageHost = NSView()
     private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
     private let pageSubtitleLabel = kikiLabel(
-        "Shape how Kiki looks, sounds, and starts.",
+        "Shape how Kiki sounds and starts.",
         size: 13.5,
         color: KikiPalette.secondaryText
     )
     private var navButtons: [KikiNavButton] = []
 
     private let pageMetadata: [(title: String, subtitle: String, symbol: String)] = [
-        ("General", "Shape how Kiki looks, sounds, and starts.", "slider.horizontal.3"),
+        ("General", "Shape how Kiki sounds and starts.", "slider.horizontal.3"),
         ("Dictation", "Tune the way Kiki listens and keeps up with you.", "waveform"),
         ("Models", "Choose the local engine that fits your voice and workflow.", "cpu"),
         ("Intelligence", "Make Kiki more accurate without slowing down transcription.", "sparkles"),
@@ -67,6 +65,7 @@ final class SettingsWindowController: NSWindowController {
             defer: false
         )
         window.title = "Kiki Settings"
+        window.appearance = NSAppearance(named: .darkAqua)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -285,9 +284,6 @@ final class SettingsWindowController: NSWindowController {
         historyCheckbox.target = self
         historyCheckbox.action = #selector(historyChanged)
 
-        appearancePopup.addItems(withTitles: AppAppearanceMode.allCases.map(\.title))
-        appearancePopup.target = self
-        appearancePopup.action = #selector(appearanceChanged)
         soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
         soundPopup.target = self
         soundPopup.action = #selector(soundChanged)
@@ -298,13 +294,11 @@ final class SettingsWindowController: NSWindowController {
         speechProfilePopup.target = self
         speechProfilePopup.action = #selector(speechProfileChanged)
 
-        [appearancePopup, soundPopup, modePopup, speechProfilePopup].forEach {
+        [soundPopup, modePopup, speechProfilePopup].forEach {
             $0.controlSize = .large
             $0.font = .systemFont(ofSize: 12.5, weight: .medium)
         }
-        [appearancePopup, soundPopup].forEach {
-            $0.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
-        }
+        soundPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
 
         shortcutButton.target = self
         shortcutButton.action = #selector(beginCapture)
@@ -323,7 +317,6 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeGeneralPage() -> NSView {
-        let appearanceRow = labeledRow("Appearance", controls: [appearancePopup])
         let soundRow = labeledRow("Dictation sounds", controls: [soundPopup])
         return page(with: [
             SettingsCard(
@@ -332,9 +325,9 @@ final class SettingsWindowController: NSWindowController {
                 views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, startupStatusLabel]
             ),
             SettingsCard(
-                title: "Look & Sound",
-                subtitle: "Use Studio Hardware in light, dark, or the appearance chosen by your Mac.",
-                views: [appearanceRow, soundRow, lookAndSoundStatusLabel]
+                title: "Sound",
+                subtitle: "Choose the audio feedback Kiki uses while dictating.",
+                views: [soundRow, lookAndSoundStatusLabel]
             ),
         ])
     }
@@ -528,7 +521,6 @@ final class SettingsWindowController: NSWindowController {
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
         automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
             || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
-        appearancePopup.selectItem(at: AppAppearanceMode.allCases.firstIndex(of: Settings.appearanceMode) ?? 0)
         soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
@@ -663,11 +655,6 @@ final class SettingsWindowController: NSWindowController {
         startupStatusLabel.stringValue = enabled
             ? "Kiki will automatically check for signed updates."
             : "Automatic update checks are off. You can still check from the menu."
-    }
-    @objc private func appearanceChanged() {
-        Settings.appearanceMode = AppAppearanceMode.allCases[appearancePopup.indexOfSelectedItem]
-        onAppearanceChange?()
-        lookAndSoundStatusLabel.stringValue = "Appearance changed to \(Settings.appearanceMode.title)."
     }
     @objc private func soundChanged() {
         Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem]

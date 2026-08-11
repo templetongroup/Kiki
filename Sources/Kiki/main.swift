@@ -17,11 +17,6 @@ if args.count >= 2, args[1] == "--preview-voice-studio" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = VoiceStudioWindowController()
         controller.show()
         app.run()
@@ -34,11 +29,6 @@ if args.count >= 2, args[1] == "--preview-file-transcription" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = FileTranscriptionWindowController()
         controller.showPreview(
             transcription: "Tony welcomed Anna to the meeting and reviewed the launch plan.",
@@ -54,11 +44,6 @@ if args.count >= 2, args[1] == "--preview-meeting" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let segments = [
             MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "Tony", text: "Let’s review the launch plan."),
             MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Anna", text: "I’ll send the final artwork this afternoon."),
@@ -82,11 +67,6 @@ if args.count >= 2, args[1] == "--preview-meeting-speakers" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let segments = [
             MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "You", text: "Let’s review the launch plan."),
             MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Speaker 1", text: "I’ll send the final artwork this afternoon."),
@@ -113,11 +93,6 @@ if args.count >= 2, args[1] == "--preview-personalization" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = PersonalizationWindowController()
         let previewPage = args.count >= 3 ? Int(args[2]) ?? 0 : 0
         controller.show(page: previewPage)
@@ -131,11 +106,6 @@ if args.count >= 2, args[1] == "--preview-history" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = HistoryWindowController()
         controller.show()
         app.run()
@@ -148,11 +118,6 @@ if args.count >= 2, args[1] == "--preview-dictionary" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = CustomDictionaryWindowController()
         controller.show()
         app.run()
@@ -296,11 +261,6 @@ if args.count >= 2, args[1] == "--preview-waveform" {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let hud = HUDPanel()
         let previewLevels: [CGFloat] = [0.10, 0.28, 0.62, 0.88, 0.46, 0.74, 0.22, 0.54]
         let previewSamples: (CGFloat) -> [Float] = { level in
@@ -360,11 +320,6 @@ if args.count >= 2, args[1] == "--preview-settings" {
         app.setActivationPolicy(.regular)
         app.finishLaunching()
         AppearanceController.apply()
-        if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "dark" {
-            app.appearance = NSAppearance(named: .darkAqua)
-        } else if ProcessInfo.processInfo.environment["KIKI_PREVIEW_APPEARANCE"] == "light" {
-            app.appearance = NSAppearance(named: .aqua)
-        }
         let controller = SettingsWindowController()
         controller.onModelChange = { model in
             Settings.transcriptionModel = model

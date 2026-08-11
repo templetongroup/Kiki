@@ -47,7 +47,7 @@ enum SupportBundleBuilder {
                 activationMode: "hold",
                 listeningDisplayMode: "waveform",
                 listeningDisplayPosition: "bottom",
-                appearanceMode: "system",
+                appearanceMode: "dark",
                 privateSessionActive: false,
                 checkupStatus: .init(shortcutVerified: true, firstDictationCompleted: true)
             )

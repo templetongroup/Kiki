@@ -2,22 +2,14 @@ import AppKit
 import ServiceManagement
 
 enum AppAppearanceMode: String, CaseIterable {
-    case system, light, dark
+    case dark
 
     var title: String {
-        switch self {
-        case .system: "Follow System"
-        case .light: "Light"
-        case .dark: "Dark"
-        }
+        "Dark"
     }
 
     var appearance: NSAppearance? {
-        switch self {
-        case .system: nil
-        case .light: NSAppearance(named: .aqua)
-        case .dark: NSAppearance(named: .darkAqua)
-        }
+        NSAppearance(named: .darkAqua)
     }
 }
 
@@ -60,7 +52,8 @@ enum DictationSoundStyle: String, CaseIterable {
 @MainActor
 enum AppearanceController {
     static func apply() {
-        NSApp.appearance = Settings.appearanceMode.appearance
+        Settings.appearanceMode = .dark
+        NSApp.appearance = NSAppearance(named: .darkAqua)
     }
 }
 

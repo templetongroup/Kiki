@@ -2,10 +2,11 @@ import AppKit
 import QuartzCore
 
 enum KikiPalette {
-    private static func adaptive(dark: NSColor, light: NSColor) -> NSColor {
-        NSColor(name: nil) { appearance in
-            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
-        }
+    private static func adaptive(dark: NSColor, light _: NSColor) -> NSColor {
+        // Kiki ships one Studio Hardware appearance. Returning the dark token
+        // directly also keeps layer-backed views from caching a light CGColor
+        // before they join the app's dark appearance hierarchy.
+        dark
     }
 
     // Studio Hardware geometry and material treatment stay unchanged. The neutral
