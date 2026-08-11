@@ -62,6 +62,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func prepareForEmbeddedDisplay() { reload() }
+
     private func buildContent() {
         guard let content = window?.contentView else { return }
         let backdrop = KikiBackdropView()

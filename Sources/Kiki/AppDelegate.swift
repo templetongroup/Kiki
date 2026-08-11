@@ -20,6 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkupInputResponding = false
     private var checkupShortcutArmed = false
     private var checkupPracticeArmed = false
+    private var embeddedViews: [ObjectIdentifier: NSView] = [:]
+    private var pendingVoicePrefill: String?
     private lazy var settingsWindow: SettingsWindowController = {
         let controller = SettingsWindowController()
         controller.onSettingsChange = { [weak self] shortcut, mode in
@@ -39,8 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updateController.automaticallyChecksForUpdates = enabled
         }
         controller.onOpenPersonalization = { [weak self] in
-            guard let self else { return }
-            self.personalizationWindow.show(context: self.captureExternalContext())
+            self?.openWorkbench(section: .personalization)
         }
         return controller
     }()
@@ -119,6 +120,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         return window
     }()
+    private lazy var workbenchHomeView: GuidedWorkbenchHomeView = {
+        let view = GuidedWorkbenchHomeView()
+        view.onStartDictation = { [weak self] in self?.controller.toggleRecording() }
+        view.onOpenMeeting = { [weak self] in self?.openWorkbench(section: .meetings) }
+        view.onOpenVoiceStudio = { [weak self] in self?.openWorkbench(section: .voice) }
+        view.onOpenAudioFile = { [weak self] in self?.openWorkbench(section: .library, subpage: 1) }
+        view.onOpenPersonalization = { [weak self] in self?.openWorkbench(section: .personalization) }
+        view.onOpenCheckup = { [weak self] in self?.openCheckup() }
+        return view
+    }()
+    private lazy var workbenchDictationView: GuidedWorkbenchDictationView = {
+        let view = GuidedWorkbenchDictationView()
+        view.onToggleDictation = { [weak self] in self?.controller.toggleRecording() }
+        view.onUndo = { [weak self] in self?.controller.undoLastDictation() }
+        view.onRetry = { [weak self] in self?.controller.retryLastDictation() }
+        view.onPrivateSession = { [weak self] in self?.togglePrivateSession() }
+        return view
+    }()
+    private lazy var workbenchSupportView: GuidedWorkbenchSupportView = {
+        let view = GuidedWorkbenchSupportView()
+        view.onCreateBundle = { [weak self] in self?.createSupportBundle() }
+        view.onOpenModels = { [weak self] in self?.openModelsFolder() }
+        view.onCheckUpdates = { [weak self] in self?.updateController.checkForUpdates(nil) }
+        return view
+    }()
+    private lazy var workbenchAboutView: GuidedWorkbenchAboutView = {
+        let view = GuidedWorkbenchAboutView()
+        view.onRunCheckup = { [weak self] in self?.openCheckup() }
+        return view
+    }()
+    private lazy var workbenchWindow: GuidedWorkbenchWindowController = {
+        let window = GuidedWorkbenchWindowController()
+        window.onRouteChange = { [weak self] route in self?.surface(for: route) }
+        window.onToggleDictation = { [weak self] in self?.controller.toggleRecording() }
+        window.onCanClose = { [weak self] in self?.canCloseWorkbench() ?? true }
+        return window
+    }()
 
     private let stateMenuItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     private let modelMenuItem = NSMenuItem(title: "Model: none", action: nil, keyEquivalent: "")
@@ -171,24 +209,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onLastDictationActionsChange = { [weak self] canUndo, canRetry in
             self?.undoLastDictationMenuItem.isEnabled = canUndo
             self?.retryLastDictationMenuItem.isEnabled = canRetry
+            guard let self else { return }
+            self.workbenchDictationView.update(state: self.controller.state, canUndo: canUndo, canRetry: canRetry)
         }
         hotkeys.onHoldStart = { [weak self] in
             guard let self else { return }
             if self.consumeCheckupShortcutTest() { return }
-            if self.checkupWindow.window?.isVisible == true { self.checkupWindow.stopInputMonitor() }
+            if self.isCheckupVisible { self.checkupWindow.stopInputMonitor() }
             self.controller.startRecording()
         }
         hotkeys.onHoldEnd = { [weak self] in self?.controller.finishRecording() }
         hotkeys.onToggle = { [weak self] in
             guard let self else { return }
             if self.consumeCheckupShortcutTest() { return }
-            if self.checkupWindow.window?.isVisible == true { self.checkupWindow.stopInputMonitor() }
+            if self.isCheckupVisible { self.checkupWindow.stopInputMonitor() }
             self.controller.toggleRecording()
         }
         hotkeys.onCancel = { [weak self] in self?.controller.cancelRecording() }
         hotkeys.start()
 
         controller.prepare()
+        let shouldOpenWorkbench = ProcessInfo.processInfo.environment["KIKI_OPEN_WORKBENCH"] == "1"
+            || NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier
+        if shouldOpenWorkbench {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                self?.openWorkbench(section: .home)
+            }
+        }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_VOICE_STUDIO"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                 self?.openVoiceStudio()
@@ -206,7 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_MODELS"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                self?.settingsWindow.show(page: 2)
+                self?.openWorkbench(section: .models)
             }
         }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_MEETING"] == "1" {
@@ -214,13 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.openMeetingMode()
             }
         }
-        if ProcessInfo.processInfo.environment["KIKI_SUPPRESS_WHATS_NEW"] != "1" {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
-                self?.whatsNewWindow.showIfNeeded(
-                    force: ProcessInfo.processInfo.environment["KIKI_FORCE_WHATS_NEW"] == "1"
-                )
-            }
-        }
+        showUnifiedWhatsNewIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -237,6 +278,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         toggleMenuItem.target = self
         menu.addItem(stateMenuItem)
         menu.addItem(modelMenuItem)
+        menu.addItem(.separator())
+        menu.addItem(menuItem("Open Kiki Workbench", symbol: "rectangle.split.3x1", action: #selector(openWorkbenchHome)))
         menu.addItem(.separator())
         menu.addItem(toggleMenuItem)
         menu.addItem(undoLastDictationMenuItem)
@@ -322,6 +365,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         modelMenuItem.title = "Model: \(model)"
         undoLastDictationMenuItem.isEnabled = state == .idle && controller.canUndoLastDictation
         retryLastDictationMenuItem.isEnabled = state == .idle && controller.canRetryLastDictation
+        workbenchWindow.updateDictationState(state)
+        workbenchDictationView.update(
+            state: state,
+            canUndo: state == .idle && controller.canUndoLastDictation,
+            canRetry: state == .idle && controller.canRetryLastDictation
+        )
 
         switch state {
         case .noModel:
@@ -374,28 +423,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openSettings() {
         _ = captureExternalContext()
-        settingsWindow.show()
+        openWorkbench(section: .settings)
     }
 
     @objc private func openCheckup() {
-        checkupWindow.show()
+        openWorkbench(section: .settings, subpage: 4)
         refreshCheckup(restartInputMonitor: true)
     }
 
     @objc private func openHistory() {
-        historyWindow.show()
+        openWorkbench(section: .library)
     }
 
     @objc private func openPawprints() {
-        pawprintsWindow.show()
+        openWorkbench(section: .settings, subpage: 5)
     }
 
     @objc private func openWhatsNew() {
-        whatsNewWindow.showIfNeeded(force: true)
+        openWorkbench(section: .settings, subpage: 7)
     }
 
     @objc private func openDictionary() {
-        dictionaryWindow.show()
+        openWorkbench(section: .personalization, subpage: 5)
     }
 
     @objc private func createSupportBundle() {
@@ -414,19 +463,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openPersonalization() {
-        personalizationWindow.show(context: captureExternalContext())
+        openWorkbench(section: .personalization)
     }
 
     @objc private func openFileTranscription() {
-        fileTranscriptionWindow.show()
+        openWorkbench(section: .library, subpage: 1)
     }
 
     @objc private func openMeetingMode() {
-        meetingWindow.show()
+        openWorkbench(section: .meetings)
     }
 
     @objc private func openVoiceStudio() {
-        voiceStudioWindow.show()
+        openWorkbench(section: .voice)
     }
 
     @objc private func readSelectionInMyVoice() {
@@ -438,7 +487,169 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.runModal()
             return
         }
-        voiceStudioWindow.show(prefilledText: selection)
+        pendingVoicePrefill = selection
+        openWorkbench(section: .voice)
+    }
+
+    @objc private func openWorkbenchHome() { openWorkbench(section: .home) }
+
+    private var isCheckupVisible: Bool {
+        checkupWindow.window?.isVisible == true
+            || workbenchWindow.isShowing(section: .settings, subpage: 4)
+    }
+
+    private func openWorkbench(section: GuidedWorkbenchSection, subpage: Int = 0) {
+        _ = captureExternalContext()
+        workbenchWindow.show(section: section, subpage: subpage)
+        if section == .settings, subpage == 4 {
+            refreshCheckup(restartInputMonitor: true)
+        }
+    }
+
+    private func surface(for route: GuidedWorkbenchRoute) -> GuidedWorkbenchSurface? {
+        if !(route.section == .settings && route.subpage == 4) {
+            checkupWindow.stopInputMonitor()
+            checkupShortcutArmed = false
+            checkupPracticeArmed = false
+        }
+
+        switch route.section {
+        case .home:
+            return GuidedWorkbenchSurface(view: workbenchHomeView, sizing: .fill)
+        case .dictation:
+            if route.subpage == 0 {
+                workbenchDictationView.update(
+                    state: controller.state,
+                    canUndo: controller.state == .idle && controller.canUndoLastDictation,
+                    canRetry: controller.state == .idle && controller.canRetryLastDictation
+                )
+                return GuidedWorkbenchSurface(view: workbenchDictationView, sizing: .fill)
+            }
+            settingsWindow.prepareForDiagnostics(page: 1)
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: settingsWindow),
+                sizing: .scroll(NSSize(width: 682, height: 802))
+            )
+        case .meetings:
+            meetingWindow.prepareForEmbeddedDisplay()
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: meetingWindow),
+                sizing: .scroll(NSSize(width: 960, height: 740))
+            )
+        case .voice:
+            let prefill = pendingVoicePrefill
+            pendingVoicePrefill = nil
+            voiceStudioWindow.prepareForEmbeddedDisplay(prefilledText: prefill)
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: voiceStudioWindow),
+                sizing: .scroll(NSSize(width: 1_080, height: 930))
+            )
+        case .library:
+            if route.subpage == 0 {
+                historyWindow.prepareForEmbeddedDisplay()
+                return GuidedWorkbenchSurface(
+                    view: embeddedView(for: historyWindow),
+                    sizing: .centered(NSSize(width: 920, height: 620))
+                )
+            }
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: fileTranscriptionWindow),
+                sizing: .centered(NSSize(width: 760, height: 600))
+            )
+        case .personalization:
+            if route.subpage < 5 {
+                personalizationWindow.prepareForEmbeddedDisplay(
+                    context: captureExternalContext(),
+                    page: route.subpage
+                )
+                return GuidedWorkbenchSurface(
+                    view: embeddedView(for: personalizationWindow),
+                    sizing: .scroll(NSSize(width: 1_180, height: 900))
+                )
+            }
+            dictionaryWindow.prepareForEmbeddedDisplay()
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: dictionaryWindow),
+                sizing: .centered(NSSize(width: 760, height: 540))
+            )
+        case .models:
+            settingsWindow.prepareForDiagnostics(page: 2)
+            return GuidedWorkbenchSurface(
+                view: embeddedView(for: settingsWindow),
+                sizing: .scroll(NSSize(width: 682, height: 802))
+            )
+        case .settings:
+            switch route.subpage {
+            case 0, 1, 2, 3:
+                let settingsPage = [0, 1, 3, 4][route.subpage]
+                settingsWindow.prepareForDiagnostics(page: settingsPage)
+                return GuidedWorkbenchSurface(
+                    view: embeddedView(for: settingsWindow),
+                    sizing: .scroll(NSSize(width: 682, height: 802))
+                )
+            case 4:
+                DispatchQueue.main.async { [weak self] in self?.refreshCheckup(restartInputMonitor: true) }
+                return GuidedWorkbenchSurface(
+                    view: embeddedView(for: checkupWindow),
+                    sizing: .centered(NSSize(width: 760, height: 650))
+                )
+            case 5:
+                pawprintsWindow.prepareForEmbeddedDisplay()
+                return GuidedWorkbenchSurface(
+                    view: embeddedView(for: pawprintsWindow),
+                    sizing: .centered(NSSize(width: 760, height: 520))
+                )
+            case 6:
+                return GuidedWorkbenchSurface(view: workbenchSupportView, sizing: .fill)
+            default:
+                return GuidedWorkbenchSurface(view: workbenchAboutView, sizing: .fill)
+            }
+        }
+    }
+
+    private func embeddedView(for controller: NSWindowController) -> NSView {
+        let key = ObjectIdentifier(controller)
+        if let view = embeddedViews[key] { return view }
+        guard let window = controller.window, let view = window.contentView else {
+            return NSView()
+        }
+        let placeholder = NSView(frame: view.frame)
+        window.contentView = placeholder
+        embeddedViews[key] = view
+        return view
+    }
+
+    private func canCloseWorkbench() -> Bool {
+        let message: String?
+        if meetingWindow.preventsWorkbenchClose {
+            message = "Stop and transcribe the meeting before closing Kiki."
+        } else if voiceStudioWindow.preventsWorkbenchClose {
+            message = "Stop the voice recording before closing Kiki."
+        } else {
+            message = nil
+        }
+        guard let message else {
+            checkupWindow.stopInputMonitor()
+            return true
+        }
+        let alert = NSAlert()
+        alert.messageText = "Kiki is still recording"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+        return false
+    }
+
+    private func showUnifiedWhatsNewIfNeeded() {
+        guard ProcessInfo.processInfo.environment["KIKI_SUPPRESS_WHATS_NEW"] != "1" else { return }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "New"
+        let key = "lastSeenWhatsNewVersion"
+        let force = ProcessInfo.processInfo.environment["KIKI_FORCE_WHATS_NEW"] == "1"
+        guard force || UserDefaults.standard.string(forKey: key) != version else { return }
+        UserDefaults.standard.set(version, forKey: key)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            self?.openWorkbench(section: .settings, subpage: 7)
+        }
     }
 
     @objc private func openModelsFolder() {
@@ -465,7 +676,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func refreshCheckup(restartInputMonitor: Bool) {
-        guard checkupWindow.window?.isVisible == true else { return }
+        guard isCheckupVisible else { return }
         let microphones = AudioInputDevice.available()
         let selected = AudioInputDevice.selected(from: microphones, preferredID: Settings.microphoneDeviceUID)
         if Settings.microphoneDeviceUID == nil { Settings.microphoneDeviceUID = selected?.uniqueID }

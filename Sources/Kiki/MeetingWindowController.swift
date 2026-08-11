@@ -51,6 +51,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func show() {
+        prepareForEmbeddedDisplay()
+        showWindow(nil)
+        window?.center()
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func prepareForEmbeddedDisplay() {
         if titleField.stringValue.isEmpty {
             titleField.stringValue = "Meeting — \(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short))"
         }
@@ -60,11 +68,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             exportButton.isEnabled = false
             copyButton.isEnabled = false
         }
-        showWindow(nil)
-        window?.center()
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
+
+    var preventsWorkbenchClose: Bool { isRecording }
 
     func showPreview(transcript: MeetingTranscript) {
         self.transcript = transcript
@@ -289,7 +295,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             alert.addButton(withTitle: "OK")
         }
 
-        guard let window else { return }
+        guard let window = textView.window ?? window else { return }
         alert.beginSheetModal(for: window) { response in
             guard response == .alertFirstButtonReturn,
                   captureError?.requiresScreenRecordingSettings == true,

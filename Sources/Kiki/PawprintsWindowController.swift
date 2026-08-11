@@ -46,6 +46,8 @@ final class PawprintsWindowController: NSWindowController {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func prepareForEmbeddedDisplay() { refresh() }
+
     private func buildContent() {
         guard let content = window?.contentView else { return }
         let backdrop = KikiBackdropView()

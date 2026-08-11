@@ -84,16 +84,22 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func show(prefilledText: String? = nil) {
-        profile = VoiceProfileStore.load()
-        selectedEnrollmentMode = profile?.enrollmentMode ?? selectedEnrollmentMode
-        updateEnrollmentModePresentation()
-        if let prefilledText { prefillEditor(prefilledText) }
-        refreshState()
+        prepareForEmbeddedDisplay(prefilledText: prefilledText)
         showWindow(nil)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
+
+    func prepareForEmbeddedDisplay(prefilledText: String? = nil) {
+        profile = VoiceProfileStore.load()
+        selectedEnrollmentMode = profile?.enrollmentMode ?? selectedEnrollmentMode
+        updateEnrollmentModePresentation()
+        if let prefilledText { prefillEditor(prefilledText) }
+        refreshState()
+    }
+
+    var preventsWorkbenchClose: Bool { recordingStartedAt != nil }
 
     func prefillForDiagnostics(_ text: String) {
         prefillEditor(text)

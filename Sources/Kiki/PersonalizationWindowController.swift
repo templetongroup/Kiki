@@ -99,6 +99,12 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func prepareForEmbeddedDisplay(context: AppContextSnapshot? = nil, page: Int = 0) {
+        openingContext = context
+        reloadAll()
+        if pages.indices.contains(page) { showPage(page) }
+    }
+
     func prepareForDiagnostics(page index: Int) {
         guard pages.indices.contains(index) else { return }
         reloadAll()

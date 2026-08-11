@@ -17,8 +17,50 @@ enum FeatureDiagnostics {
         try checkSupportBundle()
         try checkPawprints()
         try checkPhraseBoundaries()
+        try checkGuidedWorkbench()
         try checkWindowInteractions()
         try checkVoiceStudio()
+    }
+
+    private static func checkGuidedWorkbench() throws {
+        let home = GuidedWorkbenchHomeView()
+        guard home.fittingSize.width <= 1_200 else {
+            throw failure("Guided Workbench compact home layout")
+        }
+        let controller = GuidedWorkbenchWindowController()
+        controller.onRouteChange = { _ in
+            let view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
+            return GuidedWorkbenchSurface(view: view, sizing: .fill)
+        }
+        for section in GuidedWorkbenchSection.allCases {
+            for subpage in section.subpages.indices {
+                let route = GuidedWorkbenchRoute(section: section, subpage: subpage)
+                controller.select(route)
+                guard controller.route == route else { throw failure("Guided Workbench route \(section.rawValue) \(subpage)") }
+            }
+        }
+        guard let content = controller.window?.contentView,
+              findView(in: content, identifier: "kiki.workbench.sidebar") != nil,
+              findView(in: content, identifier: "kiki.workbench.content") != nil,
+              findView(in: content, identifier: "kiki.workbench.subnavigation") is NSSegmentedControl,
+              findView(in: content, identifier: "kiki.workbench.quick-dictation") is KikiActionButton,
+              GuidedWorkbenchSection.allCases.allSatisfy({
+                  findView(in: content, identifier: "kiki.workbench.nav.\($0.rawValue)") is NSButton
+              }),
+              controller.window?.isMovableByWindowBackground == false,
+              (controller.window?.minSize.width ?? 0) >= 900 else {
+            throw failure("Guided Workbench shell")
+        }
+        content.layoutSubtreeIfNeeded()
+        let navigationControls = descendants(of: content).compactMap { $0 as? NSControl }
+            .filter { $0.identifier?.rawValue.hasPrefix("kiki.workbench.nav.") == true || $0.identifier?.rawValue == "kiki.workbench.quick-dictation" }
+        guard navigationControls.allSatisfy({ control in
+            let point = control.convert(NSPoint(x: control.bounds.midX, y: control.bounds.midY), to: content)
+            guard let hit = content.hitTest(point) else { return false }
+            return hit === control || hit.isDescendant(of: control)
+        }) else {
+            throw failure("Guided Workbench native click routing")
+        }
     }
 
     static func benchmarkPostProcessing(iterations: Int = 100) -> TimeInterval {
