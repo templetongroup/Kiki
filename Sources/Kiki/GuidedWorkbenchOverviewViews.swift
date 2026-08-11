@@ -112,8 +112,8 @@ final class GuidedWorkbenchHomeView: NSView {
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        personalize.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        checkup.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        personalize.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        checkup.widthAnchor.constraint(equalTo: personalize.widthAnchor).isActive = true
         install(stack, in: card)
         return card
     }
@@ -258,7 +258,9 @@ final class GuidedWorkbenchDictationView: NSView {
         recovery.orientation = .vertical
         recovery.alignment = .leading
         recovery.spacing = 9
-        for button in [undoButton, retryButton, privateButton] { button.widthAnchor.constraint(equalTo: recovery.widthAnchor).isActive = true }
+        for button in [undoButton, retryButton, privateButton] {
+            button.widthAnchor.constraint(equalToConstant: 190).isActive = true
+        }
         let recoveryCard = KikiCardView()
         install(recovery, in: recoveryCard)
 
@@ -381,7 +383,7 @@ final class GuidedWorkbenchSupportView: NSView {
         card.addSubview(stack)
         NSLayoutConstraint.activate([
             image.widthAnchor.constraint(equalToConstant: 28), image.heightAnchor.constraint(equalToConstant: 28),
-            actionButton.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            actionButton.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
             stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18), stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18), stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 18), stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -18),
         ])
         return card

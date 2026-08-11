@@ -97,6 +97,15 @@ final class SettingsWindowController: NSWindowController {
         window?.contentView?.layoutSubtreeIfNeeded()
     }
 
+    func workbenchPage(_ index: Int) -> NSView {
+        guard pages.indices.contains(index) else { return NSView() }
+        refresh()
+        showPage(index: index)
+        let page = pages[index]
+        page.removeFromSuperview()
+        return page
+    }
+
     private func buildContent() {
         guard let content = window?.contentView else { return }
         NSLayoutConstraint.activate([

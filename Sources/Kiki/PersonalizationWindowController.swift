@@ -105,6 +105,16 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         if pages.indices.contains(page) { showPage(page) }
     }
 
+    func workbenchPage(context: AppContextSnapshot? = nil, page index: Int) -> NSView {
+        guard pages.indices.contains(index) else { return NSView() }
+        openingContext = context
+        reloadAll()
+        showPage(index)
+        let page = pages[index]
+        page.removeFromSuperview()
+        return page
+    }
+
     func prepareForDiagnostics(page index: Int) {
         guard pages.indices.contains(index) else { return }
         reloadAll()
@@ -359,8 +369,8 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         lower.orientation = .horizontal
         lower.alignment = .top
         lower.spacing = 16
-        approved.widthAnchor.constraint(greaterThanOrEqualToConstant: 500).isActive = true
         guide.widthAnchor.constraint(equalToConstant: 300).isActive = true
+        approved.widthAnchor.constraint(equalTo: lower.widthAnchor, constant: -316).isActive = true
 
         let layout = NSStackView(views: [suggestions, lower])
         layout.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-layout")
@@ -462,6 +472,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         stack.alignment = .leading
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
+        above.forEach {
+            $0.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
         let container = KikiCardView()
         container.addSubview(stack)
         NSLayoutConstraint.activate([

@@ -74,6 +74,30 @@ enum FeatureDiagnostics {
         }) else {
             throw failure("Guided Workbench native click routing")
         }
+
+        controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
+        content.layoutSubtreeIfNeeded()
+        guard let tabRail = findView(in: content, identifier: "kiki.workbench.tab-rail"),
+              tabRail.isHidden,
+              tabRail.frame.height < 1 else {
+            throw failure("single-page Workbench sections must not reserve an empty tab rail")
+        }
+
+        controller.select(GuidedWorkbenchRoute(section: .dictation, subpage: 1))
+        content.layoutSubtreeIfNeeded()
+        guard !tabRail.isHidden,
+              tabRail.frame.height >= 40 else {
+            throw failure("multi-page Workbench sections must keep their compact tab rail")
+        }
+
+        let settingsController = SettingsWindowController()
+        let personalizationController = PersonalizationWindowController()
+        let embeddedSettings = settingsController.workbenchPage(0)
+        let embeddedPersonalization = personalizationController.workbenchPage(context: nil, page: 0)
+        guard descendants(of: embeddedSettings).allSatisfy({ !($0 is KikiNavButton) }),
+              descendants(of: embeddedPersonalization).allSatisfy({ !($0 is KikiNavButton) }) else {
+            throw failure("Workbench content must not embed legacy sidebars")
+        }
     }
 
     static func benchmarkPostProcessing(iterations: Int = 100) -> TimeInterval {

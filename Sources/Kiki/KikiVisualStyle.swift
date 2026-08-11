@@ -320,6 +320,20 @@ final class KikiNavButton: NSButton {
 
     override var mouseDownCanMoveWindow: Bool { false }
 
+    override var acceptsFirstResponder: Bool { true }
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        updateStyle()
+        return accepted
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        updateStyle()
+        return resigned
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -332,8 +346,11 @@ final class KikiNavButton: NSButton {
             layer?.backgroundColor = isSelectedPage
                 ? KikiPalette.selectionSurface.withAlphaComponent(0.72).cgColor
                 : NSColor.clear.cgColor
-            layer?.borderWidth = isSelectedPage ? 1 : 0
-            layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.48).cgColor
+            let keyboardFocused = window?.firstResponder === self
+            layer?.borderWidth = isSelectedPage || keyboardFocused ? 1 : 0
+            layer?.borderColor = keyboardFocused
+                ? KikiPalette.accentText.cgColor
+                : KikiPalette.khaki.withAlphaComponent(0.48).cgColor
             let color = isSelectedPage ? KikiPalette.accentText : KikiPalette.secondaryText
             symbolView.contentTintColor = color
             titleLabel.textColor = color
@@ -393,6 +410,7 @@ final class KikiCircularPortraitView: NSView {
 final class KikiActionButton: NSButton {
     enum Kind { case primary, secondary, hardware, quiet, danger }
     private let kind: Kind
+    private let keyboardFocusLayer = CAShapeLayer()
 
     init(_ title: String, kind: Kind = .secondary, target: AnyObject?, action: Selector?) {
         self.kind = kind
@@ -410,6 +428,12 @@ final class KikiActionButton: NSButton {
         wantsLayer = true
         layer?.cornerRadius = 6
         layer?.cornerCurve = .continuous
+        keyboardFocusLayer.fillColor = NSColor.clear.cgColor
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.lineWidth = 1.5
+        keyboardFocusLayer.isHidden = true
+        keyboardFocusLayer.name = "kiki.button.keyboard-focus"
+        layer?.addSublayer(keyboardFocusLayer)
         alignment = .center
         heightAnchor.constraint(greaterThanOrEqualToConstant: kind == .hardware ? 32 : 42).isActive = true
         updateStyle()
@@ -418,7 +442,12 @@ final class KikiActionButton: NSButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override var title: String { didSet { updateStyle() } }
-    override var isEnabled: Bool { didSet { updateStyle() } }
+    override var isEnabled: Bool {
+        didSet {
+            updateStyle()
+            updateKeyboardFocus()
+        }
+    }
 
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
@@ -430,11 +459,42 @@ final class KikiActionButton: NSButton {
 
     override var mouseDownCanMoveWindow: Bool { false }
 
+    override var acceptsFirstResponder: Bool { isEnabled }
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        updateKeyboardFocus()
+        return accepted
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        updateKeyboardFocus()
+        return resigned
+    }
+
+    override func layout() {
+        super.layout()
+        keyboardFocusLayer.frame = bounds
+        keyboardFocusLayer.path = CGPath(
+            roundedRect: bounds.insetBy(dx: 2.5, dy: 2.5),
+            cornerWidth: 4,
+            cornerHeight: 4,
+            transform: nil
+        )
+        updateKeyboardFocus()
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateStyle()
+    }
+
+    private func updateKeyboardFocus() {
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.isHidden = window?.firstResponder !== self || !isEnabled
     }
 
     private func updateStyle() {

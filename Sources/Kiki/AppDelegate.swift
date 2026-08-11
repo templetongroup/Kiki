@@ -222,6 +222,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         controller.prepare()
         let shouldOpenWorkbench = ProcessInfo.processInfo.environment["KIKI_OPEN_WORKBENCH"] == "1"
+            || CommandLine.arguments.contains("--preview-workbench")
             || NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier
         if shouldOpenWorkbench {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
@@ -517,16 +518,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
                 return GuidedWorkbenchSurface(view: workbenchDictationView, sizing: .fill)
             }
-            settingsWindow.prepareForDiagnostics(page: 1)
             return GuidedWorkbenchSurface(
-                view: embeddedView(for: settingsWindow),
-                sizing: .scroll(NSSize(width: 682, height: 802))
+                view: settingsWindow.workbenchPage(1),
+                sizing: .fill
             )
         case .meetings:
             meetingWindow.prepareForEmbeddedDisplay()
             return GuidedWorkbenchSurface(
                 view: embeddedView(for: meetingWindow),
-                sizing: .scroll(NSSize(width: 960, height: 740))
+                sizing: .scroll(NSSize(width: 960, height: 840))
             )
         case .voice:
             let prefill = pendingVoicePrefill
@@ -534,62 +534,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             voiceStudioWindow.prepareForEmbeddedDisplay(prefilledText: prefill)
             return GuidedWorkbenchSurface(
                 view: embeddedView(for: voiceStudioWindow),
-                sizing: .scroll(NSSize(width: 1_080, height: 930))
+                sizing: .scroll(NSSize(width: 1_080, height: 1_080))
             )
         case .library:
             if route.subpage == 0 {
                 historyWindow.prepareForEmbeddedDisplay()
                 return GuidedWorkbenchSurface(
                     view: embeddedView(for: historyWindow),
-                    sizing: .centered(NSSize(width: 920, height: 620))
+                    sizing: .top(NSSize(width: 920, height: 620))
                 )
             }
             return GuidedWorkbenchSurface(
                 view: embeddedView(for: fileTranscriptionWindow),
-                sizing: .centered(NSSize(width: 760, height: 600))
+                sizing: .top(NSSize(width: 760, height: 720))
             )
         case .personalization:
             if route.subpage < 5 {
-                personalizationWindow.prepareForEmbeddedDisplay(
-                    context: captureExternalContext(),
-                    page: route.subpage
-                )
                 return GuidedWorkbenchSurface(
-                    view: embeddedView(for: personalizationWindow),
-                    sizing: .scroll(NSSize(width: 1_180, height: 900))
+                    view: personalizationWindow.workbenchPage(
+                        context: captureExternalContext(),
+                        page: route.subpage
+                    ),
+                    sizing: .scroll(NSSize(width: 1_030, height: 760))
                 )
             }
             dictionaryWindow.prepareForEmbeddedDisplay()
             return GuidedWorkbenchSurface(
                 view: embeddedView(for: dictionaryWindow),
-                sizing: .centered(NSSize(width: 760, height: 540))
+                sizing: .top(NSSize(width: 760, height: 650))
             )
         case .models:
-            settingsWindow.prepareForDiagnostics(page: 2)
             return GuidedWorkbenchSurface(
-                view: embeddedView(for: settingsWindow),
-                sizing: .scroll(NSSize(width: 682, height: 802))
+                view: settingsWindow.workbenchPage(2),
+                sizing: .fill
             )
         case .settings:
             switch route.subpage {
             case 0, 1, 2, 3:
                 let settingsPage = [0, 1, 3, 4][route.subpage]
-                settingsWindow.prepareForDiagnostics(page: settingsPage)
                 return GuidedWorkbenchSurface(
-                    view: embeddedView(for: settingsWindow),
-                    sizing: .scroll(NSSize(width: 682, height: 802))
+                    view: settingsWindow.workbenchPage(settingsPage),
+                    sizing: .fill
                 )
             case 4:
                 DispatchQueue.main.async { [weak self] in self?.refreshCheckup(restartInputMonitor: true) }
                 return GuidedWorkbenchSurface(
                     view: embeddedView(for: checkupWindow),
-                    sizing: .centered(NSSize(width: 760, height: 650))
+                    sizing: .top(NSSize(width: 760, height: 650))
                 )
             case 5:
                 pawprintsWindow.prepareForEmbeddedDisplay()
                 return GuidedWorkbenchSurface(
                     view: embeddedView(for: pawprintsWindow),
-                    sizing: .centered(NSSize(width: 760, height: 520))
+                    sizing: .top(NSSize(width: 760, height: 520))
                 )
             case 6:
                 return GuidedWorkbenchSurface(view: workbenchSupportView, sizing: .fill)

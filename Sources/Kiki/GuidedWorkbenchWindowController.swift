@@ -60,7 +60,7 @@ enum GuidedWorkbenchSection: String, CaseIterable {
     var subpages: [String] {
         switch self {
         case .home: ["Overview"]
-        case .dictation: ["Live", "Listening Display", "Shortcut & Flow"]
+        case .dictation: ["Live", "Settings"]
         case .meetings: ["Capture & Review"]
         case .voice: ["Record & Create"]
         case .library: ["History", "Audio File"]
@@ -83,7 +83,7 @@ struct GuidedWorkbenchRoute: Equatable {
 
 enum GuidedWorkbenchSurfaceSizing {
     case fill
-    case centered(NSSize)
+    case top(NSSize)
     case scroll(NSSize)
 }
 
@@ -99,6 +99,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     var onCanClose: (() -> Bool)?
 
     private let contentHost = NSView()
+    private let tabRail = NSView()
     private let sectionLabel = kikiLabel("WORKSPACE", size: 10, weight: .bold, color: KikiPalette.accentText)
     private let titleLabel = kikiLabel("Home", size: 15, weight: .semibold)
     private let readinessLabel = kikiLabel("● Ready", size: 11, weight: .semibold, color: KikiPalette.accentText)
@@ -106,6 +107,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private let quickDictationButton = KikiActionButton("Start Dictation", kind: .primary, target: nil, action: nil)
     private var navButtons: [GuidedWorkbenchSection: WorkbenchNavigationButton] = [:]
     private var currentWrapper: NSView?
+    private var tabRailHeightConstraint: NSLayoutConstraint?
     private var shouldCenterOnFirstShow = true
     private(set) var route = GuidedWorkbenchRoute(section: .home)
 
@@ -131,7 +133,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             height: min(680, initialSize.height)
         )
         window.isReleasedWhenClosed = false
-        let frameAutosaveName = "KikiGuidedWorkbenchCompactV2"
+        let frameAutosaveName = "KikiGuidedWorkbenchCompactV3"
         let restoredSavedFrame = window.setFrameUsingName(frameAutosaveName)
         window.setFrameAutosaveName(frameAutosaveName)
         super.init(window: window)
@@ -338,12 +340,12 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
         subnavigation.trackingMode = .selectOne
         subnavigation.segmentStyle = .texturedRounded
+        subnavigation.selectedSegmentBezelColor = KikiPalette.accent
         subnavigation.target = self
         subnavigation.action = #selector(subnavigationChanged)
         subnavigation.focusRingType = .none
         subnavigation.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.subnavigation")
 
-        let tabRail = NSView()
         tabRail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.tab-rail")
         tabRail.wantsLayer = true
         tabRail.layer?.backgroundColor = KikiPalette.sidebar.withAlphaComponent(0.56).cgColor
@@ -359,19 +361,21 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         main.addSubview(contextBar)
         main.addSubview(tabRail)
         main.addSubview(contentHost)
+        let tabRailHeightConstraint = tabRail.heightAnchor.constraint(equalToConstant: 44)
+        self.tabRailHeightConstraint = tabRailHeightConstraint
         NSLayoutConstraint.activate([
             contextBar.leadingAnchor.constraint(equalTo: main.leadingAnchor),
             contextBar.trailingAnchor.constraint(equalTo: main.trailingAnchor),
             contextBar.topAnchor.constraint(equalTo: main.topAnchor),
-            contextBar.heightAnchor.constraint(equalToConstant: 92),
+            contextBar.heightAnchor.constraint(equalToConstant: 74),
             contextCopy.leadingAnchor.constraint(equalTo: contextBar.leadingAnchor, constant: 24),
-            contextCopy.bottomAnchor.constraint(equalTo: contextBar.bottomAnchor, constant: -17),
+            contextCopy.bottomAnchor.constraint(equalTo: contextBar.bottomAnchor, constant: -14),
             status.trailingAnchor.constraint(equalTo: contextBar.trailingAnchor, constant: -24),
             status.centerYAnchor.constraint(equalTo: contextCopy.centerYAnchor),
             tabRail.leadingAnchor.constraint(equalTo: main.leadingAnchor),
             tabRail.trailingAnchor.constraint(equalTo: main.trailingAnchor),
             tabRail.topAnchor.constraint(equalTo: contextBar.bottomAnchor),
-            tabRail.heightAnchor.constraint(equalToConstant: 48),
+            tabRailHeightConstraint,
             subnavigation.leadingAnchor.constraint(equalTo: tabRail.leadingAnchor, constant: 22),
             subnavigation.centerYAnchor.constraint(equalTo: tabRail.centerYAnchor),
             subnavigation.trailingAnchor.constraint(lessThanOrEqualTo: tabRail.trailingAnchor, constant: -22),
@@ -395,7 +399,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             subnavigation.setWidth(0, forSegment: index)
         }
         subnavigation.selectedSegment = route.subpage
-        subnavigation.isHidden = labels.count <= 1
+        let hasSubnavigation = labels.count > 1
+        subnavigation.isHidden = !hasSubnavigation
+        tabRail.isHidden = !hasSubnavigation
+        tabRailHeightConstraint?.constant = hasSubnavigation ? 44 : 0
     }
 
     private func reloadSurface() {
@@ -414,7 +421,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
                 surface.view.bottomAnchor.constraint(equalTo: contentHost.bottomAnchor),
             ])
             currentWrapper = surface.view
-        case let .centered(size):
+        case let .top(size):
             let scroll = KikiScrollView()
             scroll.fillsBackground = false
             scroll.hasVerticalScroller = true
@@ -422,7 +429,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             let document = WorkbenchScrollDocument(
                 hostedView: surface.view,
                 preferredSize: size,
-                centersVertically: true
+                centersVertically: false
             )
             scroll.documentView = document
             scroll.translatesAutoresizingMaskIntoConstraints = false
@@ -473,6 +480,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 @MainActor
 private final class WorkbenchNavigationButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
+    private let keyboardFocusLayer = CAShapeLayer()
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
@@ -491,6 +499,12 @@ private final class WorkbenchNavigationButton: NSButton {
         wantsLayer = true
         layer?.cornerRadius = 7
         layer?.cornerCurve = .continuous
+        keyboardFocusLayer.fillColor = NSColor.clear.cgColor
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.lineWidth = 1.5
+        keyboardFocusLayer.isHidden = true
+        keyboardFocusLayer.name = "kiki.workbench-nav.keyboard-focus"
+        layer?.addSublayer(keyboardFocusLayer)
 
         symbolView.image = NSImage(systemSymbolName: section.symbol, accessibilityDescription: section.title)
         symbolView.imageScaling = .scaleProportionallyDown
@@ -527,11 +541,38 @@ private final class WorkbenchNavigationButton: NSButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override var mouseDownCanMoveWindow: Bool { false }
+    override var acceptsFirstResponder: Bool { isEnabled }
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        updateKeyboardFocus()
+        return accepted
+    }
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        updateKeyboardFocus()
+        return resigned
+    }
+    override func layout() {
+        super.layout()
+        keyboardFocusLayer.frame = bounds
+        keyboardFocusLayer.path = CGPath(
+            roundedRect: bounds.insetBy(dx: 2.5, dy: 2.5),
+            cornerWidth: 5,
+            cornerHeight: 5,
+            transform: nil
+        )
+        updateKeyboardFocus()
+    }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func hitTest(_ point: NSPoint) -> NSView? {
         frame.contains(point) && !isHidden && isEnabled ? self : nil
     }
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); updateStyle() }
+
+    private func updateKeyboardFocus() {
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.isHidden = window?.firstResponder !== self || !isEnabled
+    }
 
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
