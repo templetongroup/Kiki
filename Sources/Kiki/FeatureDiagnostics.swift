@@ -85,6 +85,10 @@ enum FeatureDiagnostics {
               tabRail.frame.height < 1 else {
             throw failure("single-page Workbench sections must not reserve an empty tab rail")
         }
+        guard let selectedHomeNavigation = findView(in: content, identifier: "kiki.workbench.nav.home"),
+              selectedHomeNavigation.layer?.borderWidth == 0 else {
+            throw failure("selected Workbench navigation must not draw a colored border")
+        }
 
         controller.select(GuidedWorkbenchRoute(section: .dictation, subpage: 1))
         content.layoutSubtreeIfNeeded()
@@ -122,6 +126,36 @@ enum FeatureDiagnostics {
               compactHomeView.bounds.width <= 665 else {
             throw failure(
                 "Home content must preserve a 900-point resized window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
+            )
+        }
+        let homeActionIDs = [
+            "kiki.workbench.home.dictation",
+            "kiki.workbench.home.meeting",
+            "kiki.workbench.home.voice",
+            "kiki.workbench.home.audio",
+        ]
+        let homeActionButtons = homeActionIDs.compactMap {
+            findView(in: compactHomeView, identifier: $0) as? KikiActionButton
+        }
+        let homeActionHeights = homeActionButtons.map(\.frame.height)
+        let homeActionWidths = homeActionButtons.map(\.frame.width)
+        let homeActionMinY = homeActionButtons.map(\.frame.minY)
+        let homeActionFontSizes = homeActionButtons.compactMap { $0.font?.pointSize }
+        let homeActionFontNames = homeActionButtons.compactMap { $0.font?.fontName }
+        guard homeActionButtons.count == homeActionIDs.count,
+              let minimumHomeActionHeight = homeActionHeights.min(),
+              let maximumHomeActionHeight = homeActionHeights.max(),
+              maximumHomeActionHeight - minimumHomeActionHeight <= 0.5,
+              let minimumHomeActionWidth = homeActionWidths.min(),
+              let maximumHomeActionWidth = homeActionWidths.max(),
+              maximumHomeActionWidth - minimumHomeActionWidth <= 0.5,
+              let minimumHomeActionMinY = homeActionMinY.min(),
+              let maximumHomeActionMinY = homeActionMinY.max(),
+              maximumHomeActionMinY - minimumHomeActionMinY <= 0.5,
+              Set(homeActionFontSizes).count == 1,
+              Set(homeActionFontNames).count == 1 else {
+            throw failure(
+                "Home actions must share one geometry and label treatment widths=\(homeActionWidths) heights=\(homeActionHeights) y=\(homeActionMinY) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes)"
             )
         }
 
@@ -205,6 +239,37 @@ enum FeatureDiagnostics {
             throw failure(
                 "Listening display label and menu must stay grouped gap=\(positionPopupFrame.minX - positionLabelFrame.maxX)"
             )
+        }
+
+        let narrowGeneralSettingsHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
+        embeddedSettings.translatesAutoresizingMaskIntoConstraints = false
+        narrowGeneralSettingsHost.addSubview(embeddedSettings)
+        NSLayoutConstraint.activate([
+            embeddedSettings.leadingAnchor.constraint(equalTo: narrowGeneralSettingsHost.leadingAnchor),
+            embeddedSettings.trailingAnchor.constraint(equalTo: narrowGeneralSettingsHost.trailingAnchor),
+            embeddedSettings.topAnchor.constraint(equalTo: narrowGeneralSettingsHost.topAnchor),
+            embeddedSettings.bottomAnchor.constraint(equalTo: narrowGeneralSettingsHost.bottomAnchor),
+        ])
+        narrowGeneralSettingsHost.layoutSubtreeIfNeeded()
+        let groupedSettingsControls: [(page: NSView, rowID: String, controlID: String)] = [
+            (embeddedSettings, "kiki.settings.sound-row", "kiki.sound-style"),
+            (dictationSettings, "kiki.settings.shortcut-row", "kiki.dictation-shortcut"),
+            (dictationSettings, "kiki.settings.behavior-row", "kiki.activation-mode"),
+            (dictationSettings, "kiki.settings.speech-profile-row", "kiki.speech-profile"),
+        ]
+        for groupedControl in groupedSettingsControls {
+            guard let row = findView(in: groupedControl.page, identifier: groupedControl.rowID),
+                  let label = descendants(of: row).compactMap({ $0 as? NSTextField }).first,
+                  let control = findView(in: row, identifier: groupedControl.controlID) else {
+                throw failure("Grouped settings control \(groupedControl.rowID)")
+            }
+            let labelFrame = label.convert(label.bounds, to: row)
+            let controlFrame = control.convert(control.bounds, to: row)
+            guard controlFrame.minX - labelFrame.maxX <= 18 else {
+                throw failure(
+                    "Settings label and control must stay grouped row=\(groupedControl.rowID) gap=\(controlFrame.minX - labelFrame.maxX)"
+                )
+            }
         }
     }
 

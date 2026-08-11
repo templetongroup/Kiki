@@ -294,12 +294,15 @@ final class SettingsWindowController: NSWindowController {
         historyCheckbox.action = #selector(historyChanged)
 
         soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
+        soundPopup.identifier = NSUserInterfaceItemIdentifier("kiki.sound-style")
         soundPopup.target = self
         soundPopup.action = #selector(soundChanged)
         modePopup.addItems(withTitles: ActivationMode.allCases.map(\.title))
+        modePopup.identifier = NSUserInterfaceItemIdentifier("kiki.activation-mode")
         modePopup.target = self
         modePopup.action = #selector(modeChanged)
         speechProfilePopup.addItems(withTitles: SpeechProfile.allCases.map(\.title))
+        speechProfilePopup.identifier = NSUserInterfaceItemIdentifier("kiki.speech-profile")
         speechProfilePopup.target = self
         speechProfilePopup.action = #selector(speechProfileChanged)
 
@@ -311,6 +314,7 @@ final class SettingsWindowController: NSWindowController {
 
         shortcutButton.target = self
         shortcutButton.action = #selector(beginCapture)
+        shortcutButton.identifier = NSUserInterfaceItemIdentifier("kiki.dictation-shortcut")
         shortcutButton.bezelStyle = .texturedRounded
         shortcutButton.controlSize = .large
         shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
@@ -326,7 +330,12 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeGeneralPage() -> NSView {
-        let soundRow = labeledRow("Dictation sounds", controls: [soundPopup])
+        let soundRow = labeledRow(
+            "Dictation sounds",
+            controls: [soundPopup],
+            identifier: "kiki.settings.sound-row",
+            placesControlsAtTrailingEdge: false
+        )
         return page(with: [
             SettingsCard(
                 title: "Startup & Updates",
@@ -343,9 +352,24 @@ final class SettingsWindowController: NSWindowController {
 
     private func makeDictationPage() -> NSView {
         let reset = KikiActionButton("Restore Default", kind: .secondary, target: self, action: #selector(resetShortcut))
-        let shortcutRow = labeledRow("Shortcut", controls: [shortcutButton, reset])
-        let behaviorRow = labeledRow("Behavior", controls: [modePopup])
-        let profileRow = labeledRow("Transcription style", controls: [speechProfilePopup])
+        let shortcutRow = labeledRow(
+            "Shortcut",
+            controls: [shortcutButton, reset],
+            identifier: "kiki.settings.shortcut-row",
+            placesControlsAtTrailingEdge: false
+        )
+        let behaviorRow = labeledRow(
+            "Behavior",
+            controls: [modePopup],
+            identifier: "kiki.settings.behavior-row",
+            placesControlsAtTrailingEdge: false
+        )
+        let profileRow = labeledRow(
+            "Transcription style",
+            controls: [speechProfilePopup],
+            identifier: "kiki.settings.speech-profile-row",
+            placesControlsAtTrailingEdge: false
+        )
         return page(with: [
             SettingsCard(
                 title: "Activation",

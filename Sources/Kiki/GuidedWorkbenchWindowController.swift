@@ -631,8 +631,8 @@ private final class WorkbenchNavigationButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage ? KikiPalette.selectionSurface.withAlphaComponent(0.74).cgColor : NSColor.clear.cgColor
-            layer?.borderWidth = isSelectedPage ? 1 : 0
-            layer?.borderColor = KikiPalette.khaki.withAlphaComponent(0.48).cgColor
+            layer?.borderWidth = 0
+            layer?.borderColor = NSColor.clear.cgColor
             let primary = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
             let accent = isSelectedPage ? KikiPalette.accentText : KikiPalette.tertiaryText
             titleLabel.textColor = primary
