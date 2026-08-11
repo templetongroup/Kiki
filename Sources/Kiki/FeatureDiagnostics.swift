@@ -107,6 +107,24 @@ enum FeatureDiagnostics {
             throw failure("Home route must remain freely resizable")
         }
 
+        let compactHomeController = GuidedWorkbenchWindowController()
+        let compactHomeView = GuidedWorkbenchHomeView()
+        compactHomeController.onRouteChange = { route in
+            route.section == .home
+                ? GuidedWorkbenchSurface(view: compactHomeView, sizing: .fill)
+                : nil
+        }
+        compactHomeController.select(GuidedWorkbenchRoute(section: .home))
+        compactHomeController.window?.setContentSize(NSSize(width: 900, height: 650))
+        compactHomeController.window?.contentView?.layoutSubtreeIfNeeded()
+        guard let compactHomeContent = compactHomeController.window?.contentView,
+              compactHomeContent.bounds.width <= 900.5,
+              compactHomeView.bounds.width <= 665 else {
+            throw failure(
+                "Home content must preserve a 900-point resized window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
+            )
+        }
+
         let adaptivePage = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 620))
         controller.onRouteChange = { _ in
             GuidedWorkbenchSurface(view: adaptivePage, sizing: .scroll(NSSize(width: 900, height: 620)))
@@ -129,6 +147,64 @@ enum FeatureDiagnostics {
         guard descendants(of: embeddedSettings).allSatisfy({ !($0 is KikiNavButton) }),
               descendants(of: embeddedPersonalization).allSatisfy({ !($0 is KikiNavButton) }) else {
             throw failure("Workbench content must not embed legacy sidebars")
+        }
+
+        let narrowPersonalizationHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
+        embeddedPersonalization.translatesAutoresizingMaskIntoConstraints = false
+        narrowPersonalizationHost.addSubview(embeddedPersonalization)
+        NSLayoutConstraint.activate([
+            embeddedPersonalization.leadingAnchor.constraint(equalTo: narrowPersonalizationHost.leadingAnchor),
+            embeddedPersonalization.trailingAnchor.constraint(equalTo: narrowPersonalizationHost.trailingAnchor),
+            embeddedPersonalization.topAnchor.constraint(equalTo: narrowPersonalizationHost.topAnchor),
+            embeddedPersonalization.bottomAnchor.constraint(equalTo: narrowPersonalizationHost.bottomAnchor),
+        ])
+        narrowPersonalizationHost.layoutSubtreeIfNeeded()
+        guard let guidedReview = findView(
+            in: embeddedPersonalization,
+            identifier: "kiki.personalization.guided-review"
+        ) else {
+            throw failure("Personalization guided review surface")
+        }
+        let guidedReviewFrame = guidedReview.convert(guidedReview.bounds, to: embeddedPersonalization)
+        guard guidedReviewFrame.width >= embeddedPersonalization.bounds.width - 1,
+              guidedReviewFrame.minX >= -0.5,
+              guidedReviewFrame.maxX <= embeddedPersonalization.bounds.maxX + 0.5,
+              guidedReviewFrame.minY >= -0.5,
+              guidedReviewFrame.maxY <= embeddedPersonalization.bounds.maxY + 0.5,
+              guidedReviewFrame.height >= guidedReview.fittingSize.height - 1 else {
+            throw failure(
+                "Personalization guided review must stack at narrow widths frame=\(guidedReviewFrame) page=\(embeddedPersonalization.bounds)"
+            )
+        }
+
+        let dictationSettings = settingsController.workbenchPage(1)
+        let narrowSettingsHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
+        dictationSettings.translatesAutoresizingMaskIntoConstraints = false
+        narrowSettingsHost.addSubview(dictationSettings)
+        NSLayoutConstraint.activate([
+            dictationSettings.leadingAnchor.constraint(equalTo: narrowSettingsHost.leadingAnchor),
+            dictationSettings.trailingAnchor.constraint(equalTo: narrowSettingsHost.trailingAnchor),
+            dictationSettings.topAnchor.constraint(equalTo: narrowSettingsHost.topAnchor),
+            dictationSettings.bottomAnchor.constraint(equalTo: narrowSettingsHost.bottomAnchor),
+        ])
+        narrowSettingsHost.layoutSubtreeIfNeeded()
+        guard let positionRow = findView(
+            in: dictationSettings,
+            identifier: "kiki.settings.listening-position-row"
+        ),
+              let positionLabel = descendants(of: positionRow).compactMap({ $0 as? NSTextField }).first,
+              let positionPopup = findView(
+                in: positionRow,
+                identifier: "kiki.listening-display-position"
+              ) else {
+            throw failure("Listening display position row")
+        }
+        let positionLabelFrame = positionLabel.convert(positionLabel.bounds, to: positionRow)
+        let positionPopupFrame = positionPopup.convert(positionPopup.bounds, to: positionRow)
+        guard positionPopupFrame.minX - positionLabelFrame.maxX <= 18 else {
+            throw failure(
+                "Listening display label and menu must stay grouped gap=\(positionPopupFrame.minX - positionLabelFrame.maxX)"
+            )
         }
     }
 

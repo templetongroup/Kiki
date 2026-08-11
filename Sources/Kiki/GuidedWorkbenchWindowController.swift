@@ -205,6 +205,13 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         document.updateViewport(scroll.contentSize)
     }
 
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        if route.section == .home {
+            (currentWrapper as? GuidedWorkbenchHomeView)?.prepareForAvailableWidth(frameSize.width - 258)
+        }
+        return frameSize
+    }
+
     private func buildContent() {
         guard let content = window?.contentView else { return }
         let backdrop = KikiBackdropView()
@@ -683,9 +690,19 @@ private final class WorkbenchScrollDocument: NSView {
     override var isFlipped: Bool { true }
 
     func updateViewport(_ viewportSize: NSSize) {
-        let targetSize = NSSize(
-            width: max(1, viewportSize.width),
+        let documentWidth = max(1, viewportSize.width)
+        let hostedWidth = min(documentWidth, preferredSize.width * 1.35)
+        hostedView.frame = NSRect(
+            x: max(0, (documentWidth - hostedWidth) / 2),
+            y: 0,
+            width: hostedWidth,
             height: max(preferredSize.height, viewportSize.height)
+        )
+        hostedView.layoutSubtreeIfNeeded()
+        let fittedHeight = hostedView.fittingSize.height
+        let targetSize = NSSize(
+            width: documentWidth,
+            height: max(preferredSize.height, viewportSize.height, fittedHeight)
         )
         guard abs(frame.width - targetSize.width) > 0.5 || abs(frame.height - targetSize.height) > 0.5 else { return }
         frame.size = targetSize
@@ -697,7 +714,7 @@ private final class WorkbenchScrollDocument: NSView {
         let availableWidth = enclosingScrollView?.contentSize.width ?? preferredSize.width
         let documentWidth = max(1, availableWidth)
         let hostedWidth = min(documentWidth, preferredSize.width * 1.35)
-        let hostedHeight = max(preferredSize.height, bounds.height)
+        let hostedHeight = max(preferredSize.height, bounds.height, hostedView.fittingSize.height)
         hostedView.frame = NSRect(
             x: max(0, (documentWidth - hostedWidth) / 2),
             y: centersVertically ? max(0, (bounds.height - hostedHeight) / 2) : 0,

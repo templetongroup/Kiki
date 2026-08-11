@@ -8,6 +8,10 @@ final class GuidedWorkbenchHomeView: NSView {
     var onOpenAudioFile: (() -> Void)?
     var onOpenPersonalization: (() -> Void)?
     var onOpenCheckup: (() -> Void)?
+    private weak var heroArtworkView: NSImageView?
+    private var wideHeroConstraints: [NSLayoutConstraint] = []
+    private var compactHeroConstraint: NSLayoutConstraint?
+    private var usesCompactHero: Bool?
 
     init() {
         super.init(frame: .zero)
@@ -15,6 +19,24 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        // Switch constraints from the proposed width, before AppKit resolves the
+        // current wide layout back into the window's minimum fitting width.
+        if !wideHeroConstraints.isEmpty {
+            updateHeroLayout(compact: newSize.width < 900)
+        }
+        super.setFrameSize(newSize)
+    }
+
+    func prepareForAvailableWidth(_ width: CGFloat) {
+        updateHeroLayout(compact: width < 900)
+    }
+
+    override func layout() {
+        updateHeroLayout(compact: bounds.width < 900)
+        super.layout()
+    }
 
     private func buildContent() {
         let backdrop = KikiBackdropView()
@@ -53,6 +75,7 @@ final class GuidedWorkbenchHomeView: NSView {
         heroArtwork.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         heroArtwork.setContentHuggingPriority(.defaultLow, for: .horizontal)
         heroArtwork.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.hero")
+        heroArtworkView = heroArtwork
 
         let hero = KikiCardView()
         hero.layer?.masksToBounds = true
@@ -60,15 +83,22 @@ final class GuidedWorkbenchHomeView: NSView {
         heroArtwork.translatesAutoresizingMaskIntoConstraints = false
         hero.addSubview(copy)
         hero.addSubview(heroArtwork)
-        NSLayoutConstraint.activate([
-            copy.leadingAnchor.constraint(equalTo: hero.leadingAnchor, constant: 24),
-            copy.centerYAnchor.constraint(equalTo: hero.centerYAnchor),
-            copy.trailingAnchor.constraint(lessThanOrEqualTo: hero.centerXAnchor, constant: -10),
+        let wideCopyConstraint = copy.trailingAnchor.constraint(lessThanOrEqualTo: hero.centerXAnchor, constant: -10)
+        // This is a presentation preference, not a minimum window width. AppKit
+        // must be free to break it while transitioning into the compact layout.
+        wideCopyConstraint.priority = NSLayoutConstraint.Priority(249)
+        let artworkConstraints = [
             heroArtwork.leadingAnchor.constraint(equalTo: hero.centerXAnchor, constant: 8),
             heroArtwork.trailingAnchor.constraint(equalTo: hero.trailingAnchor),
             heroArtwork.topAnchor.constraint(equalTo: hero.topAnchor),
             heroArtwork.bottomAnchor.constraint(equalTo: hero.bottomAnchor),
-        ])
+        ]
+        wideHeroConstraints = [wideCopyConstraint] + artworkConstraints
+        compactHeroConstraint = copy.trailingAnchor.constraint(lessThanOrEqualTo: hero.trailingAnchor, constant: -24)
+        NSLayoutConstraint.activate([
+            copy.leadingAnchor.constraint(equalTo: hero.leadingAnchor, constant: 24),
+            copy.centerYAnchor.constraint(equalTo: hero.centerYAnchor),
+        ] + wideHeroConstraints)
 
         let attention = makeAttentionCard()
         let readiness = makeReadinessCard()
@@ -105,6 +135,19 @@ final class GuidedWorkbenchHomeView: NSView {
             attention.heightAnchor.constraint(equalToConstant: 260),
             readiness.heightAnchor.constraint(equalToConstant: 260),
         ])
+    }
+
+    private func updateHeroLayout(compact: Bool) {
+        guard usesCompactHero != compact else { return }
+        usesCompactHero = compact
+        if compact {
+            NSLayoutConstraint.deactivate(wideHeroConstraints)
+            compactHeroConstraint?.isActive = true
+        } else {
+            compactHeroConstraint?.isActive = false
+            NSLayoutConstraint.activate(wideHeroConstraints)
+        }
+        heroArtworkView?.isHidden = compact
     }
 
     private func makeAttentionCard() -> KikiCardView {

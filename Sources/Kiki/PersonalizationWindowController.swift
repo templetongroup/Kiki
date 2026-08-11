@@ -355,25 +355,24 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             privacy.topAnchor.constraint(equalTo: privacyCard.topAnchor, constant: 12),
             privacy.bottomAnchor.constraint(equalTo: privacyCard.bottomAnchor, constant: -12),
         ])
+        let guideEyebrow = kikiLabel("GUIDED REVIEW", size: 10, weight: .bold, color: KikiPalette.accentText)
+        let guideCards: [NSView] = [selectedStep, summaryCard, scopeStep, approveStep, privacyCard]
         let guide = NSStackView(views: [
-            kikiLabel("GUIDED REVIEW", size: 10, weight: .bold, color: KikiPalette.accentText),
+            guideEyebrow,
             selectedStep,
             summaryCard,
             scopeStep,
             approveStep,
             privacyCard,
-            NSView(),
         ])
+        guide.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.guided-review")
         guide.orientation = .vertical
-        guide.alignment = .width
+        guide.alignment = .leading
         guide.spacing = 10
+        guideCards.forEach { $0.widthAnchor.constraint(equalTo: guide.widthAnchor).isActive = true }
 
-        let lower = NSStackView(views: [approved, guide])
-        lower.orientation = .horizontal
-        lower.alignment = .top
-        lower.spacing = 16
-        guide.widthAnchor.constraint(equalToConstant: 300).isActive = true
-        approved.widthAnchor.constraint(equalTo: lower.widthAnchor, constant: -316).isActive = true
+        let lower = ResponsivePersonalizationStackView(primary: approved, guide: guide)
+        lower.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-lower")
 
         let layout = NSStackView(views: [suggestions, lower])
         layout.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-layout")
@@ -860,4 +859,49 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         ConfidenceReviewStore.shared.remove(id: ConfidenceReviewStore.shared.reviews[row].id)
     }
     @objc private func clearConfidenceReviews() { ConfidenceReviewStore.shared.clear() }
+}
+
+@MainActor
+private final class ResponsivePersonalizationStackView: NSStackView {
+    private let primaryView: NSView
+    private let guideView: NSView
+    private lazy var guideWidthConstraint = guideView.widthAnchor.constraint(equalToConstant: 360)
+    private lazy var stackedPrimaryWidthConstraint = primaryView.widthAnchor.constraint(equalTo: widthAnchor)
+    private lazy var stackedGuideWidthConstraint = guideView.widthAnchor.constraint(equalTo: widthAnchor)
+    private var usesStackedLayout: Bool?
+
+    init(primary: NSView, guide: NSView) {
+        primaryView = primary
+        guideView = guide
+        super.init(frame: .zero)
+        addArrangedSubview(primary)
+        addArrangedSubview(guide)
+        distribution = .fill
+        spacing = 16
+        primary.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        guide.setContentHuggingPriority(.required, for: .horizontal)
+        updateLayoutMode(stacked: false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layout() {
+        let shouldStack = bounds.width < 1_080
+        if usesStackedLayout != shouldStack {
+            updateLayoutMode(stacked: shouldStack)
+        }
+        super.layout()
+    }
+
+    private func updateLayoutMode(stacked: Bool) {
+        usesStackedLayout = stacked
+        guideWidthConstraint.isActive = !stacked
+        stackedPrimaryWidthConstraint.isActive = stacked
+        stackedGuideWidthConstraint.isActive = stacked
+        orientation = stacked ? .vertical : .horizontal
+        alignment = stacked ? .leading : .top
+        primaryView.setContentHuggingPriority(stacked ? .defaultHigh : .defaultLow, for: .horizontal)
+        guideView.setContentHuggingPriority(stacked ? .defaultHigh : .required, for: .horizontal)
+        needsLayout = true
+    }
 }

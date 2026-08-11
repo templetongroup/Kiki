@@ -358,7 +358,12 @@ final class SettingsWindowController: NSWindowController {
                 views: [
                     listeningDisplayControl,
                     listeningDisplayDescriptionLabel,
-                    labeledRow("Position", controls: [listeningPositionPopup]),
+                    labeledRow(
+                        "Position",
+                        controls: [listeningPositionPopup],
+                        identifier: "kiki.settings.listening-position-row",
+                        placesControlsAtTrailingEdge: false
+                    ),
                 ]
             ),
             SettingsCard(
@@ -500,14 +505,22 @@ final class SettingsWindowController: NSWindowController {
         return scroll
     }
 
-    private func labeledRow(_ title: String, controls: [NSView]) -> NSView {
+    private func labeledRow(
+        _ title: String,
+        controls: [NSView],
+        identifier: String? = nil,
+        placesControlsAtTrailingEdge: Bool = true
+    ) -> NSView {
         let label = kikiLabel(title, size: 13, weight: .medium, color: KikiPalette.secondaryText)
         label.setContentHuggingPriority(.required, for: .horizontal)
-        let spacer = NSView()
-        let row = NSStackView(views: [label, spacer] + controls)
+        let rowViews = placesControlsAtTrailingEdge ? [label, NSView()] + controls : [label] + controls
+        let row = NSStackView(views: rowViews)
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
+        if let identifier {
+            row.identifier = NSUserInterfaceItemIdentifier(identifier)
+        }
         return row
     }
 
