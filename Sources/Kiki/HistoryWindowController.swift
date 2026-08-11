@@ -5,6 +5,16 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private let tableView = NSTableView()
     private let textView = NSTextView()
     private let countLabel = NSTextField(labelWithString: "")
+    private let statusLabel = NSTextField(labelWithString: "")
+    private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
+    private lazy var deleteButton = KikiActionButton("Delete Selected", kind: .hardware, target: self, action: #selector(deleteSelected))
+    private lazy var clearButton = KikiActionButton("Clear All", kind: .danger, target: self, action: #selector(clearAll))
+    private var tableSurface: KikiDataSurfaceView?
+    private let detailEmptyState = KikiEmptyStateView(
+        symbol: "text.alignleft",
+        title: "Choose a transcription",
+        detail: "Select a row to read the complete local transcript and model details."
+    )
     private var observer: NSObjectProtocol?
 
     private static let dateFormatter: DateFormatter = {
@@ -16,7 +26,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 540),
+            contentRect: NSRect(x: 0, y: 0, width: 920, height: 620),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -28,6 +38,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
+        updateActionAvailability()
         observer = NotificationCenter.default.addObserver(
             forName: TranscriptionHistoryStore.didChangeNotification,
             object: nil,
@@ -75,17 +86,20 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.addTableColumn(dateColumn)
         tableView.addTableColumn(contextColumn)
         tableView.addTableColumn(previewColumn)
+        tableView.identifier = NSUserInterfaceItemIdentifier("kiki.history.table")
         tableView.delegate = self
         tableView.dataSource = self
         tableView.headerView = NSTableHeaderView()
         tableView.allowsMultipleSelection = false
         tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
         tableView.usesAlternatingRowBackgroundColors = true
-
-        let tableScroll = NSScrollView()
-        tableScroll.documentView = tableView
-        tableScroll.hasVerticalScroller = true
-        tableScroll.borderType = .noBorder
+        let historySurface = KikiDataSurfaceView(
+            table: tableView,
+            emptySymbol: "clock.arrow.circlepath",
+            emptyTitle: "No local history yet",
+            emptyDetail: "When text-only history is enabled, completed dictations appear here. Microphone audio is never stored."
+        )
+        tableSurface = historySurface
 
         textView.isEditable = false
         textView.isSelectable = true
@@ -98,21 +112,49 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         textScroll.hasVerticalScroller = true
         textScroll.borderType = .noBorder
 
+        let detailCard = KikiCardView()
+        detailCard.usesHardwareDepth = false
+        textScroll.translatesAutoresizingMaskIntoConstraints = false
+        detailEmptyState.translatesAutoresizingMaskIntoConstraints = false
+        detailCard.addSubview(textScroll)
+        detailCard.addSubview(detailEmptyState)
+        NSLayoutConstraint.activate([
+            textScroll.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 1),
+            textScroll.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -1),
+            textScroll.topAnchor.constraint(equalTo: detailCard.topAnchor, constant: 1),
+            textScroll.bottomAnchor.constraint(equalTo: detailCard.bottomAnchor, constant: -1),
+            detailEmptyState.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor),
+            detailEmptyState.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor),
+            detailEmptyState.topAnchor.constraint(equalTo: detailCard.topAnchor),
+            detailEmptyState.bottomAnchor.constraint(equalTo: detailCard.bottomAnchor),
+        ])
+
         let split = NSSplitView()
         split.isVertical = true
         split.dividerStyle = .thin
-        split.addArrangedSubview(tableScroll)
-        split.addArrangedSubview(textScroll)
+        split.addArrangedSubview(historySurface)
+        split.addArrangedSubview(detailCard)
 
-        let privacy = NSTextField(labelWithString: "Text only • stored locally • no microphone audio saved")
+        let eyebrow = kikiLabel("LOCAL LIBRARY", size: 10, weight: .bold, color: KikiPalette.accentText)
+        let title = kikiLabel("History", size: 28, weight: .bold)
+        let subtitle = kikiLabel("Review, copy, or remove the transcript text Kiki stores on this Mac.", size: 13, color: KikiPalette.secondaryText)
+        let header = NSStackView(views: [eyebrow, title, subtitle])
+        header.orientation = .vertical
+        header.alignment = .leading
+        header.spacing = 5
+
+        let privacy = NSTextField(labelWithString: "Text only · stored locally · no microphone audio saved")
         privacy.textColor = KikiPalette.secondaryText
-        let copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
-        let deleteButton = KikiActionButton("Delete", kind: .secondary, target: self, action: #selector(deleteSelected))
-        let clearButton = KikiActionButton("Clear All", kind: .danger, target: self, action: #selector(clearAll))
         let footer = NSStackView(views: [countLabel, privacy, NSView(), copyButton, deleteButton, clearButton])
         footer.spacing = 10
+        statusLabel.textColor = KikiPalette.secondaryText
+        statusLabel.font = .systemFont(ofSize: 11.5)
+        statusLabel.setAccessibilityLabel("History status")
+        copyButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.copy")
+        deleteButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.delete")
+        clearButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.clear")
 
-        let stack = NSStackView(views: [split, footer])
+        let stack = NSStackView(views: [header, split, footer, statusLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -121,12 +163,14 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 18),
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -18),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 44),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18),
+            subtitle.widthAnchor.constraint(equalTo: stack.widthAnchor),
             split.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            split.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
-            tableScroll.widthAnchor.constraint(greaterThanOrEqualToConstant: 430),
+            split.heightAnchor.constraint(greaterThanOrEqualToConstant: 390),
+            historySurface.widthAnchor.constraint(greaterThanOrEqualToConstant: 470),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
@@ -134,7 +178,13 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.reloadData()
         let count = TranscriptionHistoryStore.shared.records.count
         countLabel.stringValue = "\(count) \(count == 1 ? "transcription" : "transcriptions")"
-        if count == 0 { textView.string = "" }
+        tableSurface?.isEmpty = count == 0
+        clearButton.isEnabled = count > 0
+        if count == 0 {
+            textView.string = ""
+            detailEmptyState.isHidden = false
+        }
+        updateActionAvailability()
     }
 
     private var selectedRecord: TranscriptionRecord? {
@@ -144,15 +194,24 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     @objc private func copySelected() {
-        guard let record = selectedRecord else { return }
+        guard let record = selectedRecord else {
+            statusLabel.stringValue = "Choose a transcription before copying."
+            return
+        }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(record.text, forType: .string)
+        statusLabel.stringValue = "Transcript copied."
     }
 
     @objc private func deleteSelected() {
-        guard let record = selectedRecord else { return }
+        guard let record = selectedRecord else {
+            statusLabel.stringValue = "Choose a transcription before deleting."
+            return
+        }
         TranscriptionHistoryStore.shared.remove(id: record.id)
         textView.string = ""
+        detailEmptyState.isHidden = false
+        statusLabel.stringValue = "Transcript deleted from this Mac."
     }
 
     @objc private func clearAll() {
@@ -165,6 +224,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         TranscriptionHistoryStore.shared.clear()
         textView.string = ""
+        detailEmptyState.isHidden = false
+        statusLabel.stringValue = "Local transcription history cleared."
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
@@ -174,9 +235,19 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard let record = selectedRecord else {
             textView.string = ""
+            detailEmptyState.isHidden = false
+            updateActionAvailability()
             return
         }
+        detailEmptyState.isHidden = true
         textView.string = "\(record.text)\n\n— \(record.modelName) • \(String(format: "%.1f", record.duration))s • Local"
+        updateActionAvailability()
+    }
+
+    private func updateActionAvailability() {
+        let hasSelection = selectedRecord != nil
+        copyButton.isEnabled = hasSelection
+        deleteButton.isEnabled = hasSelection
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {

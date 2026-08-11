@@ -416,6 +416,7 @@ final class KikiActionButton: NSButton {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    override var title: String { didSet { updateStyle() } }
     override var isEnabled: Bool { didSet { updateStyle() } }
 
     override var intrinsicContentSize: NSSize {
@@ -438,23 +439,22 @@ final class KikiActionButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             if !isEnabled {
-                alphaValue = 0.78
+                alphaValue = 1
                 switch kind {
                 case .quiet:
                     layer?.backgroundColor = NSColor.clear.cgColor
                     layer?.borderWidth = 0
-                    contentTintColor = KikiPalette.tertiaryText
+                    applyTitleColor(KikiPalette.secondaryText.withAlphaComponent(0.86))
                 case .hardware:
-                    alphaValue = 1
                     layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                     layer?.borderWidth = 1
                     layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
-                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+                    applyTitleColor(KikiPalette.hardwareControlText.withAlphaComponent(0.88))
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
                     layer?.borderColor = KikiPalette.stroke.cgColor
-                    contentTintColor = KikiPalette.tertiaryText
+                    applyTitleColor(KikiPalette.primaryText.withAlphaComponent(0.70))
                 }
                 return
             }
@@ -464,12 +464,12 @@ final class KikiActionButton: NSButton {
                 layer?.backgroundColor = KikiPalette.accent.cgColor
                 layer?.borderWidth = 1
                 layer?.borderColor = KikiPalette.accentText.withAlphaComponent(0.55).cgColor
-                contentTintColor = KikiPalette.onAccentText
+                applyTitleColor(KikiPalette.onAccentText)
             case .secondary:
                 layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                 layer?.borderWidth = 1
                 layer?.borderColor = KikiPalette.strongStroke.cgColor
-                contentTintColor = KikiPalette.primaryText
+                applyTitleColor(KikiPalette.primaryText)
             case .hardware:
                 layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                 layer?.borderWidth = 1
@@ -478,17 +478,24 @@ final class KikiActionButton: NSButton {
                 layer?.shadowOpacity = 0.28
                 layer?.shadowRadius = 2
                 layer?.shadowOffset = CGSize(width: 0, height: -1)
-                contentTintColor = KikiPalette.hardwareControlText
+                applyTitleColor(KikiPalette.hardwareControlText)
             case .quiet:
                 layer?.backgroundColor = NSColor.clear.cgColor
                 layer?.borderWidth = 0
-                contentTintColor = KikiPalette.secondaryText
+                applyTitleColor(KikiPalette.secondaryText)
             case .danger:
                 layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.88).cgColor
                 layer?.borderWidth = 0
-                contentTintColor = .white
+                applyTitleColor(.white)
             }
         }
+    }
+
+    private func applyTitleColor(_ color: NSColor) {
+        contentTintColor = color
+        var attributes: [NSAttributedString.Key: Any] = [.foregroundColor: color]
+        if let font { attributes[.font] = font }
+        attributedTitle = NSAttributedString(string: title, attributes: attributes)
     }
 }
 
@@ -756,6 +763,173 @@ final class KikiInfoButton: NSButton {
         infoPopover = popover
         popover.show(relativeTo: bounds, of: self, preferredEdge: .maxX)
     }
+}
+
+@MainActor
+final class KikiEmptyStateView: NSView {
+    private let symbolView = NSImageView()
+    private let titleLabel: NSTextField
+    private let detailLabel: NSTextField
+
+    init(symbol: String, title: String, detail: String) {
+        titleLabel = kikiLabel(title, size: 14, weight: .semibold)
+        detailLabel = kikiLabel(detail, size: 12, color: KikiPalette.secondaryText)
+        super.init(frame: .zero)
+
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel(title)
+        setAccessibilityHelp(detail)
+
+        symbolView.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        symbolView.contentTintColor = KikiPalette.accentText
+        symbolView.imageScaling = .scaleProportionallyDown
+        symbolView.setAccessibilityElement(false)
+        detailLabel.alignment = .center
+        detailLabel.maximumNumberOfLines = 3
+
+        let stack = NSStackView(views: [symbolView, titleLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 7
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            symbolView.widthAnchor.constraint(equalToConstant: 28),
+            symbolView.heightAnchor.constraint(equalToConstant: 28),
+            detailLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 20),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -20),
+            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        symbolView.contentTintColor = KikiPalette.accentText
+    }
+}
+
+@MainActor
+final class KikiDataSurfaceView: KikiCardView {
+    let scrollView = KikiScrollView()
+    let emptyState: KikiEmptyStateView
+
+    var isEmpty = true {
+        didSet {
+            emptyState.isHidden = !isEmpty
+            scrollView.isHidden = isEmpty
+        }
+    }
+
+    init(table: NSTableView, emptySymbol: String, emptyTitle: String, emptyDetail: String) {
+        emptyState = KikiEmptyStateView(symbol: emptySymbol, title: emptyTitle, detail: emptyDetail)
+        super.init(frame: .zero)
+        if let tableIdentifier = table.identifier?.rawValue {
+            identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).surface")
+            emptyState.identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).empty")
+        }
+        usesHardwareDepth = false
+        cardCornerRadius = 7
+
+        scrollView.documentView = table
+        scrollView.hasVerticalScroller = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        emptyState.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        addSubview(emptyState)
+        NSLayoutConstraint.activate([
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 1),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -1),
+            scrollView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+            emptyState.leadingAnchor.constraint(equalTo: leadingAnchor),
+            emptyState.trailingAnchor.constraint(equalTo: trailingAnchor),
+            emptyState.topAnchor.constraint(equalTo: topAnchor),
+            emptyState.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        isEmpty = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+final class KikiGuidedStepView: KikiCardView {
+    init(number: Int, title: String, detail: String, trailing: NSView? = nil) {
+        super.init(frame: .zero)
+
+        let numberLabel = kikiLabel("\(number)", size: 12, weight: .semibold, color: KikiPalette.accentText)
+        numberLabel.alignment = .center
+        numberLabel.wantsLayer = true
+        numberLabel.layer?.cornerRadius = 15
+        numberLabel.layer?.borderWidth = 1
+        numberLabel.layer?.borderColor = KikiPalette.strongStroke.cgColor
+
+        let titleLabel = kikiLabel(title, size: 14, weight: .semibold)
+        titleLabel.maximumNumberOfLines = 2
+        let detailLabel = kikiLabel(detail, size: 11.5, color: KikiPalette.secondaryText)
+        detailLabel.maximumNumberOfLines = 3
+        let copy = NSStackView(views: [titleLabel, detailLabel])
+        copy.orientation = .vertical
+        copy.alignment = .leading
+        copy.spacing = 4
+
+        numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        copy.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(numberLabel)
+        addSubview(copy)
+        var constraints = [
+            numberLabel.widthAnchor.constraint(equalToConstant: 30),
+            numberLabel.heightAnchor.constraint(equalToConstant: 30),
+            numberLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            numberLabel.topAnchor.constraint(equalTo: topAnchor, constant: 14),
+            copy.leadingAnchor.constraint(equalTo: numberLabel.trailingAnchor, constant: 12),
+            copy.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            copy.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+        ]
+        if let trailing {
+            trailing.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(trailing)
+            constraints += [
+                trailing.leadingAnchor.constraint(equalTo: copy.leadingAnchor),
+                trailing.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
+                trailing.topAnchor.constraint(equalTo: copy.bottomAnchor, constant: 10),
+                trailing.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
+            ]
+        } else {
+            constraints.append(copy.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12))
+        }
+        NSLayoutConstraint.activate(constraints)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+func kikiFieldGroup(
+    _ title: String,
+    detail: String? = nil,
+    control: NSView
+) -> NSStackView {
+    let titleLabel = kikiLabel(title, size: 11.5, weight: .semibold)
+    let views: [NSView]
+    if let detail {
+        let detailLabel = kikiLabel(detail, size: 10.5, color: KikiPalette.secondaryText)
+        detailLabel.maximumNumberOfLines = 2
+        views = [titleLabel, detailLabel, control]
+    } else {
+        views = [titleLabel, control]
+    }
+    let stack = NSStackView(views: views)
+    stack.orientation = .vertical
+    stack.alignment = .leading
+    stack.spacing = 5
+    control.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+    return stack
 }
 
 @MainActor

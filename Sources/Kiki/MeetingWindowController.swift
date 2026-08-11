@@ -15,7 +15,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private let textView = NSTextView()
     private let formatPopup = NSPopUpButton()
     private lazy var identifySpeakersButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: self, action: #selector(identifySpeakers))
+    private lazy var exportButton = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
+    private lazy var copyButton = KikiActionButton("Copy", kind: .hardware, target: self, action: #selector(copyTranscript))
     private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
+    private let transcriptEmptyState = KikiEmptyStateView(
+        symbol: "person.2.wave.2",
+        title: "Ready to capture the room",
+        detail: "Name the meeting, confirm whether you want local WAV files, then start capture. The live draft and final transcript appear here."
+    )
     private var isRecording = false
     private var timer: Timer?
     private var startedAt: Date?
@@ -48,6 +55,11 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             titleField.stringValue = "Meeting — \(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short))"
         }
         saveAudioCheckbox.state = Settings.saveMeetingAudio ? .on : .off
+        if transcript == nil, !isRecording {
+            transcriptEmptyState.isHidden = false
+            exportButton.isEnabled = false
+            copyButton.isEnabled = false
+        }
         showWindow(nil)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
@@ -59,6 +71,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         titleField.stringValue = transcript.title
         textView.string = transcript.markdown
         identifySpeakersButton.isEnabled = !transcript.segments.isEmpty
+        transcriptEmptyState.isHidden = true
+        exportButton.isEnabled = true
+        copyButton.isEnabled = true
         statusLabel.stringValue = "Preview complete — identify speakers before exporting."
         show()
     }
@@ -102,11 +117,13 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         header.spacing = 14
 
         titleField.placeholderString = "Meeting title"
+        titleField.setAccessibilityLabel("Meeting title")
         titleField.font = .systemFont(ofSize: 14, weight: .medium)
         timerLabel.font = .monospacedDigitSystemFont(ofSize: 19, weight: .semibold)
         timerLabel.textColor = KikiPalette.secondaryText
         statusLabel.textColor = KikiPalette.secondaryText
         statusLabel.font = .systemFont(ofSize: 12.5)
+        statusLabel.setAccessibilityLabel("Meeting capture status")
         saveAudioCheckbox.target = self
         saveAudioCheckbox.action = #selector(saveAudioChanged)
         saveAudioCheckbox.contentTintColor = KikiPalette.accentText
@@ -115,6 +132,21 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         controls.orientation = .horizontal
         controls.alignment = .centerY
         controls.spacing = 12
+        let controlStack = NSStackView(views: [controls, statusLabel])
+        controlStack.orientation = .vertical
+        controlStack.alignment = .leading
+        controlStack.spacing = 9
+        controlStack.translatesAutoresizingMaskIntoConstraints = false
+        let controlCard = KikiCardView()
+        controlCard.addSubview(controlStack)
+        NSLayoutConstraint.activate([
+            controlStack.leadingAnchor.constraint(equalTo: controlCard.leadingAnchor, constant: 14),
+            controlStack.trailingAnchor.constraint(equalTo: controlCard.trailingAnchor, constant: -14),
+            controlStack.topAnchor.constraint(equalTo: controlCard.topAnchor, constant: 12),
+            controlStack.bottomAnchor.constraint(equalTo: controlCard.bottomAnchor, constant: -12),
+            controls.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
+            statusLabel.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
+        ])
 
         textView.isEditable = true
         textView.isRichText = false
@@ -123,16 +155,37 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         textView.textColor = KikiPalette.primaryText
         textView.insertionPointColor = KikiPalette.accentText
         textView.textContainerInset = NSSize(width: 14, height: 14)
-        textView.string = "Your local transcript will appear here after capture stops."
+        textView.string = ""
         let scroll = KikiScrollView()
         scroll.documentView = textView
         scroll.hasVerticalScroller = true
+        let transcriptCard = KikiCardView()
+        transcriptCard.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.transcript")
+        transcriptEmptyState.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.empty")
+        transcriptCard.usesHardwareDepth = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        transcriptEmptyState.translatesAutoresizingMaskIntoConstraints = false
+        transcriptCard.addSubview(scroll)
+        transcriptCard.addSubview(transcriptEmptyState)
+        NSLayoutConstraint.activate([
+            scroll.leadingAnchor.constraint(equalTo: transcriptCard.leadingAnchor, constant: 1),
+            scroll.trailingAnchor.constraint(equalTo: transcriptCard.trailingAnchor, constant: -1),
+            scroll.topAnchor.constraint(equalTo: transcriptCard.topAnchor, constant: 1),
+            scroll.bottomAnchor.constraint(equalTo: transcriptCard.bottomAnchor, constant: -1),
+            transcriptEmptyState.leadingAnchor.constraint(equalTo: transcriptCard.leadingAnchor),
+            transcriptEmptyState.trailingAnchor.constraint(equalTo: transcriptCard.trailingAnchor),
+            transcriptEmptyState.topAnchor.constraint(equalTo: transcriptCard.topAnchor),
+            transcriptEmptyState.bottomAnchor.constraint(equalTo: transcriptCard.bottomAnchor),
+        ])
 
         formatPopup.addItems(withTitles: ["Markdown", "Plain Text", "SRT Captions", "WebVTT Captions"])
         formatPopup.controlSize = .large
-        let export = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
-        let copy = KikiActionButton("Copy", kind: .secondary, target: self, action: #selector(copyTranscript))
-        let footer = NSStackView(views: [formatPopup, export, copy, NSView()])
+        formatPopup.setAccessibilityLabel("Meeting export format")
+        exportButton.isEnabled = false
+        copyButton.isEnabled = false
+        exportButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.export")
+        copyButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.copy")
+        let footer = NSStackView(views: [formatPopup, exportButton, copyButton, NSView()])
         footer.orientation = .horizontal
         footer.alignment = .centerY
         footer.spacing = 8
@@ -144,7 +197,12 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         speakerTools.alignment = .centerY
         speakerTools.spacing = 10
 
-        let stack = NSStackView(views: [header, titleField, controls, statusLabel, speakerTools, scroll, footer])
+        let titleGroup = kikiFieldGroup(
+            "Meeting title",
+            detail: "This name is used for the transcript and every exported file.",
+            control: titleField
+        )
+        let stack = NSStackView(views: [header, titleGroup, controlCard, speakerTools, transcriptCard, footer])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -159,12 +217,11 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -32),
             stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
-            titleField.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            controls.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            titleGroup.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            controlCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
             speakerTools.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 360),
+            transcriptCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            transcriptCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 330),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
@@ -175,6 +232,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
     private func startCapture() {
         recordButton.isEnabled = false
+        identifySpeakersButton.isEnabled = false
+        exportButton.isEnabled = false
+        copyButton.isEnabled = false
         statusLabel.stringValue = "Starting local microphone and system-audio capture…"
         onCaptureStateChange?(true)
         Task { [weak self] in
@@ -194,6 +254,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 recordButton.title = "Stop & Transcribe"
                 recordButton.isEnabled = true
                 timerLabel.textColor = .systemRed
+                transcriptEmptyState.isHidden = true
                 textView.string = preview == nil
                     ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
                     : "LIVE DRAFT · YOU\n\nListening…"
@@ -207,6 +268,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 onCaptureStateChange?(false)
                 recordButton.isEnabled = true
                 statusLabel.stringValue = "Recording did not start — Kiki could not verify both you and the other speakers."
+                transcriptEmptyState.isHidden = false
+                textView.string = ""
                 presentCaptureStartFailure(error)
             }
         }
@@ -268,9 +331,16 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 transcript = result
                 textView.string = result.markdown
                 identifySpeakersButton.isEnabled = !result.segments.isEmpty
+                transcriptEmptyState.isHidden = true
+                exportButton.isEnabled = !result.segments.isEmpty
+                copyButton.isEnabled = !result.segments.isEmpty
                 statusLabel.stringValue = "Complete — \(result.segments.count) segments. Identify speakers before exporting.\(archiveMessage)"
             } catch {
                 statusLabel.stringValue = "Meeting transcription failed: \(error.localizedDescription)"
+                transcriptEmptyState.isHidden = true
+                textView.string = "Meeting transcription failed. \(error.localizedDescription)"
+                exportButton.isEnabled = false
+                copyButton.isEnabled = false
             }
             recordButton.isEnabled = true
         }
@@ -301,7 +371,11 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func copyTranscript() {
-        TextInserter.copyOnly(transcript?.markdown ?? textView.string)
+        guard let transcript else {
+            statusLabel.stringValue = "Record and transcribe a meeting before copying."
+            return
+        }
+        TextInserter.copyOnly(transcript.markdown)
         statusLabel.stringValue = "Transcript copied."
     }
 

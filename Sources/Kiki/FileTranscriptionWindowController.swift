@@ -9,9 +9,15 @@ final class FileTranscriptionWindowController: NSWindowController {
     private let statusLabel = NSTextField(labelWithString: "Drop an audio file or choose one below")
     private let progressIndicator = NSProgressIndicator()
     private let textView = NSTextView()
+    private lazy var chooseButton = KikiActionButton("Choose Audio File", kind: .primary, target: self, action: #selector(chooseFile))
     private let copyButton = KikiActionButton("Copy", kind: .secondary, target: nil, action: nil)
     private let exportFormatPopup = NSPopUpButton()
     private let exportButton = KikiActionButton("Export Transcript", kind: .primary, target: nil, action: nil)
+    private let outputEmptyState = KikiEmptyStateView(
+        symbol: "waveform.badge.magnifyingglass",
+        title: "Your transcript will appear here",
+        detail: "Drop a recording above or choose an audio file. Kiki processes it locally with the selected model."
+    )
     private var sourceURL: URL?
 
     init() {
@@ -43,6 +49,9 @@ final class FileTranscriptionWindowController: NSWindowController {
         self.sourceURL = sourceURL
         textView.string = transcription
         statusLabel.stringValue = "Finished \(sourceURL.lastPathComponent) • preview"
+        dropView.isHidden = true
+        chooseButton.title = "Transcribe Another File"
+        outputEmptyState.isHidden = true
         copyButton.isEnabled = true
         exportFormatPopup.isEnabled = true
         exportButton.isEnabled = true
@@ -65,7 +74,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         let detail = kikiLabel("Your selected model processes the file entirely on this Mac. Vocabulary and text-only history apply automatically.", size: 12.5, color: KikiPalette.secondaryText)
 
         dropView.onFile = { [weak self] url in self?.startTranscription(url) }
-        let chooseButton = KikiActionButton("Choose Audio File", kind: .primary, target: self, action: #selector(chooseFile))
+        chooseButton.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.choose")
 
         progressIndicator.style = .spinning
         progressIndicator.controlSize = .small
@@ -81,6 +90,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         textView.textColor = KikiPalette.primaryText
         textView.insertionPointColor = KikiPalette.accentText
         textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.setAccessibilityLabel("Local transcription text")
         let outputScroll = NSScrollView()
         outputScroll.documentView = textView
         outputScroll.hasVerticalScroller = true
@@ -89,6 +99,24 @@ final class FileTranscriptionWindowController: NSWindowController {
         outputScroll.layer?.cornerRadius = 12
         outputScroll.layer?.borderColor = KikiPalette.stroke.cgColor
         outputScroll.layer?.borderWidth = 1
+        let outputCard = KikiCardView()
+        outputCard.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.output")
+        outputEmptyState.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.empty")
+        outputCard.usesHardwareDepth = false
+        outputScroll.translatesAutoresizingMaskIntoConstraints = false
+        outputEmptyState.translatesAutoresizingMaskIntoConstraints = false
+        outputCard.addSubview(outputScroll)
+        outputCard.addSubview(outputEmptyState)
+        NSLayoutConstraint.activate([
+            outputScroll.leadingAnchor.constraint(equalTo: outputCard.leadingAnchor, constant: 1),
+            outputScroll.trailingAnchor.constraint(equalTo: outputCard.trailingAnchor, constant: -1),
+            outputScroll.topAnchor.constraint(equalTo: outputCard.topAnchor, constant: 1),
+            outputScroll.bottomAnchor.constraint(equalTo: outputCard.bottomAnchor, constant: -1),
+            outputEmptyState.leadingAnchor.constraint(equalTo: outputCard.leadingAnchor),
+            outputEmptyState.trailingAnchor.constraint(equalTo: outputCard.trailingAnchor),
+            outputEmptyState.topAnchor.constraint(equalTo: outputCard.topAnchor),
+            outputEmptyState.bottomAnchor.constraint(equalTo: outputCard.bottomAnchor),
+        ])
 
         copyButton.target = self
         copyButton.action = #selector(copyText)
@@ -107,7 +135,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         let actions = NSStackView(views: [privacy, NSView(), exportFormatPopup, copyButton, exportButton])
         actions.spacing = 10
 
-        let stack = NSStackView(views: [eyebrow, title, detail, dropView, statusRow, outputScroll, actions])
+        let stack = NSStackView(views: [eyebrow, title, detail, dropView, statusRow, outputCard, actions])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -122,8 +150,8 @@ final class FileTranscriptionWindowController: NSWindowController {
             dropView.widthAnchor.constraint(equalTo: stack.widthAnchor),
             dropView.heightAnchor.constraint(equalToConstant: 116),
             statusRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            outputScroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            outputScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 280),
+            outputCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            outputCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 280),
             actions.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
@@ -142,16 +170,20 @@ final class FileTranscriptionWindowController: NSWindowController {
         guard let onTranscribe else { return }
         statusLabel.stringValue = "Transcribing \(url.lastPathComponent)…"
         sourceURL = url
+        dropView.isHidden = true
+        chooseButton.title = "Choose Another File"
         progressIndicator.startAnimation(nil)
         copyButton.isEnabled = false
         exportFormatPopup.isEnabled = false
         exportButton.isEnabled = false
         textView.string = ""
+        outputEmptyState.isHidden = false
         Task { [weak self] in
             do {
                 let text = try await onTranscribe(url)
                 guard let self else { return }
                 self.textView.string = text
+                self.outputEmptyState.isHidden = !text.isEmpty
                 self.statusLabel.stringValue = text.isEmpty
                     ? "No speech detected in \(url.lastPathComponent)"
                     : "Finished \(url.lastPathComponent) • \(Settings.transcriptionModel.displayName)"
@@ -162,6 +194,7 @@ final class FileTranscriptionWindowController: NSWindowController {
             } catch {
                 guard let self else { return }
                 self.statusLabel.stringValue = "Could not transcribe: \(error.localizedDescription)"
+                self.outputEmptyState.isHidden = false
                 self.progressIndicator.stopAnimation(nil)
             }
         }
@@ -171,6 +204,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         guard !textView.string.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(textView.string, forType: .string)
+        statusLabel.stringValue = "Transcript copied."
     }
 
     @objc private func exportText() {

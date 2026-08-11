@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
+final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate {
     var onApply: ((MeetingTranscript) -> Void)?
 
     private var transcript: MeetingTranscript
@@ -11,12 +11,14 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
     private let renamePopup = NSPopUpButton()
     private let renameField = NSTextField()
     private let statusLabel = kikiLabel("Select one or more transcript rows, then assign the person who spoke.", size: 12, color: KikiPalette.secondaryText)
+    private lazy var renameButton = KikiActionButton("Rename Everywhere", kind: .hardware, target: self, action: #selector(renameEverywhere))
+    private lazy var assignButton = KikiActionButton("Assign Selected Rows", kind: .hardware, target: self, action: #selector(assignSelected))
 
     init(transcript: MeetingTranscript) {
         self.transcript = transcript
         self.availableSpeakers = transcript.speakerNames
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 1_120, height: 680),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -25,7 +27,7 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
-        window.minSize = NSSize(width: 760, height: 500)
+        window.minSize = NSSize(width: 980, height: 580)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -52,18 +54,34 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
 
         renameField.placeholderString = "Enter the person’s name"
         renameField.font = .systemFont(ofSize: 13)
-        let renameButton = KikiActionButton("Rename Everywhere", kind: .hardware, target: self, action: #selector(renameEverywhere))
-        let renameRow = NSStackView(views: [kikiLabel("Rename", size: 12.5, weight: .medium), renamePopup, renameField, renameButton])
+        renameField.delegate = self
+        renameField.setAccessibilityLabel("New speaker name")
+        renamePopup.setAccessibilityLabel("Speaker label to rename")
+        assignPopup.setAccessibilityLabel("Speaker assigned to selected rows")
+        renameButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting-speakers.rename")
+        assignButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting-speakers.assign")
+        let renameRow = NSStackView(views: [renamePopup, renameField, renameButton])
         renameRow.orientation = .horizontal
         renameRow.alignment = .centerY
         renameRow.spacing = 8
+        let renameStep = KikiGuidedStepView(
+            number: 1,
+            title: "Rename a voice everywhere",
+            detail: "Choose a generated label, enter the person’s name, and update every transcript row and export.",
+            trailing: renameRow
+        )
 
         let newSpeaker = KikiActionButton("Add Speaker", kind: .hardware, target: self, action: #selector(addSpeaker))
-        let assign = KikiActionButton("Assign Selected Rows", kind: .hardware, target: self, action: #selector(assignSelected))
-        let assignRow = NSStackView(views: [kikiLabel("Assign", size: 12.5, weight: .medium), assignPopup, assign, newSpeaker, NSView()])
+        let assignRow = NSStackView(views: [assignPopup, assignButton, newSpeaker])
         assignRow.orientation = .horizontal
         assignRow.alignment = .centerY
         assignRow.spacing = 8
+        let assignStep = KikiGuidedStepView(
+            number: 2,
+            title: "Correct individual rows",
+            detail: "Select one or more transcript rows, then assign the person who actually spoke.",
+            trailing: assignRow
+        )
 
         let done = KikiActionButton("Done", kind: .primary, target: self, action: #selector(done))
         let footer = NSStackView(views: [statusLabel, NSView(), done])
@@ -71,7 +89,7 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
         footer.alignment = .centerY
         footer.spacing = 10
 
-        let stack = NSStackView(views: [eyebrow, title, detail, renameRow, assignRow, scroll, footer])
+        let stack = NSStackView(views: [eyebrow, title, detail, renameStep, assignStep, scroll, footer])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -88,12 +106,13 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             renameField.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
-            renameRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            assignRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            renameStep.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            assignStep.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
+        updateActionAvailability()
     }
 
     private func configureTable() {
@@ -149,6 +168,21 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
             renamePopup.selectItem(withTitle: name)
         }
         tableView.reloadData()
+        updateActionAvailability()
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        updateActionAvailability()
+    }
+
+    func controlTextDidChange(_ obj: Notification) {
+        updateActionAvailability()
+    }
+
+    private func updateActionAvailability() {
+        renameButton.isEnabled = renamePopup.selectedItem != nil
+            && !renameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        assignButton.isEnabled = !tableView.selectedRowIndexes.isEmpty && assignPopup.selectedItem != nil
     }
 
     @objc private func addSpeaker() {

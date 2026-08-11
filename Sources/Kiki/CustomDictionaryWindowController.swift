@@ -1,15 +1,19 @@
 import AppKit
 
 @MainActor
-final class CustomDictionaryWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
+final class CustomDictionaryWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate {
     private let tableView = NSTableView()
     private let spokenField = NSTextField()
     private let replacementField = NSTextField()
     private let countLabel = NSTextField(labelWithString: "")
+    private let statusLabel = NSTextField(labelWithString: "")
+    private lazy var addButton = KikiActionButton("Add or Replace", kind: .primary, target: self, action: #selector(addEntry))
+    private lazy var deleteButton = KikiActionButton("Delete Selected", kind: .hardware, target: self, action: #selector(deleteSelected))
+    private var tableSurface: KikiDataSurfaceView?
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 440),
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -21,6 +25,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
+        updateActionAvailability()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -56,32 +61,40 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         replacementColumn.width = 320
         tableView.addTableColumn(heardColumn)
         tableView.addTableColumn(replacementColumn)
+        tableView.identifier = NSUserInterfaceItemIdentifier("kiki.dictionary.table")
         tableView.headerView = NSTableHeaderView()
         tableView.delegate = self
         tableView.dataSource = self
         tableView.allowsMultipleSelection = false
         tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
         tableView.usesAlternatingRowBackgroundColors = true
-
-        let scrollView = NSScrollView()
-        scrollView.documentView = tableView
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .noBorder
-        scrollView.wantsLayer = true
-        scrollView.layer?.cornerRadius = 12
-        scrollView.layer?.borderColor = KikiPalette.stroke.cgColor
-        scrollView.layer?.borderWidth = 1
+        let surface = KikiDataSurfaceView(
+            table: tableView,
+            emptySymbol: "text.book.closed",
+            emptyTitle: "No dictionary entries yet",
+            emptyDetail: "Add what the model hears and the exact replacement Kiki should insert."
+        )
+        tableSurface = surface
 
         spokenField.placeholderString = "What the model hears"
         replacementField.placeholderString = "Exact replacement"
-        let addButton = KikiActionButton("Add or Replace", kind: .primary, target: self, action: #selector(addEntry))
-        let deleteButton = KikiActionButton("Delete Selected", kind: .secondary, target: self, action: #selector(deleteSelected))
-        let entryRow = NSStackView(views: [spokenField, replacementField, addButton])
+        spokenField.delegate = self
+        replacementField.delegate = self
+        spokenField.setAccessibilityLabel("What the model hears")
+        replacementField.setAccessibilityLabel("Exact replacement")
+        addButton.identifier = NSUserInterfaceItemIdentifier("kiki.dictionary.add")
+        deleteButton.identifier = NSUserInterfaceItemIdentifier("kiki.dictionary.delete")
+        let spokenGroup = kikiFieldGroup("What the model hears", control: spokenField)
+        let replacementGroup = kikiFieldGroup("Exact replacement", control: replacementField)
+        let entryRow = NSStackView(views: [spokenGroup, replacementGroup, addButton])
         entryRow.spacing = 10
         let footer = NSStackView(views: [countLabel, NSView(), deleteButton])
         footer.spacing = 10
+        statusLabel.textColor = KikiPalette.secondaryText
+        statusLabel.font = .systemFont(ofSize: 11.5)
+        statusLabel.setAccessibilityLabel("Dictionary status")
 
-        let stack = NSStackView(views: [eyebrow, title, detail, entryRow, scrollView, footer])
+        let stack = NSStackView(views: [eyebrow, title, detail, entryRow, surface, footer, statusLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -94,11 +107,12 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
             detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             entryRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            spokenField.widthAnchor.constraint(equalTo: entryRow.widthAnchor, multiplier: 0.34),
-            replacementField.widthAnchor.constraint(equalTo: entryRow.widthAnchor, multiplier: 0.38),
-            scrollView.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220),
+            spokenGroup.widthAnchor.constraint(equalTo: entryRow.widthAnchor, multiplier: 0.33),
+            replacementGroup.widthAnchor.constraint(equalTo: entryRow.widthAnchor, multiplier: 0.40),
+            surface.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            surface.heightAnchor.constraint(greaterThanOrEqualToConstant: 260),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 
@@ -106,23 +120,51 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         tableView.reloadData()
         let count = CustomDictionaryStore.shared.entries.count
         countLabel.stringValue = "\(count) custom \(count == 1 ? "entry" : "entries")"
+        tableSurface?.isEmpty = count == 0
+        updateActionAvailability()
     }
 
     @objc private func addEntry() {
+        let spoken = spokenField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let replacement = replacementField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !spoken.isEmpty, !replacement.isEmpty else {
+            statusLabel.stringValue = "Enter both what the model hears and the exact replacement."
+            return
+        }
         CustomDictionaryStore.shared.add(
-            spoken: spokenField.stringValue,
-            replacement: replacementField.stringValue
+            spoken: spoken,
+            replacement: replacement
         )
         spokenField.stringValue = ""
         replacementField.stringValue = ""
+        statusLabel.stringValue = "Saved “\(spoken)” → “\(replacement)”."
         reload()
     }
 
     @objc private func deleteSelected() {
         let row = tableView.selectedRow
-        guard row >= 0, row < CustomDictionaryStore.shared.entries.count else { return }
+        guard row >= 0, row < CustomDictionaryStore.shared.entries.count else {
+            statusLabel.stringValue = "Choose an entry before deleting it."
+            return
+        }
         CustomDictionaryStore.shared.remove(id: CustomDictionaryStore.shared.entries[row].id)
+        statusLabel.stringValue = "Dictionary entry deleted."
         reload()
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        updateActionAvailability()
+    }
+
+    func controlTextDidChange(_ obj: Notification) {
+        updateActionAvailability()
+    }
+
+    private func updateActionAvailability() {
+        addButton.isEnabled = !spokenField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !replacementField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        deleteButton.isEnabled = tableView.selectedRow >= 0
+            && tableView.selectedRow < CustomDictionaryStore.shared.entries.count
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {

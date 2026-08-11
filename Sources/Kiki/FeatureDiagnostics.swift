@@ -583,11 +583,82 @@ enum FeatureDiagnostics {
         let meetingWindow = MeetingWindowController()
         guard let meetingContent = meetingWindow.window?.contentView,
               let identifySpeakers = findButton(in: meetingContent, title: "Identify Speakers…") as? KikiActionButton,
+              let meetingExport = findView(in: meetingContent, identifier: "kiki.meeting.export") as? KikiActionButton,
+              let meetingCopy = findView(in: meetingContent, identifier: "kiki.meeting.copy") as? KikiActionButton,
+              findView(in: meetingContent, identifier: "kiki.meeting.empty") is KikiEmptyStateView,
               !identifySpeakers.isEnabled,
+              !meetingExport.isEnabled,
+              !meetingCopy.isEnabled,
               identifySpeakers.contentTintColor?.isEqual(
-                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true else {
             throw failure("disabled Meeting Hardware button contrast")
+        }
+
+        let personalization = PersonalizationWindowController()
+        personalization.prepareForDiagnostics(page: 0)
+        guard let personalizationContent = personalization.window?.contentView,
+              let approveSuggestion = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.approve"
+              ) as? KikiActionButton,
+              let ignoreSuggestion = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.ignore"
+              ) as? KikiActionButton,
+              findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.suggestions.surface"
+              ) is KikiDataSurfaceView,
+              !approveSuggestion.isEnabled,
+              !ignoreSuggestion.isEnabled else {
+            throw failure("Personalization guided review state")
+        }
+
+        let fileTranscription = FileTranscriptionWindowController()
+        guard let fileContent = fileTranscription.window?.contentView,
+              let fileExport = findView(
+                in: fileContent,
+                identifier: "kiki.file-transcript.export"
+              ) as? KikiActionButton,
+              findView(in: fileContent, identifier: "kiki.file-transcript.empty") is KikiEmptyStateView,
+              !fileExport.isEnabled else {
+            throw failure("File transcription guided empty state")
+        }
+
+        let history = HistoryWindowController()
+        guard let historyContent = history.window?.contentView,
+              let historyCopy = findView(in: historyContent, identifier: "kiki.history.copy") as? KikiActionButton,
+              let historyDelete = findView(in: historyContent, identifier: "kiki.history.delete") as? KikiActionButton,
+              findView(in: historyContent, identifier: "kiki.history.table.surface") is KikiDataSurfaceView,
+              !historyCopy.isEnabled,
+              !historyDelete.isEnabled else {
+            throw failure("History selection-aware actions")
+        }
+
+        let dictionary = CustomDictionaryWindowController()
+        guard let dictionaryContent = dictionary.window?.contentView,
+              let dictionaryAdd = findView(in: dictionaryContent, identifier: "kiki.dictionary.add") as? KikiActionButton,
+              let dictionaryDelete = findView(in: dictionaryContent, identifier: "kiki.dictionary.delete") as? KikiActionButton,
+              findView(in: dictionaryContent, identifier: "kiki.dictionary.table.surface") is KikiDataSurfaceView,
+              !dictionaryAdd.isEnabled,
+              !dictionaryDelete.isEnabled else {
+            throw failure("Dictionary validation and empty state")
+        }
+
+        let speakerEditor = MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting)
+        guard let speakerContent = speakerEditor.window?.contentView,
+              let renameSpeaker = findView(
+                in: speakerContent,
+                identifier: "kiki.meeting-speakers.rename"
+              ) as? KikiActionButton,
+              let assignSpeaker = findView(
+                in: speakerContent,
+                identifier: "kiki.meeting-speakers.assign"
+              ) as? KikiActionButton,
+              !renameSpeaker.isEnabled,
+              !assignSpeaker.isEnabled else {
+            throw failure("Meeting speaker guided workflow state")
         }
         let interactiveWindows: [NSWindowController] = [
             diagnosticSettings,
@@ -597,11 +668,11 @@ enum FeatureDiagnostics {
             WhatsNewWindowController(),
             VoiceStudioWindowController(),
             meetingWindow,
-            MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting),
-            PersonalizationWindowController(),
-            FileTranscriptionWindowController(),
-            HistoryWindowController(),
-            CustomDictionaryWindowController(),
+            speakerEditor,
+            personalization,
+            fileTranscription,
+            history,
+            dictionary,
         ]
         guard interactiveWindows.allSatisfy({ $0.window?.isMovableByWindowBackground == false }),
               !overridesMouseDown else {
@@ -658,7 +729,7 @@ enum FeatureDiagnostics {
               abs(modelAction.bounds.width - 65) < 1,
               !modelAction.isEnabled,
               modelAction.contentTintColor?.isEqual(
-                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true,
               !analogMeter.isHidden,
               modelsScroll.scrollerStyle == .overlay,
@@ -684,7 +755,7 @@ enum FeatureDiagnostics {
               hardwareButton.layer?.borderWidth == 1,
               hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true,
               disabledHardwareButton.contentTintColor?.isEqual(
-                  KikiPalette.hardwareControlText.withAlphaComponent(0.72)
+                  KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true else {
             throw failure("Studio Hardware matte depth treatment and compact controls")
         }
