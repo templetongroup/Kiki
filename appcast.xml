@@ -6,6 +6,25 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.5</title>
+            <pubDate>Tue, 11 Aug 2026 13:42:49 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.5</link>
+            <sparkle:version>38</sparkle:version>
+            <sparkle:shortVersionString>0.6.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.5
+
+- Replaces Kiki's collection of separate primary windows with the unified Guided Workbench: Home, Dictation, Meetings, Voice Studio, Library, Personalization, Models, and Settings now live in one consistent workspace.
+- Preserves the established Templeton Slate and Studio Hardware visuals while adding descriptive left-side navigation and state-aware workflow pages.
+- Routes existing menu commands and quick actions into the correct Workbench section without removing the underlying local features.
+- Uses a compact, resizable window that stays well within the display instead of expanding to the full screen width.
+- Prevents high-resolution artwork and embedded legacy screens from forcing the Workbench wider or causing recursive AppKit layout failures.
+- Adds diagnostics for Workbench routing, native click handling, and compact layout behavior.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.5/Kiki-0.6.5-macOS.zip" length="53694126" type="application/octet-stream" sparkle:edSignature="0TxDiJDWYYmiAPb2gJITWHTdIWqHUaG9aKyhBJrG5wLSDxtRrCRFjRj5UNN4T/ThlgEt6Dz/813duBGBOyuZBw=="/>
+        </item>
+        <item>
             <title>0.6.4</title>
             <pubDate>Tue, 11 Aug 2026 10:34:10 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.4</link>
@@ -76,25 +95,6 @@
 - Clarifies the menu-bar dictation action: Kiki records locally, then inserts the transcription into the current app.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.1/Kiki-0.6.1-macOS.zip" length="53571581" type="application/octet-stream" sparkle:edSignature="fiBmomwTZ+cKVZxOdcJdNKKswoholsXRb3bqksyiKGFnWTnNn4vOG3X+9TirD1uFsDOL8gYfo3a7RxpRZlwfBw=="/>
-        </item>
-        <item>
-            <title>0.6.0</title>
-            <pubDate>Mon, 10 Aug 2026 21:03:38 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.0</link>
-            <sparkle:version>33</sparkle:version>
-            <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.0
-
-- Adds Kiki Checkup for microphone selection, live input, permissions, local-model readiness, shortcut verification, and a guided first dictation.
-- Adds exact Undo Last Dictation and memory-only Retry Last Dictation, with verification that Kiki removes only its unchanged insertion.
-- Adds Private Session, which pauses history, correction learning, confidence review, and optional Pawprints while keeping undo audio only in memory.
-- Adds Read Selection in My Voice, which prefills Voice Studio for review without generating automatically.
-- Adds opt-in, aggregate-only Pawprints and privacy-safe support bundles containing no transcripts, recordings, clipboard contents, personal names, or file paths.
-- Improves public-release diagnostics, native control hit testing, Command-A routing, and the final Checkup layout with uniform high-contrast Studio Hardware buttons.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.0/Kiki-0.6.0-macOS.zip" length="53569261" type="application/octet-stream" sparkle:edSignature="Edyk37bo4vlN+GR8yODFWcQH2Kl6mggk4tFoG5LcA7FnAaMbE7czPz4Khro+xPmcIgU+BO8iMVQNv3k/C0d3BA=="/>
         </item>
     </channel>
 </rss>
