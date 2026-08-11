@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.4</title>
+            <pubDate>Tue, 11 Aug 2026 10:34:10 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.4</link>
+            <sparkle:version>37</sparkle:version>
+            <sparkle:shortVersionString>0.6.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.4
+
+- Removes cross-track Zoom echo before Meeting Intelligence builds the transcript, preventing the same speech from appearing under both the microphone and remote speaker.
+- Replaces keyword-only action blurbs with contextual action items that include the responsible participant and source timestamp.
+- Joins short commitments to the nearby explanation that completes them, while rejecting questions and incomplete sentence fragments.
+- Recognizes direct requests such as "Could you send that?", assigns them to the other participant, and records who requested them.
+- Adds regressions based on the first live Zoom meeting, including duplicate speech, fragment rejection, contextual commitments, request ownership, and export formatting.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.4/Kiki-0.6.4-macOS.zip" length="53639489" type="application/octet-stream" sparkle:edSignature="U3tT7lX6yRARkD2WdRR0iHH8BxqYE7vc9JbaQ8unhRmxuukrbDGjiVQhJwl0t/hnopfcWc1874WlxFCKqpFICw=="/>
+        </item>
+        <item>
             <title>0.6.3</title>
             <pubDate>Tue, 11 Aug 2026 10:05:24 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.3</link>
@@ -77,24 +95,6 @@
 - Improves public-release diagnostics, native control hit testing, Command-A routing, and the final Checkup layout with uniform high-contrast Studio Hardware buttons.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.0/Kiki-0.6.0-macOS.zip" length="53569261" type="application/octet-stream" sparkle:edSignature="Edyk37bo4vlN+GR8yODFWcQH2Kl6mggk4tFoG5LcA7FnAaMbE7czPz4Khro+xPmcIgU+BO8iMVQNv3k/C0d3BA=="/>
-        </item>
-        <item>
-            <title>0.5.17</title>
-            <pubDate>Mon, 10 Aug 2026 19:03:46 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.17</link>
-            <sparkle:version>32</sparkle:version>
-            <sparkle:shortVersionString>0.5.17</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.17
-
-- Rebuilds the waveform as a fixed 30 fps scrolling history of real microphone loudness instead of replacing all 38 bars with every incoming audio chunk.
-- Preserves 37 prior bars per frame and appends one new RMS-derived level, eliminating the jumping, stuttering pattern while keeping the display audio-driven.
-- Calibrates the meter against the saved real-voice reference recording on this Mac rather than synthetic test tones.
-- Keeps normal recorded speech centered around a restrained visual range with substantial headroom for genuinely forceful speech.
-- Adds a packaged real-voice regression diagnostic that checks both raw levels and the final rendered waveform against saturation limits.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.17/Kiki-0.5.17-macOS.zip" length="53496227" type="application/octet-stream" sparkle:edSignature="KTN/SMxlnQxKWE3r3PVrPbIHPEQWFskImUdtwX/EbZ0Y6TUKDnzRZuyg+3+rLYmhY6nNLkCjAuaMc62uQmtiBw=="/>
         </item>
     </channel>
 </rss>
