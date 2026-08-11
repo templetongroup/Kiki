@@ -26,7 +26,7 @@ enum TextInserter {
 
         let previous = pasteboard.string(forType: .string)
         let learningAnchor: CorrectionLearningObserver.Anchor? = context.flatMap { snapshot in
-            guard Settings.learnFromCorrections, !snapshot.isPrivate else { return nil }
+            guard Settings.learnFromCorrections, snapshot.privacyPolicy.learningEnabled else { return nil }
             return CorrectionLearningObserver.shared.captureAnchor(context: snapshot)
         }
         pasteboard.clearContents()
@@ -59,6 +59,50 @@ enum TextInserter {
         pasteboard.setString(text, forType: .string)
     }
 
+    @MainActor
+    static func undoExact(_ text: String, processIdentifier: pid_t) -> Bool {
+        guard AXIsProcessTrusted(),
+              NSWorkspace.shared.frontmostApplication?.processIdentifier == processIdentifier else { return false }
+        let application = AXUIElementCreateApplication(processIdentifier)
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            application,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        ) == .success,
+        let focusedValue else { return false }
+        let focused = unsafeBitCast(focusedValue, to: AXUIElement.self)
+
+        var valueRef: CFTypeRef?
+        var selectionRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(focused, kAXValueAttribute as CFString, &valueRef) == .success,
+              let currentValue = valueRef as? String,
+              AXUIElementCopyAttributeValue(focused, kAXSelectedTextRangeAttribute as CFString, &selectionRef) == .success,
+              let selectionRef,
+              CFGetTypeID(selectionRef) == AXValueGetTypeID() else { return false }
+        let selectionValue = unsafeBitCast(selectionRef, to: AXValue.self)
+        var selectedRange = CFRange()
+        guard AXValueGetValue(selectionValue, .cfRange, &selectedRange) else { return false }
+        let selection = NSRange(location: selectedRange.location, length: selectedRange.length)
+        guard let deletionRange = ExactInsertionUndoPlanner.range(
+            insertedText: text,
+            currentValue: currentValue,
+            selection: selection
+        ) else { return false }
+
+        var deletionCFRange = CFRange(location: deletionRange.location, length: deletionRange.length)
+        guard let deletionValue = AXValueCreate(.cfRange, &deletionCFRange),
+              AXUIElementSetAttributeValue(
+                focused,
+                kAXSelectedTextRangeAttribute as CFString,
+                deletionValue
+              ) == .success else { return false }
+        if AXUIElementSetAttributeValue(focused, kAXSelectedTextAttribute as CFString, "" as CFString) == .success {
+            return true
+        }
+        return synthesizeDelete()
+    }
+
     private static func synthesizePaste() -> Bool {
         let source = CGEventSource(stateID: .combinedSessionState)
         let vKey = CGKeyCode(9) // kVK_ANSI_V
@@ -67,6 +111,16 @@ enum TextInserter {
         guard let down, let up else { return false }
         down.flags = .maskCommand
         up.flags = .maskCommand
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+        return true
+    }
+
+    private static func synthesizeDelete() -> Bool {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let deleteKey = CGKeyCode(51)
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: deleteKey, keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: deleteKey, keyDown: false) else { return false }
         down.post(tap: .cghidEventTap)
         up.post(tap: .cghidEventTap)
         return true

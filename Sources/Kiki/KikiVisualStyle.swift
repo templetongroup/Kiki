@@ -450,7 +450,7 @@ final class KikiActionButton: NSButton {
                     layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                     layer?.borderWidth = 1
                     layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
-                    contentTintColor = KikiPalette.secondaryText.withAlphaComponent(0.82)
+                    contentTintColor = KikiPalette.hardwareControlText.withAlphaComponent(0.50)
                 default:
                     layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
                     layer?.borderWidth = 1
@@ -479,7 +479,7 @@ final class KikiActionButton: NSButton {
                 layer?.shadowOpacity = 0.28
                 layer?.shadowRadius = 2
                 layer?.shadowOffset = CGSize(width: 0, height: -1)
-                contentTintColor = KikiPalette.secondaryText
+                contentTintColor = KikiPalette.hardwareControlText
             case .quiet:
                 layer?.backgroundColor = NSColor.clear.cgColor
                 layer?.borderWidth = 0

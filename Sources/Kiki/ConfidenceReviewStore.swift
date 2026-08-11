@@ -93,7 +93,7 @@ final class BackgroundConfidenceVerifier: @unchecked Sendable {
     ) {
         guard Settings.enableConfidenceVerification,
               Settings.transcriptionModel.isParakeet,
-              !(context?.isPrivate ?? false),
+              context?.privacyPolicy.confidenceVerificationEnabled ?? true,
               let url = ModelStore.activeModelURL()
         else { return }
         let language = Settings.language

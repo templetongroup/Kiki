@@ -1,7 +1,7 @@
 import AppKit
 import AVFoundation
 
-enum DictationState {
+enum DictationState: Equatable {
     case noModel
     case loadingModel
     case idle
@@ -15,6 +15,8 @@ enum DictationState {
 @MainActor
 final class DictationController {
     var onStateChange: ((DictationState) -> Void)?
+    var onSuccessfulInsertion: ((String, AppContextSnapshot) -> Void)?
+    var onLastDictationActionsChange: ((Bool, Bool) -> Void)?
 
     private(set) var state: DictationState = .loadingModel {
         didSet { onStateChange?(state) }
@@ -34,6 +36,9 @@ final class DictationController {
         let processIdentifier: pid_t
         let text: String
         let jobFinishedAt: Date
+        let samples: [Float]
+        let duration: TimeInterval
+        let context: AppContextSnapshot
     }
 
     private let recorder = AudioRecorder()
@@ -54,11 +59,19 @@ final class DictationController {
     private var processingJob = false
     private var nextSequence = 0
     private var lastInsertion: LastInsertion?
+    private var lastInsertionIsPresent = false
     private var meetingCaptureActive = false
 
     var activeModelName: String? {
         Settings.transcriptionModel.displayName
     }
+
+    var isModelReady: Bool {
+        state != .noModel && state != .loadingModel
+    }
+
+    var canUndoLastDictation: Bool { lastInsertion != nil && lastInsertionIsPresent }
+    var canRetryLastDictation: Bool { lastInsertion != nil }
 
     func prepare() {
         let selectedModel = Settings.transcriptionModel
@@ -113,12 +126,68 @@ final class DictationController {
         prepare()
     }
 
+    func undoLastDictation() {
+        guard state == .idle,
+              lastInsertionIsPresent,
+              let insertion = lastInsertion else {
+            showTransientMessage("The last Kiki insertion is no longer available")
+            return
+        }
+        guard TextInserter.undoExact(insertion.text, processIdentifier: insertion.processIdentifier) else {
+            showTransientMessage("Kiki left the text unchanged because it could not verify the exact insertion")
+            return
+        }
+        lastInsertionIsPresent = false
+        onLastDictationActionsChange?(false, true)
+        showTransientMessage("Last Kiki dictation removed")
+    }
+
+    func markCurrentRecordingPrivate() {
+        guard state == .recording, let recordingContext else { return }
+        self.recordingContext = recordingContext.markingPrivateSessionActive()
+    }
+
+    func retryLastDictation() {
+        guard state == .idle,
+              !processingJob,
+              pendingJobs.isEmpty,
+              let insertion = lastInsertion else {
+            showTransientMessage("No recent dictation is available to retry")
+            return
+        }
+        if lastInsertionIsPresent {
+            guard TextInserter.undoExact(insertion.text, processIdentifier: insertion.processIdentifier) else {
+                showTransientMessage("Kiki left the text unchanged because it could not verify the exact insertion")
+                return
+            }
+            lastInsertionIsPresent = false
+        }
+        lastInsertion = nil
+        nextSequence += 1
+        pendingJobs.append(
+            DictationJob(
+                sequence: nextSequence,
+                samples: insertion.samples,
+                duration: insertion.duration,
+                context: insertion.context,
+                liveTranscript: nil,
+                finishedAt: Date(),
+                livePreviewCleanup: Task { }
+            )
+        )
+        onLastDictationActionsChange?(false, false)
+        state = .transcribing
+        showTranscribingPresentation()
+        processNextJobIfNeeded()
+    }
+
     func transcribeFile(at url: URL) async throws -> String {
         guard state == .idle, !processingJob, pendingJobs.isEmpty else {
             throw KikiError("Kiki is busy with another transcription.")
         }
         state = .transcribing
         defer { state = .idle }
+        let privateSessionActive = PrivateSessionController.shared.isActive
 
         let loadedSamples = try await Task.detached(priority: .userInitiated) {
             try AudioFileLoader.load16kMono(url: url)
@@ -141,13 +210,18 @@ final class DictationController {
         }
 
         let text = TranscriptPostProcessor.process(rawText, context: nil)
-        TranscriptionHistoryStore.shared.add(
-            text: text,
-            duration: duration,
-            modelName: Settings.transcriptionModel.displayName,
-            source: .file,
-            context: url.lastPathComponent
-        )
+        if PrivateSessionPolicy.resolved(
+            privateSessionActive: privateSessionActive,
+            privateContext: false
+        ).historyEnabled {
+            TranscriptionHistoryStore.shared.add(
+                text: text,
+                duration: duration,
+                modelName: Settings.transcriptionModel.displayName,
+                source: .file,
+                context: url.lastPathComponent
+            )
+        }
         return text
     }
 
@@ -174,6 +248,7 @@ final class DictationController {
             throw KikiError("Finish current dictations before processing the meeting.")
         }
         state = .transcribing
+        let privateSessionActive = PrivateSessionController.shared.isActive
         defer {
             meetingCaptureActive = false
             state = .idle
@@ -199,13 +274,18 @@ final class DictationController {
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
-        TranscriptionHistoryStore.shared.add(
-            text: transcript.plainText,
-            duration: duration,
-            modelName: Settings.transcriptionModel.displayName,
-            source: .meeting,
-            context: title
-        )
+        if PrivateSessionPolicy.resolved(
+            privateSessionActive: privateSessionActive,
+            privateContext: false
+        ).historyEnabled {
+            TranscriptionHistoryStore.shared.add(
+                text: transcript.plainText,
+                duration: duration,
+                modelName: Settings.transcriptionModel.displayName,
+                source: .meeting,
+                context: title
+            )
+        }
         return transcript
     }
 
@@ -418,7 +498,7 @@ final class DictationController {
             return
         }
 
-        if !job.context.isPrivate {
+        if job.context.privacyPolicy.historyEnabled {
             TranscriptionHistoryStore.shared.add(
                 text: finalText,
                 duration: job.duration,
@@ -448,8 +528,19 @@ final class DictationController {
             lastInsertion = LastInsertion(
                 processIdentifier: job.context.processIdentifier,
                 text: textToInsert,
-                jobFinishedAt: job.finishedAt
+                jobFinishedAt: job.finishedAt,
+                samples: job.samples,
+                duration: job.duration,
+                context: job.context
             )
+            lastInsertionIsPresent = true
+            onLastDictationActionsChange?(true, true)
+            PawprintsStore.shared.record(
+                text: textToInsert,
+                duration: job.duration,
+                isPrivate: !job.context.privacyPolicy.pawprintsEnabled
+            )
+            onSuccessfulInsertion?(textToInsert, job.context)
             if state != .recording { soundPlayer.playTranscriptionCompleted() }
         case .copiedNeedsAccessibility:
             if state != .recording { showTransientMessage("Copied — enable Accessibility to paste") }

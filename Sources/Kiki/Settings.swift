@@ -172,6 +172,26 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "saveMeetingAudio") }
     }
 
+    static var microphoneDeviceUID: String? {
+        get { UserDefaults.standard.string(forKey: "microphoneDeviceUID") }
+        set { UserDefaults.standard.set(newValue, forKey: "microphoneDeviceUID") }
+    }
+
+    static var checkupShortcutVerified: Bool {
+        get { UserDefaults.standard.bool(forKey: "checkupShortcutVerified") }
+        set { UserDefaults.standard.set(newValue, forKey: "checkupShortcutVerified") }
+    }
+
+    static var checkupFirstDictationCompleted: Bool {
+        get { UserDefaults.standard.bool(forKey: "checkupFirstDictationCompleted") }
+        set { UserDefaults.standard.set(newValue, forKey: "checkupFirstDictationCompleted") }
+    }
+
+    static var pawprintsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "pawprintsEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "pawprintsEnabled") }
+    }
+
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {
         guard UserDefaults.standard.object(forKey: key) != nil else { return defaultValue }
         return UserDefaults.standard.bool(forKey: key)

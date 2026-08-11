@@ -108,6 +108,10 @@ final class CorrectionLearningObserver {
                newValue: current,
                change: change
            ) {
+            guard !PrivateSessionController.shared.isActive else {
+                stop(id: id)
+                return
+            }
             CorrectionMemoryStore.shared.suggest(
                 heard: pair.heard,
                 replacement: pair.replacement,

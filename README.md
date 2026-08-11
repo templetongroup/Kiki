@@ -42,6 +42,12 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - Optional background confidence verification using an installed Whisper model after the primary result is pasted
 - Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, chapters, action-item hints, and Markdown/TXT/SRT/WebVTT export
 - Voice Studio with guided voice enrollment, a fully local Qwen3-TTS engine, on-device text-to-speech, playback, and WAV/M4A export
+- Kiki Checkup with microphone selection, a live input meter, permission/model readiness, shortcut verification, and a guided first dictation
+- Exact Undo Last Dictation plus Retry Last Dictation using only the most recent in-memory recording
+- A transient Private Session that disables history, correction learning, confidence verification, and Pawprints without disabling in-memory undo
+- Read Selection in My Voice, which prefills Voice Studio for review and waits for an explicit Generate click
+- Opt-in Pawprints with aggregate-only local usage totals, Private Session exclusion, and complete reset
+- Sanitized support bundles containing only allowlisted technical configuration and readiness fields
 
 Kiki does not upload recordings, transcripts, dictionary entries, or history. Microphone audio is used in memory for transcription and is not added to history.
 
@@ -56,6 +62,12 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Mi
 - Use **Dictionary…** to teach Kiki your preferred spellings and replacements.
 - Use **Personalization Studio…** to approve learned corrections, import context vocabulary, create voice snippets, manage private apps, and review confidence disagreements.
 - Use **History…** to review, copy, or delete locally stored transcript text.
+- Use **Undo Last Dictation** only while Kiki can verify the exact text and caret it inserted. **Retry Last Dictation** reprocesses the same recording from memory; recordings are never written to disk for this feature.
+- Use **Start Private Session** for work that should not appear in history, learning, confidence review, or Pawprints. Private Session ends when you turn it off or quit Kiki.
+- Use **Kiki Checkup…** to choose the actual input device, confirm a live signal, test the shortcut, and complete a real first insertion.
+- Use **Pawprints…** to opt into aggregate-only local totals or permanently reset them.
+- Highlight text in an accessible app and choose **Read Selection in My Voice** to place it in Voice Studio. Kiki never starts generation without the Generate button.
+- Use **Create Support Bundle…** when troubleshooting. The ZIP excludes transcripts, recordings, clipboard contents, names, vocabulary, contacts, and file paths.
 - Use **Transcribe File…** to drop an audio file, edit the result, copy it, or save it as plain text.
 - Use **Meeting Mode…** for longer local sessions. Microphone speech is labelled “You” and Mac system audio is labelled “Others”; headphones produce the cleanest source separation.
 - Use **Voice Studio…** to record one private reference passage, download the optional 2 GB local voice engine, and turn typed text into speech in your voice. Generation works offline after the one-time model download.
@@ -128,9 +140,6 @@ Transcribe a file without the mic (useful for testing changes):
 
 FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet TDT v2/v3 model weights are distributed under CC BY 4.0; Kiki should preserve model attribution in public distributions.
 
-## Feature ideas
+## Feature freeze
 
-- Shareable, signed glossary packs for teams, clients, industries, and accessibility needs
-- Optional on-device semantic cleanup models that never block the primary paste
-- Individual-speaker diarization inside the current local “Others” meeting track
-- End-to-end encrypted Apple-device handoff for personal context packs
+Public-release scope is frozen. New product ideas stay out of the release branch until the signed, notarized, updater-delivered build passes the source, packaged-app, installed-app, permission, shortcut, dictation, export, privacy, and control-click gates in `PUBLIC_RELEASE_CHECKLIST.md`.

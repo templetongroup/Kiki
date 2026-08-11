@@ -7,12 +7,19 @@ struct AppContextSnapshot: Codable, Equatable {
     let applicationName: String?
     let capturedAt: Date
     let isSecureField: Bool
+    let privateSessionActive: Bool
 
     var displayName: String? { applicationName ?? bundleIdentifier }
     @MainActor
-    var isPrivate: Bool {
-        isSecureField || PrivateZoneStore.shared.contains(bundleIdentifier: bundleIdentifier)
+    var privacyPolicy: PrivateSessionPolicy {
+        PrivateSessionPolicy.resolved(
+            privateSessionActive: privateSessionActive,
+            privateContext: isSecureField || PrivateZoneStore.shared.contains(bundleIdentifier: bundleIdentifier)
+        )
     }
+
+    @MainActor
+    var isPrivate: Bool { !privacyPolicy.historyEnabled }
 
     @MainActor
     static func capture() -> AppContextSnapshot {
@@ -23,7 +30,19 @@ struct AppContextSnapshot: Codable, Equatable {
             bundleIdentifier: app?.bundleIdentifier,
             applicationName: app?.localizedName,
             capturedAt: Date(),
-            isSecureField: focusedElementSubrole(pid: pid) == kAXSecureTextFieldSubrole as String
+            isSecureField: focusedElementSubrole(pid: pid) == kAXSecureTextFieldSubrole as String,
+            privateSessionActive: PrivateSessionController.shared.isActive
+        )
+    }
+
+    func markingPrivateSessionActive() -> AppContextSnapshot {
+        AppContextSnapshot(
+            processIdentifier: processIdentifier,
+            bundleIdentifier: bundleIdentifier,
+            applicationName: applicationName,
+            capturedAt: capturedAt,
+            isSecureField: isSecureField,
+            privateSessionActive: true
         )
     }
 
@@ -69,6 +88,30 @@ struct AppContextSnapshot: Codable, Equatable {
               !rect.isInfinite
         else { return nil }
         return rect
+    }
+
+    @MainActor
+    static func selectedTextFromFrontmostApplication() -> String? {
+        guard AXIsProcessTrusted(),
+              let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        ) == .success,
+        let focusedValue else { return nil }
+        let focused = unsafeBitCast(focusedValue, to: AXUIElement.self)
+        var selectedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            focused,
+            kAXSelectedTextAttribute as CFString,
+            &selectedValue
+        ) == .success,
+        let selected = selectedValue as? String else { return nil }
+        let trimmed = selected.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private static func focusedElementSubrole(pid: pid_t) -> String? {

@@ -18,7 +18,6 @@ let package = Package(
             name: "whisper",
             path: ".",
             exclude: [
-               "build",
                "bindings",
                "cmake",
                "examples",
@@ -27,8 +26,7 @@ let package = Package(
                "samples",
                "tests",
                "CMakeLists.txt",
-               "Makefile",
-               "ggml/src/ggml-metal-embed.metal"
+               "Makefile"
             ],
             sources: [
                 "ggml/src/ggml.c",

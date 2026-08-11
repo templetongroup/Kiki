@@ -10,6 +10,11 @@ enum FeatureDiagnostics {
         try checkContextVocabulary()
         try checkMeetingExports()
         try checkFileTranscriptExports()
+        try checkKikiCheckup()
+        try checkUndoAndRetry()
+        try checkPrivateSession()
+        try checkSupportBundle()
+        try checkPawprints()
         try checkPhraseBoundaries()
         try checkWindowInteractions()
         try checkVoiceStudio()
@@ -225,6 +230,165 @@ enum FeatureDiagnostics {
         else { throw failure("file transcript export formats") }
     }
 
+    private static func checkKikiCheckup() throws {
+        let microphones = [
+            AudioInputDeviceDescriptor(name: "Desk Mic", uniqueID: "desk"),
+            AudioInputDeviceDescriptor(name: "Studio Mic", uniqueID: "studio"),
+        ]
+        let blocked = KikiCheckupSnapshot(
+            microphoneAuthorized: false,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelReady: true,
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        )
+        let ready = KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelReady: true,
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        )
+        guard !blocked.isReady,
+              ready.isReady,
+              AudioInputDevice.selected(from: microphones, preferredID: "studio")?.uniqueID == "studio",
+              AudioInputDevice.selected(from: microphones, preferredID: "missing")?.uniqueID == "desk" else {
+            throw failure("Kiki Checkup readiness contract")
+        }
+    }
+
+    private static func checkUndoAndRetry() throws {
+        let value = "Opening sentence. Kiki inserted this."
+        let caret = NSRange(location: (value as NSString).length, length: 0)
+        let expected = NSRange(
+            location: ("Opening sentence. " as NSString).length,
+            length: ("Kiki inserted this." as NSString).length
+        )
+        guard ExactInsertionUndoPlanner.range(
+            insertedText: "Kiki inserted this.",
+            currentValue: value,
+            selection: caret
+        ) == expected,
+        ExactInsertionUndoPlanner.range(
+            insertedText: "Different text",
+            currentValue: value,
+            selection: caret
+        ) == nil,
+        ExactInsertionUndoPlanner.range(
+            insertedText: "Kiki inserted this.",
+            currentValue: value + " User edit",
+            selection: NSRange(location: ((value + " User edit") as NSString).length, length: 0)
+        ) == nil else {
+            throw failure("exact last insertion undo contract")
+        }
+    }
+
+    private static func checkPrivateSession() throws {
+        let normal = PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: false)
+        let session = PrivateSessionPolicy.resolved(privateSessionActive: true, privateContext: false)
+        let privateApp = PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: true)
+        guard normal.historyEnabled,
+              normal.learningEnabled,
+              normal.confidenceVerificationEnabled,
+              normal.pawprintsEnabled,
+              session == PrivateSessionPolicy(
+                historyEnabled: false,
+                learningEnabled: false,
+                confidenceVerificationEnabled: false,
+                pawprintsEnabled: false
+              ),
+              privateApp == session else {
+            throw failure("Private Session policy")
+        }
+    }
+
+    private static func checkSupportBundle() throws {
+        let data = SupportBundleBuilder.diagnosticJSONForTesting()
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw failure("support bundle encoding")
+        }
+        let lowered = text.lowercased()
+        let forbiddenKeys: Set<String> = [
+            "transcript", "transcripttext", "clipboard", "audio", "recording",
+            "dictionary", "contact", "name", "filepath",
+        ]
+        let reportObject = try JSONSerialization.jsonObject(with: data)
+        let reportKeys = jsonKeys(in: reportObject)
+        let archive = temporaryFile("Kiki-Support-Diagnostic.zip")
+        try? FileManager.default.removeItem(at: archive)
+        try SupportBundleBuilder.createArchive(at: archive, modelReady: true)
+        let archiveSize = (try? archive.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        let extracted = temporaryFile("support-extracted")
+        try FileManager.default.createDirectory(at: extracted, withIntermediateDirectories: true)
+        let unzip = Process()
+        unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        unzip.arguments = ["-x", "-k", archive.path, extracted.path]
+        try unzip.run()
+        unzip.waitUntilExit()
+        let extractedFiles = Set(
+            (try? FileManager.default.contentsOfDirectory(atPath: extracted.path)) ?? []
+        )
+        let extractedJSON = (try? String(
+            contentsOf: extracted.appendingPathComponent("diagnostics.json"),
+            encoding: .utf8
+        ))?.lowercased() ?? ""
+        let extractedObject = try JSONSerialization.jsonObject(
+            with: Data(extractedJSON.utf8)
+        )
+        let extractedKeys = jsonKeys(in: extractedObject)
+        defer {
+            try? FileManager.default.removeItem(at: archive)
+            try? FileManager.default.removeItem(at: extracted)
+        }
+        guard reportKeys.isDisjoint(with: forbiddenKeys),
+              extractedKeys.isDisjoint(with: forbiddenKeys),
+              lowered.contains("appversion"),
+              lowered.contains("osversion"),
+              lowered.contains("permissionstatus"),
+              lowered.contains("selectedmodel"),
+              archiveSize > 100,
+              unzip.terminationStatus == 0,
+              extractedFiles == ["README.txt", "diagnostics.json"] else {
+            throw failure(
+                "support bundle allowlist files=\(extractedFiles.sorted()) archive=\(archiveSize) unzip=\(unzip.terminationStatus) forbidden=\(extractedKeys.intersection(forbiddenKeys).sorted())"
+            )
+        }
+    }
+
+    private static func checkPawprints() throws {
+        let url = temporaryFile("pawprints.json")
+        try? FileManager.default.removeItem(at: url)
+        var enabled = false
+        let store = PawprintsStore(fileURL: url, isEnabled: { enabled })
+        guard !store.record(text: "This must never be stored", duration: 4, isPrivate: false),
+              store.summary == .empty else { throw failure("Pawprints opt-in") }
+        enabled = true
+        guard !store.record(text: "five private words stay completely hidden", duration: 5, isPrivate: true),
+              store.summary == .empty else { throw failure("Pawprints Private Session exclusion") }
+        let day = Date(timeIntervalSince1970: 1_722_470_400)
+        guard store.record(text: "Five useful aggregate words", duration: 6, isPrivate: false, now: day),
+              store.record(text: "Three more words", duration: 4, isPrivate: false, now: day) else {
+            throw failure("Pawprints aggregate persistence")
+        }
+        let summary = store.summary
+        let diskText = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        guard summary.dictations == 2,
+              summary.words == 7,
+              summary.speakingSeconds == 10,
+              summary.activeDays == 1,
+              !diskText.contains("useful"),
+              !diskText.contains("aggregate") else {
+            throw failure("Pawprints aggregate-only storage")
+        }
+        guard store.reset(),
+              store.summary == .empty,
+              !FileManager.default.fileExists(atPath: url.path) else {
+            throw failure("Pawprints complete reset")
+        }
+    }
+
     private static func checkPhraseBoundaries() throws {
         guard WholePhraseReplacer.replace("Ann", with: "Anne", in: "Ann met Annabelle") == "Anne met Annabelle"
         else { throw failure("phrase boundaries") }
@@ -276,6 +440,16 @@ enum FeatureDiagnostics {
     }
 
     private static func checkVoiceStudio() throws {
+        let selectionController = VoiceStudioWindowController()
+        selectionController.prefillForDiagnostics("Read this selection")
+        guard let selectionContent = selectionController.window?.contentView,
+              let selectionEditor = findView(
+                in: selectionContent,
+                identifier: "kiki.voice.generation-editor"
+              ) as? NSTextView,
+              selectionEditor.string == "Read this selection" else {
+            throw failure("Read Selection Voice Studio prefill")
+        }
         let sampleCount = Int(21 * AudioRecorder.sampleRate)
         let clean = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.08, count: sampleCount))
         let quiet = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.001, count: sampleCount))
@@ -323,8 +497,58 @@ enum FeatureDiagnostics {
         )
         let diagnosticSettings = SettingsWindowController()
         diagnosticSettings.prepareForDiagnostics(page: 2)
+        let checkup = KikiCheckupWindowController()
+        guard let checkupContent = checkup.window?.contentView else {
+            throw failure("Kiki Checkup content")
+        }
+        checkupContent.layoutSubtreeIfNeeded()
+        guard
+              findView(in: checkupContent, identifier: "kiki.checkup.microphone") is NSPopUpButton,
+              findView(in: checkupContent, identifier: "kiki.checkup.input-meter") != nil,
+              findButton(in: checkupContent, title: "Test Shortcut") != nil,
+              findButton(in: checkupContent, title: "Begin Practice Dictation") != nil,
+              findButton(in: checkupContent, title: "Refresh Checks") != nil,
+              findView(in: checkupContent, identifier: "kiki.checkup.readiness") is NSTextField else {
+            throw failure("Kiki Checkup controls")
+        }
+        let footerButtonIDs = [
+            "kiki.checkup.footer.microphone",
+            "kiki.checkup.footer.accessibility",
+            "kiki.checkup.footer.shortcut",
+            "kiki.checkup.footer.refresh",
+        ]
+        let footerWidths = footerButtonIDs.compactMap {
+            findView(in: checkupContent, identifier: $0)?.frame.width
+        }
+        let footerHeights = footerButtonIDs.compactMap {
+            findView(in: checkupContent, identifier: $0)?.frame.height
+        }
+        guard footerWidths.count == footerButtonIDs.count,
+              footerHeights.count == footerButtonIDs.count,
+              let minimumFooterWidth = footerWidths.min(),
+              let maximumFooterWidth = footerWidths.max(),
+              let minimumFooterHeight = footerHeights.min(),
+              let maximumFooterHeight = footerHeights.max(),
+              maximumFooterWidth - minimumFooterWidth <= 1,
+              maximumFooterHeight - minimumFooterHeight <= 1,
+              abs(maximumFooterHeight - 40) <= 1,
+              let practiceButton = findView(in: checkupContent, identifier: "kiki.checkup.practice"),
+              practiceButton.frame.width > maximumFooterWidth,
+              abs(practiceButton.frame.height - maximumFooterHeight) <= 1 else {
+            throw failure("Kiki Checkup symmetric action layout")
+        }
+        let pawprints = PawprintsWindowController()
+        guard let pawprintsContent = pawprints.window?.contentView,
+              findView(in: pawprintsContent, identifier: "kiki.pawprints.enable") is NSButton,
+              findView(in: pawprintsContent, identifier: "kiki.pawprints.summary") != nil,
+              findButton(in: pawprintsContent, title: "Reset Pawprints") != nil else {
+            throw failure("Pawprints controls")
+        }
         let interactiveWindows: [NSWindowController] = [
             diagnosticSettings,
+            checkup,
+            pawprints,
+            WhatsNewWindowController(),
             VoiceStudioWindowController(),
             MeetingWindowController(),
             MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting),
@@ -405,7 +629,8 @@ enum FeatureDiagnostics {
               !depthLayerNames.contains("kiki.card.texture"),
               hardwareButton.intrinsicContentSize.height < 40,
               abs((hardwareButton.font?.pointSize ?? 0) - 11.5) < 0.1,
-              hardwareButton.layer?.borderWidth == 1 else {
+              hardwareButton.layer?.borderWidth == 1,
+              hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true else {
             throw failure("Studio Hardware matte depth treatment and compact controls")
         }
 
@@ -444,6 +669,20 @@ enum FeatureDiagnostics {
 
     private static func descendants(of root: NSView) -> [NSView] {
         root.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
+
+    private static func jsonKeys(in value: Any) -> Set<String> {
+        if let dictionary = value as? [String: Any] {
+            return dictionary.reduce(into: Set(dictionary.keys.map { $0.lowercased() })) { result, pair in
+                result.formUnion(jsonKeys(in: pair.value))
+            }
+        }
+        if let array = value as? [Any] {
+            return array.reduce(into: Set<String>()) { result, item in
+                result.formUnion(jsonKeys(in: item))
+            }
+        }
+        return []
     }
 
     private static func menuItem(in menu: NSMenu, action: Selector, keyEquivalent: String) -> NSMenuItem? {

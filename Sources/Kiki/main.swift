@@ -192,7 +192,7 @@ if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: learning, snippets, context, meetings, boundaries, voice studio")
+            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, waveform, and Voice Studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)

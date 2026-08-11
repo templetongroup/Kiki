@@ -53,7 +53,6 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
            let image = NSImage(contentsOf: url) {
             icon.image = image
         } else {
-            assertionFailure("SplashArtwork.png is missing from the Kiki app bundle")
             icon.image = NSApp.applicationIconImage
         }
         icon.imageScaling = .scaleProportionallyUpOrDown
@@ -73,10 +72,10 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
             ]
         )
 
-        let title = kikiLabel("Meet Kiki Voice Studio.", size: 30, weight: .bold)
+        let title = kikiLabel("Kiki is ready for the real world.", size: 30, weight: .bold)
         title.alignment = .left
         let detail = kikiLabel(
-            "Create speech in your own voice—fully local, private, and ready to export.",
+            "A safer, more confident release with guided setup, reversible dictation, and private local insights.",
             size: 14,
             color: KikiPalette.secondaryText
         )
@@ -84,16 +83,16 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         detail.maximumNumberOfLines = 2
 
         let features = NSStackView(views: [
-            featureRow(symbol: "mic.badge.plus", title: "Create your voice", detail: "Read one guided passage. Recording-quality checks help capture a clean private reference.", tint: KikiPalette.accentText),
-            featureRow(symbol: "text.bubble", title: "Write and listen", detail: "Turn short notes or long scripts into natural speech without sending text or audio anywhere.", tint: KikiPalette.violet),
-            featureRow(symbol: "square.and.arrow.up", title: "Export anywhere", detail: "Play the result in Kiki or save a polished WAV or M4A audio file.", tint: KikiPalette.magenta),
+            featureRow(symbol: "checkmark.shield", title: "Know Kiki is ready", detail: "Kiki Checkup verifies your microphone, live input, permissions, model, shortcut, and first real insertion.", tint: KikiPalette.accentText),
+            featureRow(symbol: "arrow.uturn.backward", title: "Undo, retry, or go private", detail: "Reverse only Kiki’s exact last insertion, retry from memory, or pause every optional trace with Private Session.", tint: KikiPalette.violet),
+            featureRow(symbol: "pawprint", title: "Useful without being invasive", detail: "Read selected text in your voice and optionally see aggregate-only Pawprints that never include Private Sessions.", tint: KikiPalette.magenta),
         ])
         features.orientation = .vertical
         features.alignment = .leading
         features.distribution = .fillEqually
         features.spacing = 10
 
-        let explore = KikiActionButton("Open Voice Studio", kind: .primary, target: self, action: #selector(explorePressed))
+        let explore = KikiActionButton("Run Kiki Checkup", kind: .primary, target: self, action: #selector(explorePressed))
         let later = KikiActionButton("Not now", kind: .quiet, target: self, action: #selector(closePressed))
         let actions = NSStackView(views: [explore, later])
         actions.orientation = .horizontal

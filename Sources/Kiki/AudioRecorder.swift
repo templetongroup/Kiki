@@ -27,6 +27,10 @@ final class AudioRecorder {
     func start() throws {
         let engine = AVAudioEngine()
         let input = engine.inputNode
+        if let uniqueID = Settings.microphoneDeviceUID,
+           let audioUnit = input.audioUnit {
+            try AudioInputDevice.apply(uniqueID: uniqueID, to: audioUnit)
+        }
         let inFormat = input.outputFormat(forBus: 0)
         guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
             throw KikiError("No audio input device available.")

@@ -83,15 +83,20 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func show() {
+    func show(prefilledText: String? = nil) {
         profile = VoiceProfileStore.load()
         selectedEnrollmentMode = profile?.enrollmentMode ?? selectedEnrollmentMode
         updateEnrollmentModePresentation()
+        if let prefilledText { prefillEditor(prefilledText) }
         refreshState()
         showWindow(nil)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func prefillForDiagnostics(_ text: String) {
+        prefillEditor(text)
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -346,6 +351,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         setupStatusLabel.maximumNumberOfLines = 2
 
         editor.isEditable = true
+        editor.identifier = NSUserInterfaceItemIdentifier("kiki.voice.generation-editor")
         editor.isRichText = false
         editor.isAutomaticQuoteSubstitutionEnabled = true
         editor.isAutomaticDashSubstitutionEnabled = true
@@ -512,6 +518,14 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         playOutputButton.isEnabled = generatedAudioURL != nil
         exportButton.isEnabled = generatedAudioURL != nil
         revealButton.isEnabled = generatedAudioURL != nil
+    }
+
+    private func prefillEditor(_ text: String) {
+        editor.string = text
+        editor.setSelectedRange(NSRange(location: 0, length: 0))
+        editor.scrollToBeginningOfDocument(nil)
+        characterCountLabel.stringValue = "\(text.count.formatted()) characters"
+        generationFeedback = "Selection added. Review or edit it, then choose Generate in My Voice."
     }
 
     @objc private func consentChanged() {
