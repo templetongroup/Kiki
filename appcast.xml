@@ -6,6 +6,16 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.10</title>
+            <pubDate>Tue, 11 Aug 2026 16:47:47 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.10</link>
+            <sparkle:version>43</sparkle:version>
+            <sparkle:shortVersionString>0.6.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.10/Kiki-0.6.10-macOS.zip" length="53712406" type="application/octet-stream" sparkle:edSignature="N0BOsbZxBmGNyEEiMEUPQi+x7mMV1GpSIr9i4TCdGd8EaQppNRbWOl0xsXLhwd2/Lp4jn7+FfX9wF6XVacaTAg=="/>
+        </item>
+        <item>
             <title>0.6.9</title>
             <pubDate>Tue, 11 Aug 2026 16:22:10 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.9</link>
@@ -63,25 +73,6 @@
 - Adds release diagnostics that reject a non-dark application or Workbench window.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.6/Kiki-0.6.6-macOS.zip" length="53690218" type="application/octet-stream" sparkle:edSignature="aZ4GvqFwMtIBg1tOQFgCpO4jqDsinyIJk5Wy5Vx5HLvcdPO79uvtPFjc6i6aanbfhu8QEnAd9SZ5QgaOdcypAA=="/>
-        </item>
-        <item>
-            <title>0.6.5</title>
-            <pubDate>Tue, 11 Aug 2026 13:42:49 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.5</link>
-            <sparkle:version>38</sparkle:version>
-            <sparkle:shortVersionString>0.6.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.5
-
-- Replaces Kiki's collection of separate primary windows with the unified Guided Workbench: Home, Dictation, Meetings, Voice Studio, Library, Personalization, Models, and Settings now live in one consistent workspace.
-- Preserves the established Templeton Slate and Studio Hardware visuals while adding descriptive left-side navigation and state-aware workflow pages.
-- Routes existing menu commands and quick actions into the correct Workbench section without removing the underlying local features.
-- Uses a compact, resizable window that stays well within the display instead of expanding to the full screen width.
-- Prevents high-resolution artwork and embedded legacy screens from forcing the Workbench wider or causing recursive AppKit layout failures.
-- Adds diagnostics for Workbench routing, native click handling, and compact layout behavior.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.5/Kiki-0.6.5-macOS.zip" length="53694126" type="application/octet-stream" sparkle:edSignature="0TxDiJDWYYmiAPb2gJITWHTdIWqHUaG9aKyhBJrG5wLSDxtRrCRFjRj5UNN4T/ThlgEt6Dz/813duBGBOyuZBw=="/>
         </item>
     </channel>
 </rss>
