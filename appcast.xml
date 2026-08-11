@@ -6,6 +6,16 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.8</title>
+            <pubDate>Tue, 11 Aug 2026 15:52:09 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.8</link>
+            <sparkle:version>41</sparkle:version>
+            <sparkle:shortVersionString>0.6.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.8/Kiki-0.6.8-macOS.zip" length="53696970" type="application/octet-stream" sparkle:edSignature="1YYSmDTOVHCxcCXXi6VTdrdI/1pvFKOpO6GoNZolNH9o143YLUrbBdJyqzDhjar3MWSR7DP+oGPyKyUrT+9kCw=="/>
+        </item>
+        <item>
             <title>0.6.7</title>
             <pubDate>Tue, 11 Aug 2026 15:17:11 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.7</link>
@@ -80,24 +90,6 @@
 - Adds regressions based on the first live Zoom meeting, including duplicate speech, fragment rejection, contextual commitments, request ownership, and export formatting.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.4/Kiki-0.6.4-macOS.zip" length="53639489" type="application/octet-stream" sparkle:edSignature="U3tT7lX6yRARkD2WdRR0iHH8BxqYE7vc9JbaQ8unhRmxuukrbDGjiVQhJwl0t/hnopfcWc1874WlxFCKqpFICw=="/>
-        </item>
-        <item>
-            <title>0.6.3</title>
-            <pubDate>Tue, 11 Aug 2026 10:05:24 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.3</link>
-            <sparkle:version>36</sparkle:version>
-            <sparkle:shortVersionString>0.6.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.3
-
-- Centers the numbered Guided Review badges precisely inside their circular controls.
-- Expands Suggestions from Recent Edits across the Personalization Studio so the original text, replacement, and application columns remain visible without horizontal scrolling.
-- Lets users edit an existing voice snippet by selecting it, changing its trigger or inserted text, and choosing Update Snippet.
-- Makes Personalization action rows symmetrical with equal-width, equal-height buttons across Snippets, Private Apps, and Confidence Reviews.
-- Adds regression coverage for guided-step alignment, full-width suggestion layout, snippet editing, and action-row geometry.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.3/Kiki-0.6.3-macOS.zip" length="53629401" type="application/octet-stream" sparkle:edSignature="FP5mIZmL6HGd3v1uw+T2BDaWAo8f/0lXTjM51ZMbEFx2729wintmbpiPIQyqc3yqISn9cT5CTTGC/arnGxdCBA=="/>
         </item>
     </channel>
 </rss>
