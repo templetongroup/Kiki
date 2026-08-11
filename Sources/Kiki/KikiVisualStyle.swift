@@ -862,12 +862,18 @@ final class KikiGuidedStepView: KikiCardView {
     init(number: Int, title: String, detail: String, trailing: NSView? = nil) {
         super.init(frame: .zero)
 
+        let numberBadge = NSView()
+        numberBadge.identifier = NSUserInterfaceItemIdentifier("kiki.guided-step.badge")
+        numberBadge.wantsLayer = true
+        numberBadge.layer?.cornerRadius = 15
+        numberBadge.layer?.borderWidth = 1
+        numberBadge.layer?.borderColor = KikiPalette.strongStroke.cgColor
+
         let numberLabel = kikiLabel("\(number)", size: 12, weight: .semibold, color: KikiPalette.accentText)
+        numberLabel.identifier = NSUserInterfaceItemIdentifier("kiki.guided-step.number")
         numberLabel.alignment = .center
-        numberLabel.wantsLayer = true
-        numberLabel.layer?.cornerRadius = 15
-        numberLabel.layer?.borderWidth = 1
-        numberLabel.layer?.borderColor = KikiPalette.strongStroke.cgColor
+        numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        numberBadge.addSubview(numberLabel)
 
         let titleLabel = kikiLabel(title, size: 14, weight: .semibold)
         titleLabel.maximumNumberOfLines = 2
@@ -878,16 +884,18 @@ final class KikiGuidedStepView: KikiCardView {
         copy.alignment = .leading
         copy.spacing = 4
 
-        numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        numberBadge.translatesAutoresizingMaskIntoConstraints = false
         copy.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(numberLabel)
+        addSubview(numberBadge)
         addSubview(copy)
         var constraints = [
-            numberLabel.widthAnchor.constraint(equalToConstant: 30),
-            numberLabel.heightAnchor.constraint(equalToConstant: 30),
-            numberLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
-            numberLabel.topAnchor.constraint(equalTo: topAnchor, constant: 14),
-            copy.leadingAnchor.constraint(equalTo: numberLabel.trailingAnchor, constant: 12),
+            numberBadge.widthAnchor.constraint(equalToConstant: 30),
+            numberBadge.heightAnchor.constraint(equalToConstant: 30),
+            numberBadge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            numberBadge.topAnchor.constraint(equalTo: topAnchor, constant: 14),
+            numberLabel.centerXAnchor.constraint(equalTo: numberBadge.centerXAnchor),
+            numberLabel.centerYAnchor.constraint(equalTo: numberBadge.centerYAnchor, constant: -0.5),
+            copy.leadingAnchor.constraint(equalTo: numberBadge.trailingAnchor, constant: 12),
             copy.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
             copy.topAnchor.constraint(equalTo: topAnchor, constant: 12),
         ]

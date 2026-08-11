@@ -38,9 +38,25 @@ final class VoiceSnippetStore {
 
     func add(trigger: String, template: String) {
         let trigger = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
+        let template = template.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trigger.isEmpty, !template.isEmpty else { return }
         snippets.removeAll { $0.trigger.caseInsensitiveCompare(trigger) == .orderedSame }
         snippets.append(VoiceSnippet(trigger: trigger, template: template))
+        snippets.sort { $0.trigger.localizedCaseInsensitiveCompare($1.trigger) == .orderedAscending }
+        save()
+    }
+
+    func update(id: UUID, trigger: String, template: String) {
+        let trigger = trigger.trimmingCharacters(in: .whitespacesAndNewlines)
+        let template = template.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trigger.isEmpty, !template.isEmpty,
+              snippets.contains(where: { $0.id == id }) else { return }
+        snippets.removeAll {
+            $0.id != id && $0.trigger.caseInsensitiveCompare(trigger) == .orderedSame
+        }
+        guard let index = snippets.firstIndex(where: { $0.id == id }) else { return }
+        snippets[index].trigger = trigger
+        snippets[index].template = template
         snippets.sort { $0.trigger.localizedCaseInsensitiveCompare($1.trigger) == .orderedAscending }
         save()
     }
@@ -82,4 +98,3 @@ final class VoiceSnippetStore {
         NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
     }
 }
-

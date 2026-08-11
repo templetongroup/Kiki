@@ -165,9 +165,13 @@ enum FeatureDiagnostics {
     private static func checkVoiceSnippets() throws {
         let store = VoiceSnippetStore(fileURL: temporaryFile("snippets.json"))
         store.add(trigger: "insert status", template: "Status: complete")
-        guard store.expansion(for: "Insert status.") == "Status: complete",
+        guard let snippet = store.snippets.first else { throw failure("voice snippet creation") }
+        store.update(id: snippet.id, trigger: "insert project status", template: "Project status: shipped")
+        guard store.expansion(for: "Insert status.") == nil,
+              store.expansion(for: "Insert project status.") == "Project status: shipped",
+              store.snippets.first?.id == snippet.id,
               store.expansion(for: "Please insert status here") == nil
-        else { throw failure("voice snippet matching") }
+        else { throw failure("voice snippet matching and editing") }
     }
 
     private static func checkContextVocabulary() throws {
@@ -597,6 +601,13 @@ enum FeatureDiagnostics {
 
         let personalization = PersonalizationWindowController()
         personalization.prepareForDiagnostics(page: 0)
+        let guidedStep = KikiGuidedStepView(
+            number: 1,
+            title: "Choose what changed",
+            detail: "Select a suggestion to review."
+        )
+        guidedStep.frame = NSRect(x: 0, y: 0, width: 400, height: 90)
+        guidedStep.layoutSubtreeIfNeeded()
         guard let personalizationContent = personalization.window?.contentView,
               let approveSuggestion = findView(
                 in: personalizationContent,
@@ -610,9 +621,86 @@ enum FeatureDiagnostics {
                 in: personalizationContent,
                 identifier: "kiki.personalization.suggestions.surface"
               ) is KikiDataSurfaceView,
+              let learningLayout = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.learning-layout"
+              ),
+              let suggestionsSection = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.suggestions-section"
+              ),
+              let suggestionsTable = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.suggestions"
+              ) as? NSTableView,
+              let suggestionAppColumn = suggestionsTable.tableColumn(
+                withIdentifier: NSUserInterfaceItemIdentifier("scope")
+              ),
+              let guidedBadge = findView(
+                in: guidedStep,
+                identifier: "kiki.guided-step.badge"
+              ),
+              let guidedNumber = findView(
+                in: guidedStep,
+                identifier: "kiki.guided-step.number"
+              ),
               !approveSuggestion.isEnabled,
               !ignoreSuggestion.isEnabled else {
             throw failure("Personalization guided review state")
+        }
+        guard abs(learningLayout.bounds.width - suggestionsSection.bounds.width) < 1,
+              suggestionsSection.bounds.width > 800,
+              suggestionAppColumn.width > 300 else {
+            throw failure(
+                "full-width suggestions layout=\(learningLayout.bounds.width) section=\(suggestionsSection.bounds.width) app=\(suggestionAppColumn.width)"
+            )
+        }
+        let guidedBadgeCenter = guidedBadge.convert(
+            NSPoint(x: guidedBadge.bounds.midX, y: guidedBadge.bounds.midY),
+            to: guidedStep
+        )
+        let guidedNumberCenter = guidedNumber.convert(
+            NSPoint(x: guidedNumber.bounds.midX, y: guidedNumber.bounds.midY),
+            to: guidedStep
+        )
+        guard abs(guidedBadgeCenter.x - guidedNumberCenter.x) <= 0.5,
+              abs(guidedBadgeCenter.y - guidedNumberCenter.y) <= 0.5,
+              guidedNumber.bounds.height < guidedBadge.bounds.height else {
+            throw failure(
+                "centered step number badge=\(guidedBadgeCenter) number=\(guidedNumberCenter) heights=\(guidedBadge.bounds.height)/\(guidedNumber.bounds.height)"
+            )
+        }
+
+        let snippetPersonalization = PersonalizationWindowController()
+        snippetPersonalization.prepareForDiagnostics(page: 2)
+        let privateAppsPersonalization = PersonalizationWindowController()
+        privateAppsPersonalization.prepareForDiagnostics(page: 3)
+        let confidencePersonalization = PersonalizationWindowController()
+        confidencePersonalization.prepareForDiagnostics(page: 4)
+        guard let snippetContent = snippetPersonalization.window?.contentView,
+              let snippetActions = findView(
+                in: snippetContent,
+                identifier: "kiki.personalization.snippets.actions"
+              ) as? NSStackView,
+              symmetricActionRow(snippetActions, count: 2),
+              let privateAppsContent = privateAppsPersonalization.window?.contentView,
+              let privateAppActions = findView(
+                in: privateAppsContent,
+                identifier: "kiki.personalization.private-apps.actions"
+              ) as? NSStackView,
+              symmetricActionRow(privateAppActions, count: 2),
+              let confidenceContent = confidencePersonalization.window?.contentView,
+              let confidenceActions = findView(
+                in: confidenceContent,
+                identifier: "kiki.personalization.confidence.actions"
+              ) as? NSStackView,
+              symmetricActionRow(confidenceActions, count: 3),
+              let clearReviews = findView(
+                in: confidenceContent,
+                identifier: "kiki.personalization.clear-reviews"
+              ) as? KikiActionButton,
+              clearReviews.layer?.borderWidth == 1 else {
+            throw failure("Personalization action-row symmetry")
         }
 
         let fileTranscription = FileTranscriptionWindowController()
@@ -670,6 +758,9 @@ enum FeatureDiagnostics {
             meetingWindow,
             speakerEditor,
             personalization,
+            snippetPersonalization,
+            privateAppsPersonalization,
+            confidencePersonalization,
             fileTranscription,
             history,
             dictionary,
@@ -795,6 +886,17 @@ enum FeatureDiagnostics {
 
     private static func descendants(of root: NSView) -> [NSView] {
         root.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
+
+    private static func symmetricActionRow(_ row: NSStackView, count: Int) -> Bool {
+        row.layoutSubtreeIfNeeded()
+        guard row.arrangedSubviews.count == count,
+              let first = row.arrangedSubviews.first else { return false }
+        return abs(first.bounds.height - 42) < 1
+            && row.arrangedSubviews.allSatisfy {
+                abs($0.bounds.width - first.bounds.width) < 1
+                    && abs($0.bounds.height - first.bounds.height) < 1
+            }
     }
 
     private static func jsonKeys(in value: Any) -> Set<String> {

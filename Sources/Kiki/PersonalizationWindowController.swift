@@ -51,21 +51,22 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     )
     private lazy var addTermButton = KikiActionButton("Add Term", kind: .primary, target: self, action: #selector(addManualTerm))
     private lazy var removeTermButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removeVocabularyTerm))
-    private lazy var saveSnippetButton = KikiActionButton("Save Snippet", kind: .primary, target: self, action: #selector(addSnippet))
+    private lazy var saveSnippetButton = KikiActionButton("Save Snippet", kind: .primary, target: self, action: #selector(saveSnippet))
     private lazy var removeSnippetButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removeSnippet))
     private lazy var addPrivateAppButton = KikiActionButton("Add Bundle ID", kind: .primary, target: self, action: #selector(addPrivateBundle))
     private lazy var removePrivateAppButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removePrivateBundle))
     private lazy var copyAlternateButton = KikiActionButton("Copy Whisper Alternative", kind: .primary, target: self, action: #selector(copyAlternate))
     private lazy var dismissReviewButton = KikiActionButton("Dismiss", kind: .hardware, target: self, action: #selector(removeConfidenceReview))
-    private lazy var clearReviewsButton = KikiActionButton("Clear All", kind: .quiet, target: self, action: #selector(clearConfidenceReviews))
+    private lazy var clearReviewsButton = KikiActionButton("Clear All", kind: .hardware, target: self, action: #selector(clearConfidenceReviews))
     private var dataSurfaces: [ObjectIdentifier: KikiDataSurfaceView] = [:]
     private var pages: [NSView] = []
     private var openingContext: AppContextSnapshot?
+    private var editingSnippetID: UUID?
     private var observers: [NSObjectProtocol] = []
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1_180, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 1_180, height: 900),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -74,7 +75,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
-        window.minSize = NSSize(width: 1_080, height: 680)
+        window.minSize = NSSize(width: 1_080, height: 820)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -220,6 +221,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         privateAppsTable.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.private-apps")
         confidenceTable.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.confidence")
         configure(suggestionsTable, columns: [("heard", "Kiki heard", 190), ("replacement", "You changed it to", 210), ("scope", "App", 130)])
+        suggestionsTable.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         configure(correctionsTable, columns: [("heard", "Heard", 190), ("replacement", "Use", 210), ("scope", "Scope", 130)])
         configure(vocabularyTable, columns: [("value", "Term", 320), ("source", "Source", 140), ("scope", "Scope", 160)])
         configure(snippetsTable, columns: [("trigger", "Spoken trigger", 260), ("template", "Inserted template", 380)])
@@ -252,6 +254,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         removePrivateAppButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.remove-private-app")
         copyAlternateButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.copy-alternate")
         dismissReviewButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.dismiss-review")
+        clearReviewsButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.clear-reviews")
     }
 
     private func configure(_ table: NSTableView, columns: [(String, String, CGFloat)]) {
@@ -280,17 +283,13 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             table: suggestionsTable,
             buttons: []
         )
+        suggestions.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.suggestions-section")
         let approved = tableSection(
             title: "Approved spelling rules",
             detail: "Select a rule to remove it. Kiki applies approved rules before insertion.",
             table: correctionsTable,
             buttons: [removeCorrectionButton]
         )
-        let main = NSStackView(views: [suggestions, approved])
-        main.orientation = .vertical
-        main.alignment = .width
-        main.distribution = .fillEqually
-        main.spacing = 14
 
         let selectedStep = KikiGuidedStepView(
             number: 1,
@@ -350,12 +349,21 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         guide.alignment = .width
         guide.spacing = 10
 
-        let layout = NSStackView(views: [main, guide])
-        layout.orientation = .horizontal
-        layout.alignment = .top
-        layout.spacing = 16
-        main.widthAnchor.constraint(greaterThanOrEqualToConstant: 500).isActive = true
+        let lower = NSStackView(views: [approved, guide])
+        lower.orientation = .horizontal
+        lower.alignment = .top
+        lower.spacing = 16
+        approved.widthAnchor.constraint(greaterThanOrEqualToConstant: 500).isActive = true
         guide.widthAnchor.constraint(equalToConstant: 300).isActive = true
+
+        let layout = NSStackView(views: [suggestions, lower])
+        layout.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-layout")
+        layout.orientation = .vertical
+        layout.alignment = .width
+        layout.spacing = 14
+        suggestions.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
+        suggestions.heightAnchor.constraint(greaterThanOrEqualToConstant: 280).isActive = true
+        lower.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
         return layout
     }
 
@@ -434,7 +442,15 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         let surface = dataSurface(for: table)
         let buttonRow = NSStackView(views: buttons)
         buttonRow.orientation = .horizontal
+        buttonRow.alignment = .centerY
+        buttonRow.distribution = .fillEqually
         buttonRow.spacing = 8
+        if let tableIdentifier = table.identifier?.rawValue {
+            buttonRow.identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).actions")
+        }
+        buttons.forEach {
+            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        }
         let stack = NSStackView(views: [titleLabel, detailLabel] + above + [surface, buttonRow])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -451,6 +467,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             surface.widthAnchor.constraint(equalTo: stack.widthAnchor),
             surface.heightAnchor.constraint(greaterThanOrEqualToConstant: 250),
         ])
+        if !buttons.isEmpty {
+            buttonRow.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
         return container
     }
 
@@ -568,6 +587,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
+        if let table = notification.object as? NSTableView, table === snippetsTable {
+            beginEditingSelectedSnippet()
+        }
         updateActionAvailability()
     }
 
@@ -604,6 +626,21 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     private func trimmed(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func beginEditingSelectedSnippet() {
+        let row = snippetsTable.selectedRow
+        guard VoiceSnippetStore.shared.snippets.indices.contains(row) else {
+            editingSnippetID = nil
+            saveSnippetButton.title = "Save Snippet"
+            return
+        }
+        let snippet = VoiceSnippetStore.shared.snippets[row]
+        editingSnippetID = snippet.id
+        snippetTriggerField.stringValue = snippet.trigger
+        snippetTemplateField.stringValue = snippet.template
+        saveSnippetButton.title = "Update Snippet"
+        statusLabel.stringValue = "Editing the “\(snippet.trigger)” voice snippet."
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
@@ -721,23 +758,40 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         ContextVocabularyStore.shared.remove(id: ContextVocabularyStore.shared.terms[row].id)
     }
 
-    @objc private func addSnippet() {
+    @objc private func saveSnippet() {
         let trigger = trimmed(snippetTriggerField.stringValue)
         let template = trimmed(snippetTemplateField.stringValue)
         guard !trigger.isEmpty, !template.isEmpty else {
             statusLabel.stringValue = "Enter both a spoken trigger and the text Kiki should insert."
             return
         }
-        VoiceSnippetStore.shared.add(trigger: trigger, template: template)
+        let wasEditing = editingSnippetID != nil
+        if let editingSnippetID {
+            VoiceSnippetStore.shared.update(id: editingSnippetID, trigger: trigger, template: template)
+        } else {
+            VoiceSnippetStore.shared.add(trigger: trigger, template: template)
+        }
+        editingSnippetID = nil
+        snippetsTable.deselectAll(nil)
         snippetTriggerField.stringValue = ""
         snippetTemplateField.stringValue = ""
-        statusLabel.stringValue = "Saved the “\(trigger)” voice snippet."
+        saveSnippetButton.title = "Save Snippet"
+        statusLabel.stringValue = "\(wasEditing ? "Updated" : "Saved") the “\(trigger)” voice snippet."
         updateActionAvailability()
     }
     @objc private func removeSnippet() {
         let row = snippetsTable.selectedRow
         guard VoiceSnippetStore.shared.snippets.indices.contains(row) else { return }
-        VoiceSnippetStore.shared.remove(id: VoiceSnippetStore.shared.snippets[row].id)
+        let snippet = VoiceSnippetStore.shared.snippets[row]
+        VoiceSnippetStore.shared.remove(id: snippet.id)
+        if editingSnippetID == snippet.id {
+            editingSnippetID = nil
+            snippetTriggerField.stringValue = ""
+            snippetTemplateField.stringValue = ""
+            saveSnippetButton.title = "Save Snippet"
+        }
+        statusLabel.stringValue = "Removed the “\(snippet.trigger)” voice snippet."
+        updateActionAvailability()
     }
 
     @objc private func addPrivateBundle() {
