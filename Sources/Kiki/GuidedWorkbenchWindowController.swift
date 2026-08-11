@@ -111,11 +111,13 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private var shouldCenterOnFirstShow = true
     private(set) var route = GuidedWorkbenchRoute(section: .home)
 
+    private static let compactMinimumSize = NSSize(width: 900, height: 650)
+
     init() {
         let visibleSize = NSScreen.main?.visibleFrame.size ?? NSSize(width: 1_440, height: 900)
         let initialSize = NSSize(
-            width: min(1_180, max(920, visibleSize.width * 0.82)),
-            height: min(840, max(700, visibleSize.height * 0.86))
+            width: min(1_240, max(1_020, visibleSize.width * 0.86)),
+            height: min(840, max(720, visibleSize.height * 0.90))
         )
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: initialSize),
@@ -128,13 +130,13 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
-        window.minSize = NSSize(
-            width: min(980, initialSize.width),
-            height: min(680, initialSize.height)
-        )
+        window.minSize = Self.compactMinimumSize
         window.isReleasedWhenClosed = false
-        let frameAutosaveName = "KikiGuidedWorkbenchCompactV3"
+        let frameAutosaveName = "KikiGuidedWorkbenchAdaptiveV4"
         let restoredSavedFrame = window.setFrameUsingName(frameAutosaveName)
+        if let screen = window.screen ?? NSScreen.main {
+            window.setFrame(window.constrainFrameRect(window.frame, to: screen), display: false)
+        }
         window.setFrameAutosaveName(frameAutosaveName)
         super.init(window: window)
         shouldCenterOnFirstShow = !restoredSavedFrame
@@ -159,6 +161,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         self.route = route
         updateNavigation()
         reloadSurface()
+        applyWindowPolicy(for: route.section)
     }
 
     func isShowing(section: GuidedWorkbenchSection, subpage: Int? = nil) -> Bool {
@@ -237,7 +240,11 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         let portrait = KikiCircularPortraitView()
         let brandTitle = kikiLabel("Kiki", size: 19, weight: .bold)
         let brandDetail = kikiLabel("VOICE INTELLIGENCE", size: 8.5, weight: .semibold, color: KikiPalette.tertiaryText)
-        let brandCopy = NSStackView(views: [brandTitle, brandDetail])
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        let releaseDetail = kikiLabel("RELEASE \(version) · BUILD \(build)", size: 8, weight: .medium, color: KikiPalette.khaki)
+        releaseDetail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.release")
+        let brandCopy = NSStackView(views: [brandTitle, brandDetail, releaseDetail])
         brandCopy.orientation = .vertical
         brandCopy.alignment = .leading
         brandCopy.spacing = 2
@@ -465,8 +472,45 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         contentHost.layoutSubtreeIfNeeded()
     }
 
+    private func applyWindowPolicy(for section: GuidedWorkbenchSection) {
+        guard let window else { return }
+        let desired: NSSize
+        switch section {
+        case .home, .dictation, .models, .settings:
+            desired = Self.compactMinimumSize
+        case .meetings, .voice:
+            desired = NSSize(width: 1_100, height: 780)
+        case .library:
+            desired = NSSize(width: 1_160, height: 720)
+        case .personalization:
+            desired = NSSize(width: 1_200, height: 780)
+        }
+
+        let screen = window.screen ?? NSScreen.main
+        let available = screen?.visibleFrame.size ?? desired
+        let minimum = NSSize(
+            width: min(desired.width, available.width),
+            height: min(desired.height, available.height)
+        )
+        window.minSize = minimum
+
+        guard window.frame.width + 0.5 < minimum.width || window.frame.height + 0.5 < minimum.height else { return }
+        var frame = window.frame
+        let previousTop = frame.maxY
+        frame.size.width = max(frame.width, minimum.width)
+        frame.size.height = max(frame.height, minimum.height)
+        frame.origin.y = previousTop - frame.height
+        if let screen {
+            frame = window.constrainFrameRect(frame, to: screen)
+        }
+        window.setFrame(frame, display: true)
+    }
+
     @objc private func navigate(_ sender: WorkbenchNavigationButton) {
         guard GuidedWorkbenchSection.allCases.indices.contains(sender.tag) else { return }
+        if NSApp.currentEvent?.type.isMouseEvent == true {
+            window?.makeFirstResponder(nil)
+        }
         select(GuidedWorkbenchRoute(section: GuidedWorkbenchSection.allCases[sender.tag]))
     }
 
@@ -480,6 +524,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 @MainActor
 private final class WorkbenchNavigationButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
+    private var showsKeyboardFocus = false
     private let keyboardFocusLayer = CAShapeLayer()
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
@@ -544,11 +589,13 @@ private final class WorkbenchNavigationButton: NSButton {
     override var acceptsFirstResponder: Bool { isEnabled }
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
+        showsKeyboardFocus = accepted && NSApp.currentEvent?.type == .keyDown
         updateKeyboardFocus()
         return accepted
     }
     override func resignFirstResponder() -> Bool {
         let resigned = super.resignFirstResponder()
+        showsKeyboardFocus = false
         updateKeyboardFocus()
         return resigned
     }
@@ -571,7 +618,7 @@ private final class WorkbenchNavigationButton: NSButton {
 
     private func updateKeyboardFocus() {
         keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
-        keyboardFocusLayer.isHidden = window?.firstResponder !== self || !isEnabled
+        keyboardFocusLayer.isHidden = !showsKeyboardFocus || window?.firstResponder !== self || !isEnabled
     }
 
     private func updateStyle() {
@@ -638,7 +685,7 @@ private final class WorkbenchScrollDocument: NSView {
     func updateViewport(_ viewportSize: NSSize) {
         let targetSize = NSSize(
             width: max(1, viewportSize.width),
-            height: centersVertically ? max(preferredSize.height, viewportSize.height) : preferredSize.height
+            height: max(preferredSize.height, viewportSize.height)
         )
         guard abs(frame.width - targetSize.width) > 0.5 || abs(frame.height - targetSize.height) > 0.5 else { return }
         frame.size = targetSize
@@ -649,12 +696,25 @@ private final class WorkbenchScrollDocument: NSView {
         super.layout()
         let availableWidth = enclosingScrollView?.contentSize.width ?? preferredSize.width
         let documentWidth = max(1, availableWidth)
-        let hostedWidth = min(preferredSize.width, documentWidth)
+        let hostedWidth = min(documentWidth, preferredSize.width * 1.35)
+        let hostedHeight = max(preferredSize.height, bounds.height)
         hostedView.frame = NSRect(
             x: max(0, (documentWidth - hostedWidth) / 2),
-            y: centersVertically ? max(0, (bounds.height - preferredSize.height) / 2) : 0,
+            y: centersVertically ? max(0, (bounds.height - hostedHeight) / 2) : 0,
             width: hostedWidth,
-            height: preferredSize.height
+            height: hostedHeight
         )
+    }
+}
+
+private extension NSEvent.EventType {
+    var isMouseEvent: Bool {
+        switch self {
+        case .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp,
+             .otherMouseDown, .otherMouseUp:
+            return true
+        default:
+            return false
+        }
     }
 }

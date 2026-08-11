@@ -243,6 +243,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         configure(snippetsTable, columns: [("trigger", "Spoken trigger", 260), ("template", "Inserted template", 380)])
         configure(privateAppsTable, columns: [("bundle", "Private application bundle identifier", 640)])
         configure(confidenceTable, columns: [("primary", "Primary result", 290), ("alternate", "Whisper alternative", 290), ("score", "Match", 70)])
+        confidenceTable.columnAutoresizingStyle = .firstColumnOnlyAutoresizingStyle
     }
 
     private func configureWorkflowControls() {
@@ -283,10 +284,12 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         table.intercellSpacing = NSSize(width: 0, height: 0)
         table.rowHeight = 32
         table.allowsMultipleSelection = false
+        table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         for (identifier, title, width) in columns {
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(identifier))
             column.title = title
             column.width = width
+            column.minWidth = min(width, identifier == "score" ? 70 : 120)
             table.addTableColumn(column)
         }
     }
@@ -379,6 +382,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         layout.spacing = 14
         suggestions.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
         suggestions.heightAnchor.constraint(greaterThanOrEqualToConstant: 280).isActive = true
+        suggestions.heightAnchor.constraint(lessThanOrEqualToConstant: 360).isActive = true
         lower.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
         return layout
     }
@@ -459,13 +463,19 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         let buttonRow = NSStackView(views: buttons)
         buttonRow.orientation = .horizontal
         buttonRow.alignment = .centerY
-        buttonRow.distribution = .fillEqually
+        buttonRow.distribution = .fill
         buttonRow.spacing = 8
         if let tableIdentifier = table.identifier?.rawValue {
             buttonRow.identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).actions")
         }
         buttons.forEach {
             $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        }
+        if let firstButton = buttons.first {
+            firstButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
+            buttons.dropFirst().forEach {
+                $0.widthAnchor.constraint(equalTo: firstButton.widthAnchor).isActive = true
+            }
         }
         let stack = NSStackView(views: [titleLabel, detailLabel] + above + [surface, buttonRow])
         stack.orientation = .vertical
@@ -486,9 +496,6 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             surface.widthAnchor.constraint(equalTo: stack.widthAnchor),
             surface.heightAnchor.constraint(greaterThanOrEqualToConstant: 250),
         ])
-        if !buttons.isEmpty {
-            buttonRow.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        }
         return container
     }
 
@@ -610,6 +617,10 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             beginEditingSelectedSnippet()
         }
         updateActionAvailability()
+    }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        KikiTableRowView()
     }
 
     func controlTextDidChange(_ obj: Notification) {

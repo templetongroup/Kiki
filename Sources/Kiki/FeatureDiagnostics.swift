@@ -56,10 +56,13 @@ enum FeatureDiagnostics {
               findView(in: content, identifier: "kiki.workbench.tab-rail")?.layer?.backgroundColor != nil,
               findView(in: content, identifier: "kiki.workbench.subnavigation") is NSSegmentedControl,
               findView(in: content, identifier: "kiki.workbench.quick-dictation") is KikiActionButton,
+              let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
+              releaseLabel.stringValue.hasPrefix("RELEASE "),
               GuidedWorkbenchSection.allCases.allSatisfy({
                   findView(in: content, identifier: "kiki.workbench.nav.\($0.rawValue)") is NSButton
               }),
               controller.window?.isMovableByWindowBackground == false,
+              controller.window?.styleMask.contains(.resizable) == true,
               controller.window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
               (controller.window?.minSize.width ?? 0) >= 900 else {
             throw failure("Guided Workbench shell")
@@ -88,6 +91,35 @@ enum FeatureDiagnostics {
         guard !tabRail.isHidden,
               tabRail.frame.height >= 40 else {
             throw failure("multi-page Workbench sections must keep their compact tab rail")
+        }
+
+        controller.select(GuidedWorkbenchRoute(section: .meetings))
+        guard (controller.window?.minSize.height ?? 0) >= 760 else {
+            throw failure("Meeting route must open tall enough to expose its actions")
+        }
+        controller.select(GuidedWorkbenchRoute(section: .library))
+        guard (controller.window?.minSize.width ?? 0) >= 1_100 else {
+            throw failure("Library route must preserve readable split-view width")
+        }
+        controller.select(GuidedWorkbenchRoute(section: .home))
+        guard (controller.window?.minSize.width ?? 0) <= 900,
+              (controller.window?.minSize.height ?? 0) <= 650 else {
+            throw failure("Home route must remain freely resizable")
+        }
+
+        let adaptivePage = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 620))
+        controller.onRouteChange = { _ in
+            GuidedWorkbenchSurface(view: adaptivePage, sizing: .scroll(NSSize(width: 900, height: 620)))
+        }
+        controller.window?.setContentSize(NSSize(width: 1_300, height: 820))
+        controller.select(GuidedWorkbenchRoute(section: .library))
+        content.layoutSubtreeIfNeeded()
+        controller.windowDidResize(Notification(name: NSWindow.didResizeNotification))
+        content.layoutSubtreeIfNeeded()
+        guard adaptivePage.frame.width > 900,
+              adaptivePage.frame.width <= 1_215.5,
+              adaptivePage.frame.height >= 620 else {
+            throw failure("Workbench hosted pages must resize within a readable measure")
         }
 
         let settingsController = SettingsWindowController()
@@ -829,6 +861,9 @@ enum FeatureDiagnostics {
               let historyCopy = findView(in: historyContent, identifier: "kiki.history.copy") as? KikiActionButton,
               let historyDelete = findView(in: historyContent, identifier: "kiki.history.delete") as? KikiActionButton,
               findView(in: historyContent, identifier: "kiki.history.table.surface") is KikiDataSurfaceView,
+              let historyTable = findView(in: historyContent, identifier: "kiki.history.table") as? NSTableView,
+              historyTable.columnAutoresizingStyle == .lastColumnOnlyAutoresizingStyle,
+              abs(historyTable.rowHeight - 34) < 0.5,
               !historyCopy.isEnabled,
               !historyDelete.isEnabled else {
             throw failure("History selection-aware actions")

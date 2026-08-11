@@ -259,6 +259,7 @@ class KikiCardView: NSView {
 @MainActor
 final class KikiNavButton: NSButton {
     var isSelectedPage = false { didSet { updateStyle() } }
+    private var showsKeyboardFocus = false
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let chevronView = NSImageView()
@@ -324,12 +325,14 @@ final class KikiNavButton: NSButton {
 
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
+        showsKeyboardFocus = accepted && NSApp.currentEvent?.type == .keyDown
         updateStyle()
         return accepted
     }
 
     override func resignFirstResponder() -> Bool {
         let resigned = super.resignFirstResponder()
+        showsKeyboardFocus = false
         updateStyle()
         return resigned
     }
@@ -346,7 +349,7 @@ final class KikiNavButton: NSButton {
             layer?.backgroundColor = isSelectedPage
                 ? KikiPalette.selectionSurface.withAlphaComponent(0.72).cgColor
                 : NSColor.clear.cgColor
-            let keyboardFocused = window?.firstResponder === self
+            let keyboardFocused = showsKeyboardFocus && window?.firstResponder === self
             layer?.borderWidth = isSelectedPage || keyboardFocused ? 1 : 0
             layer?.borderColor = keyboardFocused
                 ? KikiPalette.accentText.cgColor
@@ -411,6 +414,7 @@ final class KikiActionButton: NSButton {
     enum Kind { case primary, secondary, hardware, quiet, danger }
     private let kind: Kind
     private let keyboardFocusLayer = CAShapeLayer()
+    private var showsKeyboardFocus = false
 
     init(_ title: String, kind: Kind = .secondary, target: AnyObject?, action: Selector?) {
         self.kind = kind
@@ -463,12 +467,14 @@ final class KikiActionButton: NSButton {
 
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
+        showsKeyboardFocus = accepted && NSApp.currentEvent?.type == .keyDown
         updateKeyboardFocus()
         return accepted
     }
 
     override func resignFirstResponder() -> Bool {
         let resigned = super.resignFirstResponder()
+        showsKeyboardFocus = false
         updateKeyboardFocus()
         return resigned
     }
@@ -494,7 +500,7 @@ final class KikiActionButton: NSButton {
 
     private func updateKeyboardFocus() {
         keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
-        keyboardFocusLayer.isHidden = window?.firstResponder !== self || !isEnabled
+        keyboardFocusLayer.isHidden = !showsKeyboardFocus || window?.firstResponder !== self || !isEnabled
     }
 
     private func updateStyle() {
@@ -916,6 +922,22 @@ final class KikiDataSurfaceView: KikiCardView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+final class KikiTableRowView: NSTableRowView {
+    override var interiorBackgroundStyle: NSView.BackgroundStyle { .normal }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else { return }
+        let selectionRect = bounds.insetBy(dx: 1, dy: 1)
+        KikiPalette.selectionSurface.setFill()
+        NSBezierPath(roundedRect: selectionRect, xRadius: 4, yRadius: 4).fill()
+        KikiPalette.strongStroke.withAlphaComponent(0.72).setStroke()
+        let border = NSBezierPath(roundedRect: selectionRect.insetBy(dx: 0.5, dy: 0.5), xRadius: 3.5, yRadius: 3.5)
+        border.lineWidth = 1
+        border.stroke()
+    }
 }
 
 @MainActor

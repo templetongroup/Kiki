@@ -41,7 +41,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
-        window.minSize = NSSize(width: 820, height: 640)
+        window.minSize = NSSize(width: 820, height: 600)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
@@ -113,6 +113,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         let eyebrow = kikiLabel("MEETING INTELLIGENCE", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Capture the room. Keep it private.", size: 27, weight: .bold)
         let subtitle = kikiLabel("Separate local audio tracks, source-labelled transcription, chapters, action-item hints, and caption exports. Headphones give the cleanest separation.", size: 12.5, color: KikiPalette.secondaryText)
+        subtitle.maximumNumberOfLines = 2
+        subtitle.lineBreakMode = .byWordWrapping
+        subtitle.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let labels = NSStackView(views: [eyebrow, title, subtitle])
         labels.orientation = .vertical
         labels.alignment = .leading
@@ -185,7 +188,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         ])
 
         formatPopup.addItems(withTitles: ["Markdown", "Plain Text", "SRT Captions", "WebVTT Captions"])
-        formatPopup.controlSize = .large
+        formatPopup.controlSize = .regular
         formatPopup.setAccessibilityLabel("Meeting export format")
         exportButton.isEnabled = false
         copyButton.isEnabled = false
@@ -215,19 +218,21 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 50),
-            icon.heightAnchor.constraint(equalToConstant: 50),
-            recordButton.heightAnchor.constraint(equalToConstant: 42),
+            icon.widthAnchor.constraint(equalToConstant: 44),
+            icon.heightAnchor.constraint(equalToConstant: 44),
+            labels.widthAnchor.constraint(lessThanOrEqualTo: header.widthAnchor, constant: -58),
+            recordButton.heightAnchor.constraint(equalToConstant: 40),
             recordButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 32),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -32),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 48),
-            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 28),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -28),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 28),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -20),
+            header.widthAnchor.constraint(equalTo: stack.widthAnchor),
             titleGroup.widthAnchor.constraint(equalTo: stack.widthAnchor),
             controlCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
             speakerTools.widthAnchor.constraint(equalTo: stack.widthAnchor),
             transcriptCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            transcriptCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 330),
+            transcriptCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 220),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }

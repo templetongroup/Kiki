@@ -85,13 +85,18 @@ final class GuidedWorkbenchHomeView: NSView {
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
+        let responsiveWidth = stack.widthAnchor.constraint(equalTo: widthAnchor, constant: -48)
+        responsiveWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
             backdrop.leadingAnchor.constraint(equalTo: leadingAnchor),
             backdrop.trailingAnchor.constraint(equalTo: trailingAnchor),
             backdrop.topAnchor.constraint(equalTo: topAnchor),
             backdrop.bottomAnchor.constraint(equalTo: bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -24),
+            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stack.widthAnchor.constraint(lessThanOrEqualToConstant: 1_180),
+            responsiveWidth,
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 24),
             stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -24),
             hero.widthAnchor.constraint(equalTo: stack.widthAnchor),

@@ -526,7 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             meetingWindow.prepareForEmbeddedDisplay()
             return GuidedWorkbenchSurface(
                 view: embeddedView(for: meetingWindow),
-                sizing: .scroll(NSSize(width: 960, height: 840))
+                sizing: .scroll(NSSize(width: 900, height: 700))
             )
         case .voice:
             let prefill = pendingVoicePrefill
@@ -541,7 +541,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 historyWindow.prepareForEmbeddedDisplay()
                 return GuidedWorkbenchSurface(
                     view: embeddedView(for: historyWindow),
-                    sizing: .top(NSSize(width: 920, height: 620))
+                    sizing: .top(NSSize(width: 900, height: 620))
                 )
             }
             return GuidedWorkbenchSurface(
@@ -555,7 +555,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         context: captureExternalContext(),
                         page: route.subpage
                     ),
-                    sizing: .scroll(NSSize(width: 1_030, height: 760))
+                    sizing: .scroll(NSSize(width: 960, height: 720))
                 )
             }
             dictionaryWindow.prepareForEmbeddedDisplay()

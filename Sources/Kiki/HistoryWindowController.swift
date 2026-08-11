@@ -7,8 +7,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private let countLabel = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(labelWithString: "")
     private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
-    private lazy var deleteButton = KikiActionButton("Delete Selected", kind: .hardware, target: self, action: #selector(deleteSelected))
-    private lazy var clearButton = KikiActionButton("Clear All", kind: .danger, target: self, action: #selector(clearAll))
+    private lazy var deleteButton = KikiActionButton("Delete", kind: .hardware, target: self, action: #selector(deleteSelected))
+    private lazy var clearButton = KikiActionButton("Clear History…", kind: .hardware, target: self, action: #selector(clearAll))
     private var tableSurface: KikiDataSurfaceView?
     private let detailEmptyState = KikiEmptyStateView(
         symbol: "text.alignleft",
@@ -78,13 +78,18 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
         let dateColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("date"))
         dateColumn.title = "Date"
-        dateColumn.width = 145
+        dateColumn.width = 132
+        dateColumn.minWidth = 116
+        dateColumn.maxWidth = 170
         let contextColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("context"))
         contextColumn.title = "App / Source"
-        contextColumn.width = 135
+        contextColumn.width = 128
+        contextColumn.minWidth = 112
+        contextColumn.maxWidth = 190
         let previewColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("preview"))
         previewColumn.title = "Transcript"
-        previewColumn.width = 290
+        previewColumn.width = 320
+        previewColumn.minWidth = 200
         tableView.addTableColumn(dateColumn)
         tableView.addTableColumn(contextColumn)
         tableView.addTableColumn(previewColumn)
@@ -93,8 +98,13 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.dataSource = self
         tableView.headerView = NSTableHeaderView()
         tableView.allowsMultipleSelection = false
-        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
-        tableView.usesAlternatingRowBackgroundColors = true
+        tableView.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
+        tableView.rowHeight = 34
+        tableView.intercellSpacing = NSSize(width: 0, height: 0)
+        tableView.gridStyleMask = [.solidHorizontalGridLineMask]
+        tableView.gridColor = KikiPalette.stroke.withAlphaComponent(0.7)
+        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.35)
+        tableView.usesAlternatingRowBackgroundColors = false
         let historySurface = KikiDataSurfaceView(
             table: tableView,
             emptySymbol: "clock.arrow.circlepath",
@@ -105,8 +115,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
         textView.isEditable = false
         textView.isSelectable = true
-        textView.font = .systemFont(ofSize: 14)
-        textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
+        textView.font = .systemFont(ofSize: 13.5)
+        textView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.35)
         textView.textColor = KikiPalette.primaryText
         textView.textContainerInset = NSSize(width: 10, height: 10)
         let textScroll = NSScrollView()
@@ -116,19 +126,32 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
         let detailCard = KikiCardView()
         detailCard.usesHardwareDepth = false
+        let detailEyebrow = kikiLabel("TRANSCRIPT PREVIEW", size: 9.5, weight: .bold, color: KikiPalette.accentText)
+        let detailActions = NSStackView(views: [NSView(), copyButton, deleteButton])
+        detailActions.orientation = .horizontal
+        detailActions.alignment = .centerY
+        detailActions.spacing = 8
+        let detailHeader = NSStackView(views: [detailEyebrow, detailActions])
+        detailHeader.orientation = .horizontal
+        detailHeader.alignment = .centerY
+        detailHeader.translatesAutoresizingMaskIntoConstraints = false
         textScroll.translatesAutoresizingMaskIntoConstraints = false
         detailEmptyState.translatesAutoresizingMaskIntoConstraints = false
+        detailCard.addSubview(detailHeader)
         detailCard.addSubview(textScroll)
         detailCard.addSubview(detailEmptyState)
         NSLayoutConstraint.activate([
+            detailHeader.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 14),
+            detailHeader.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -12),
+            detailHeader.topAnchor.constraint(equalTo: detailCard.topAnchor, constant: 10),
             textScroll.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 1),
             textScroll.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -1),
-            textScroll.topAnchor.constraint(equalTo: detailCard.topAnchor, constant: 1),
+            textScroll.topAnchor.constraint(equalTo: detailHeader.bottomAnchor, constant: 10),
             textScroll.bottomAnchor.constraint(equalTo: detailCard.bottomAnchor, constant: -1),
-            detailEmptyState.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor),
-            detailEmptyState.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor),
-            detailEmptyState.topAnchor.constraint(equalTo: detailCard.topAnchor),
-            detailEmptyState.bottomAnchor.constraint(equalTo: detailCard.bottomAnchor),
+            detailEmptyState.leadingAnchor.constraint(equalTo: textScroll.leadingAnchor),
+            detailEmptyState.trailingAnchor.constraint(equalTo: textScroll.trailingAnchor),
+            detailEmptyState.topAnchor.constraint(equalTo: textScroll.topAnchor),
+            detailEmptyState.bottomAnchor.constraint(equalTo: textScroll.bottomAnchor),
         ])
 
         let split = NSSplitView()
@@ -136,9 +159,11 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         split.dividerStyle = .thin
         split.addArrangedSubview(historySurface)
         split.addArrangedSubview(detailCard)
+        split.setHoldingPriority(.defaultLow, forSubviewAt: 0)
+        split.setHoldingPriority(.defaultHigh, forSubviewAt: 1)
 
         let eyebrow = kikiLabel("LOCAL LIBRARY", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("History", size: 28, weight: .bold)
+        let title = kikiLabel("History", size: 27, weight: .bold)
         let subtitle = kikiLabel("Review, copy, or remove the transcript text Kiki stores on this Mac.", size: 13, color: KikiPalette.secondaryText)
         let header = NSStackView(views: [eyebrow, title, subtitle])
         header.orientation = .vertical
@@ -147,13 +172,14 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
         let privacy = NSTextField(labelWithString: "Text only · stored locally · no microphone audio saved")
         privacy.textColor = KikiPalette.secondaryText
-        let footer = NSStackView(views: [countLabel, privacy, NSView(), copyButton, deleteButton, clearButton])
+        let footer = NSStackView(views: [countLabel, privacy, NSView(), clearButton])
         footer.spacing = 10
         statusLabel.textColor = KikiPalette.secondaryText
         statusLabel.font = .systemFont(ofSize: 11.5)
         statusLabel.setAccessibilityLabel("History status")
         copyButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.copy")
         deleteButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.delete")
+        deleteButton.setAccessibilityLabel("Delete selected transcription")
         clearButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.clear")
 
         let stack = NSStackView(views: [header, split, footer, statusLabel])
@@ -170,7 +196,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
             subtitle.widthAnchor.constraint(equalTo: stack.widthAnchor),
             split.widthAnchor.constraint(equalTo: stack.widthAnchor),
             split.heightAnchor.constraint(greaterThanOrEqualToConstant: 390),
-            historySurface.widthAnchor.constraint(greaterThanOrEqualToConstant: 470),
+            historySurface.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
+            detailCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 340),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
@@ -246,6 +273,10 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         updateActionAvailability()
     }
 
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        KikiTableRowView()
+    }
+
     private func updateActionAvailability() {
         let hasSelection = selectedRecord != nil
         copyButton.isEnabled = hasSelection
@@ -262,6 +293,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         }
         let field = NSTextField(labelWithString: text)
         field.textColor = KikiPalette.primaryText
+        field.font = .systemFont(ofSize: 13, weight: tableColumn?.identifier.rawValue == "context" ? .medium : .regular)
         field.lineBreakMode = .byTruncatingTail
         return field
     }
