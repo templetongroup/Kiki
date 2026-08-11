@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.6</title>
+            <pubDate>Tue, 11 Aug 2026 13:58:03 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.6</link>
+            <sparkle:version>39</sparkle:version>
+            <sparkle:shortVersionString>0.6.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.6
+
+- Makes Kiki a dark-only Studio Hardware app across the Workbench, title and context chrome, settings, controls, popovers, and listening display.
+- Removes the Light and Follow System appearance choices from Settings.
+- Prevents layer-backed Workbench chrome from caching light palette colors before it joins the dark window hierarchy.
+- Keeps the approved Templeton Slate palette, Studio Hardware graphics, layout, and workflows unchanged.
+- Adds release diagnostics that reject a non-dark application or Workbench window.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.6/Kiki-0.6.6-macOS.zip" length="53690218" type="application/octet-stream" sparkle:edSignature="aZ4GvqFwMtIBg1tOQFgCpO4jqDsinyIJk5Wy5Vx5HLvcdPO79uvtPFjc6i6aanbfhu8QEnAd9SZ5QgaOdcypAA=="/>
+        </item>
+        <item>
             <title>0.6.5</title>
             <pubDate>Tue, 11 Aug 2026 13:42:49 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.5</link>
@@ -78,23 +96,6 @@
 - Adds packaged preview coverage and regression diagnostics for the new workflows, real control hit testing, and disabled-button readability.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.2/Kiki-0.6.2-macOS.zip" length="53615908" type="application/octet-stream" sparkle:edSignature="MuBbMkg6hCS2itk/xPXxgUSeBdz2WLfLhP71b+X+0ffXfRkKeYgmpwzgfgkaLFah2WqYvom8AstYqd8JJoA/DQ=="/>
-        </item>
-        <item>
-            <title>0.6.1</title>
-            <pubDate>Mon, 10 Aug 2026 22:14:06 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.1</link>
-            <sparkle:version>34</sparkle:version>
-            <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.1
-
-- Applies the Templeton Slate color palette in light and dark appearances while preserving the established Studio Hardware graphics, geometry, spacing, and controls.
-- Uses warm cream for primary text and the active model selector, with sage reserved for highlights and status accents.
-- Improves disabled Studio Hardware button readability and adds diagnostics against the real Models and Meeting controls.
-- Clarifies the menu-bar dictation action: Kiki records locally, then inserts the transcription into the current app.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.1/Kiki-0.6.1-macOS.zip" length="53571581" type="application/octet-stream" sparkle:edSignature="fiBmomwTZ+cKVZxOdcJdNKKswoholsXRb3bqksyiKGFnWTnNn4vOG3X+9TirD1uFsDOL8gYfo3a7RxpRZlwfBw=="/>
         </item>
     </channel>
 </rss>
