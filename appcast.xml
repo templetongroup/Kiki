@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.3</title>
+            <pubDate>Tue, 11 Aug 2026 10:05:24 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.3</link>
+            <sparkle:version>36</sparkle:version>
+            <sparkle:shortVersionString>0.6.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.3
+
+- Centers the numbered Guided Review badges precisely inside their circular controls.
+- Expands Suggestions from Recent Edits across the Personalization Studio so the original text, replacement, and application columns remain visible without horizontal scrolling.
+- Lets users edit an existing voice snippet by selecting it, changing its trigger or inserted text, and choosing Update Snippet.
+- Makes Personalization action rows symmetrical with equal-width, equal-height buttons across Snippets, Private Apps, and Confidence Reviews.
+- Adds regression coverage for guided-step alignment, full-width suggestion layout, snippet editing, and action-row geometry.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.3/Kiki-0.6.3-macOS.zip" length="53629401" type="application/octet-stream" sparkle:edSignature="FP5mIZmL6HGd3v1uw+T2BDaWAo8f/0lXTjM51ZMbEFx2729wintmbpiPIQyqc3yqISn9cT5CTTGC/arnGxdCBA=="/>
+        </item>
+        <item>
             <title>0.6.2</title>
             <pubDate>Tue, 11 Aug 2026 09:48:59 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.2</link>
@@ -77,23 +95,6 @@
 - Adds a packaged real-voice regression diagnostic that checks both raw levels and the final rendered waveform against saturation limits.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.17/Kiki-0.5.17-macOS.zip" length="53496227" type="application/octet-stream" sparkle:edSignature="KTN/SMxlnQxKWE3r3PVrPbIHPEQWFskImUdtwX/EbZ0Y6TUKDnzRZuyg+3+rLYmhY6nNLkCjAuaMc62uQmtiBw=="/>
-        </item>
-        <item>
-            <title>0.5.16</title>
-            <pubDate>Mon, 10 Aug 2026 18:52:56 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.5.16</link>
-            <sparkle:version>31</sparkle:version>
-            <sparkle:shortVersionString>0.5.16</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.5.16
-
-- Raises the live waveform capture cadence from roughly 12 updates per second to roughly 47 on a typical 48 kHz microphone, eliminating the visible stepping between buffers.
-- Recalibrates the waveform meter with RMS-led analysis and additional headroom so ordinary speech no longer looks like clipping or shouting.
-- Retunes attack and release smoothing for the higher update rate, keeping motion fluid while remaining directly driven by microphone samples.
-- Adds regression checks for capture cadence, normal-speech headroom, forceful-speech range, silence, and deterministic sample tracking.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.5.16/Kiki-0.5.16-macOS.zip" length="53491713" type="application/octet-stream" sparkle:edSignature="eK6paj1BW6xGr5Q22oX3oqvoSj8AOpYdVB9FV0Rv2ov5iZxiqbxm6KWF8kOxnIonWaeQwwcY4wfLkXERm+8cDA=="/>
         </item>
     </channel>
 </rss>
