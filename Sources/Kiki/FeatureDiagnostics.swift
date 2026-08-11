@@ -191,6 +191,18 @@ enum FeatureDiagnostics {
             MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "You", text: "I will send the proposal."),
             MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review."),
         ]
+        let liveMeetingSegments = [
+            MeetingTranscriptSegment(startTime: 77, endTime: 81, speaker: "Speaker 1", text: "Do we just need to wait?"),
+            MeetingTranscriptSegment(startTime: 77, endTime: 81, speaker: "You", text: "Do we just need to wait?"),
+            MeetingTranscriptSegment(startTime: 385, endTime: 389, speaker: "You", text: "I'll continue."),
+            MeetingTranscriptSegment(startTime: 390, endTime: 399, speaker: "You", text: "Continue planning, organizing structurally what we want."),
+            MeetingTranscriptSegment(startTime: 465, endTime: 470, speaker: "Speaker 1", text: "It's something I need to figure out because my"),
+            MeetingTranscriptSegment(startTime: 576, endTime: 577, speaker: "You", text: "I'll definitely put some together for you."),
+            MeetingTranscriptSegment(startTime: 577, endTime: 579, speaker: "You", text: "I'll send you a few examples."),
+            MeetingTranscriptSegment(startTime: 610, endTime: 614, speaker: "Speaker 1", text: "Could you email me the final options?"),
+        ]
+        let refinedMeetingSegments = MeetingTranscript.deduplicatingSourceOverlap(liveMeetingSegments)
+        let contextualActions = MeetingTranscript.actionItems(from: refinedMeetingSegments)
         let meeting = MeetingTranscript(
             title: "Planning",
             createdAt: Date(timeIntervalSince1970: 0),
@@ -206,7 +218,26 @@ enum FeatureDiagnostics {
             speaker: "Speaker 1",
             text: "First person speaking. Second person answering!"
         )
-        guard meeting.markdown.contains("Possible action items"),
+        guard refinedMeetingSegments.filter({ $0.text == "Do we just need to wait?" }).count == 1 else {
+            throw failure("meeting cross-track echo removal")
+        }
+        guard !contextualActions.contains(where: { $0.localizedCaseInsensitiveContains("need to wait") }),
+              contextualActions.contains(where: {
+                  $0.contains("You —")
+                      && $0.localizedCaseInsensitiveContains("continue planning")
+                      && $0.contains("00:06:25")
+              }),
+              contextualActions.filter({ $0.localizedCaseInsensitiveContains("examples") }).count == 1 else {
+            throw failure("meeting contextual action items")
+        }
+        guard contextualActions.contains(where: {
+            $0.contains("You —")
+                && $0.localizedCaseInsensitiveContains("email me the final options")
+                && $0.contains("requested by Speaker 1")
+        }) else {
+            throw failure("meeting action request ownership")
+        }
+        guard meeting.markdown.contains("## Action items"),
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
               meeting.actionItems.count == 2,

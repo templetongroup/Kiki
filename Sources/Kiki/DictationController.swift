@@ -263,10 +263,9 @@ final class DictationController {
             systemSamples,
             speaker: "Speaker 1"
         )
-        let segments = (microphoneSegments + systemSegments).sorted {
-            if $0.startTime == $1.startTime { return $0.speaker < $1.speaker }
-            return $0.startTime < $1.startTime
-        }
+        let segments = MeetingTranscript.deduplicatingSourceOverlap(
+            microphoneSegments + systemSegments
+        )
         let transcript = MeetingTranscript(
             title: title,
             createdAt: Date(),
