@@ -282,30 +282,78 @@ if args.count >= 2, args[1] == "--preview-waveform" {
     }
 }
 
+if args.count >= 2, args[1] == "--preview-model-preparation" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        AppearanceController.apply()
+        let hud = HUDPanel()
+        if args.count >= 3, args[2] == "loading" {
+            hud.showModelPreparation(.loading(model: .whisperBaseEnglish))
+        } else {
+            hud.showModelPreparation(.downloading(model: .whisperBaseEnglish, fraction: 0.42))
+        }
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-checkup-model-preparation" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let controller = KikiCheckupWindowController()
+        let status: ModelPreparationStatus = args.count >= 3 && args[2] == "loading"
+            ? .loading(model: .whisperBaseEnglish)
+            : .downloading(model: .whisperBaseEnglish, fraction: 0.42)
+        controller.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: status,
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        controller.show()
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--self-test-hud" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
         let hud = HUDPanel()
-        hud.showListening(transcript: "Live transcription window test")
+        hud.showModelPreparation(.downloading(model: .whisperBaseEnglish, fraction: 0.42))
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            guard hud.isVisibleOnScreen else {
-                fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)
+            guard hud.isVisibleOnScreen,
+                  hud.diagnosticModelStatusText == "Downloading Whisper Base — English · 42%",
+                  abs((hud.diagnosticModelProgressValue ?? 0) - 0.42) < 0.001 else {
+                fputs("Error: Kiki model download progress is not visible or accurate.\n", stderr)
                 exit(1)
             }
-            hud.showWaveform(samples: [Float](repeating: 0.08, count: 760))
+            hud.showModelPreparation(.loading(model: .whisperBaseEnglish))
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                guard hud.isVisibleOnScreen else {
-                    fputs("Error: Kiki waveform is not visible on any screen.\n", stderr)
+                guard hud.isVisibleOnScreen,
+                      hud.diagnosticModelStatusText == "Loading Whisper Base — English…",
+                      hud.diagnosticModelProgressValue == nil else {
+                    fputs("Error: Kiki model loading state is ambiguous.\n", stderr)
                     exit(1)
                 }
+                hud.showListening(transcript: "Live transcription window test")
+                guard hud.isVisibleOnScreen else {
+                    fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)
+                    exit(1)
+                }
+                hud.showWaveform(samples: [Float](repeating: 0.08, count: 760))
                 hud.hide()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     guard !hud.isVisibleOnScreen else {
                         fputs("Error: Kiki listening display did not hide.\n", stderr)
                         exit(1)
                     }
-                    print("Kiki listening displays passed: full transcript, waveform, hidden")
+                    print("Kiki listening displays passed: model download, model loading, transcript, waveform, hidden")
                     exit(0)
                 }
             }

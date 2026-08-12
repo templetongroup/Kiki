@@ -54,6 +54,7 @@ final class SettingsWindowController: NSWindowController {
 
     private var pages: [NSView] = []
     private var modelCards: [ModelCardView] = []
+    private var modelPreparationStatus: ModelPreparationStatus?
     private var captureMonitor: Any?
     private var pendingModifierKeyCode: UInt16?
     private var pendingModifierFlags: NSEvent.ModifierFlags = []
@@ -106,6 +107,12 @@ final class SettingsWindowController: NSWindowController {
         let page = pages[index]
         page.removeFromSuperview()
         return page
+    }
+
+    func updateModelPreparationStatus(_ status: ModelPreparationStatus) {
+        modelPreparationStatus = status
+        modelCards.forEach { $0.refresh() }
+        modelCards.forEach { $0.update(preparationStatus: status) }
     }
 
     private func buildContent() {
@@ -622,6 +629,9 @@ final class SettingsWindowController: NSWindowController {
         confidenceCheckbox.state = Settings.enableConfidenceVerification ? .on : .off
         historyCheckbox.state = Settings.saveTranscriptionHistory ? .on : .off
         modelCards.forEach { $0.refresh() }
+        if let modelPreparationStatus {
+            modelCards.forEach { $0.update(preparationStatus: modelPreparationStatus) }
+        }
     }
 
     @objc private func navigationChanged(_ sender: KikiNavButton) {
@@ -691,25 +701,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func use(model: TranscriptionModelID) {
         guard model.isCompatible else { return }
-        modelCards.forEach { $0.setBusy($0.model == model) }
-        if model.isParakeet || ModelStore.isWhisperModelInstalled(model) {
-            onModelChange?(model)
-            modelCards.forEach { $0.refresh() }
-            return
-        }
-        Task { [weak self] in
-            do {
-                try await ModelDownloadService.downloadWhisperModel(model)
-                await MainActor.run {
-                    self?.onModelChange?(model)
-                    self?.modelCards.forEach { $0.refresh() }
-                }
-            } catch {
-                await MainActor.run {
-                    self?.modelCards.first(where: { $0.model == model })?.showError(error.localizedDescription)
-                }
-            }
-        }
+        onModelChange?(model)
     }
 
     @objc private func resetShortcut() { save(.rightOption) }
@@ -800,6 +792,7 @@ private final class ModelCardView: KikiCardView {
     let model: TranscriptionModelID
     var onUse: ((TranscriptionModelID) -> Void)?
     private let statusLabel = NSTextField(labelWithString: "")
+    private let downloadProgress = NSProgressIndicator()
     private let button = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
     private let dial = KikiHardwareDialView()
     private let activeLabel = kikiLabel("ACTIVE", size: 9, weight: .semibold, color: KikiPalette.accentText)
@@ -823,12 +816,22 @@ private final class ModelCardView: KikiCardView {
         let detail = kikiLabel(detailText, size: 9.75, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 2
         statusLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        downloadProgress.style = .bar
+        downloadProgress.isIndeterminate = false
+        downloadProgress.minValue = 0
+        downloadProgress.maxValue = 1
+        downloadProgress.controlSize = .small
+        downloadProgress.isHidden = true
+        downloadProgress.identifier = NSUserInterfaceItemIdentifier(
+            "kiki.model.progress.\(model.rawValue)"
+        )
+        downloadProgress.setAccessibilityLabel("\(model.displayName) download progress")
         button.target = self
         button.action = #selector(useModel)
         button.identifier = NSUserInterfaceItemIdentifier("kiki.model.action")
         button.translatesAutoresizingMaskIntoConstraints = false
 
-        let labels = NSStackView(views: [title, detail, statusLabel])
+        let labels = NSStackView(views: [title, detail, statusLabel, downloadProgress])
         labels.orientation = .vertical
         labels.alignment = .leading
         labels.spacing = 6
@@ -880,6 +883,8 @@ private final class ModelCardView: KikiCardView {
             meter.widthAnchor.constraint(equalToConstant: 100),
             meter.heightAnchor.constraint(equalToConstant: 34),
             detail.widthAnchor.constraint(equalTo: labels.widthAnchor),
+            downloadProgress.widthAnchor.constraint(equalTo: labels.widthAnchor),
+            downloadProgress.heightAnchor.constraint(equalToConstant: 6),
         ])
         let targetButtonWidth: CGFloat
         switch model {
@@ -918,11 +923,35 @@ private final class ModelCardView: KikiCardView {
         }
     }
 
-    func setBusy(_ busy: Bool) {
-        guard busy else { return }
-        statusLabel.stringValue = model.isParakeet ? "Loading local model…" : "Downloading model…"
-        button.title = "Please Wait…"
-        button.isEnabled = false
+    func update(preparationStatus status: ModelPreparationStatus) {
+        guard status.model == model else { return }
+        switch status {
+        case .downloading:
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.secondaryText
+            downloadProgress.doubleValue = status.downloadFraction ?? 0
+            downloadProgress.isHidden = false
+            button.title = "Downloading…"
+            button.isEnabled = false
+        case .loading:
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.secondaryText
+            downloadProgress.isHidden = true
+            button.title = "Loading…"
+            button.isEnabled = false
+        case .ready:
+            downloadProgress.isHidden = true
+            refresh()
+        case let .failed(_, message):
+            downloadProgress.isHidden = true
+            showError(message)
+        case .unavailable:
+            downloadProgress.isHidden = true
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.tertiaryText
+            button.title = "Unavailable"
+            button.isEnabled = false
+        }
     }
 
     func showError(_ message: String) {

@@ -103,12 +103,14 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private let sectionLabel = kikiLabel("WORKSPACE", size: 10, weight: .bold, color: KikiPalette.accentText)
     private let titleLabel = kikiLabel("Home", size: 15, weight: .semibold)
     private let readinessLabel = kikiLabel("● Ready", size: 11, weight: .semibold, color: KikiPalette.accentText)
-    private let subnavigation = NSSegmentedControl()
+    private let subnavigation = KikiFocusableSegmentedControl()
     private let quickDictationButton = KikiActionButton("Start Dictation", kind: .primary, target: nil, action: nil)
     private var navButtons: [GuidedWorkbenchSection: WorkbenchNavigationButton] = [:]
     private var currentWrapper: NSView?
     private var tabRailHeightConstraint: NSLayoutConstraint?
     private var shouldCenterOnFirstShow = true
+    private var dictationState: DictationState = .noModel
+    private var checkupSnapshot: KikiCheckupSnapshot?
     private(set) var route = GuidedWorkbenchRoute(section: .home)
 
     private static let compactMinimumSize = NSSize(width: 900, height: 650)
@@ -126,7 +128,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             defer: false
         )
         window.title = "Kiki Workbench"
-        window.appearance = NSAppearance(named: .darkAqua)
+        window.appearance = Settings.appearanceMode.appearance
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -170,6 +172,17 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     }
 
     func updateDictationState(_ state: DictationState) {
+        dictationState = state
+        updateReadinessStatus()
+    }
+
+    func updateCheckupSnapshot(_ snapshot: KikiCheckupSnapshot) {
+        checkupSnapshot = snapshot
+        updateReadinessStatus()
+    }
+
+    private func updateReadinessStatus() {
+        let state = dictationState
         switch state {
         case .noModel:
             readinessLabel.stringValue = "● Model unavailable"
@@ -180,8 +193,13 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             readinessLabel.textColor = KikiPalette.khaki
             quickDictationButton.title = "Loading…"
         case .idle:
-            readinessLabel.stringValue = "● Ready"
-            readinessLabel.textColor = KikiPalette.accentText
+            if checkupSnapshot?.isReady == true {
+                readinessLabel.stringValue = "● Ready"
+                readinessLabel.textColor = KikiPalette.accentText
+            } else {
+                readinessLabel.stringValue = "● Checkup incomplete"
+                readinessLabel.textColor = KikiPalette.khaki
+            }
             quickDictationButton.title = "Start Dictation"
         case .recording:
             readinessLabel.stringValue = "● Listening"
@@ -357,7 +375,6 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         subnavigation.selectedSegmentBezelColor = KikiPalette.accent
         subnavigation.target = self
         subnavigation.action = #selector(subnavigationChanged)
-        subnavigation.focusRingType = .none
         subnavigation.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.subnavigation")
 
         tabRail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.tab-rail")

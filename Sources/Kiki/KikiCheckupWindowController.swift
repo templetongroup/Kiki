@@ -4,7 +4,7 @@ struct KikiCheckupSnapshot: Equatable {
     let microphoneAuthorized: Bool
     let inputResponding: Bool
     let accessibilityAuthorized: Bool
-    let modelReady: Bool
+    let modelStatus: ModelPreparationStatus
     let shortcutVerified: Bool
     let firstDictationCompleted: Bool
 
@@ -12,7 +12,7 @@ struct KikiCheckupSnapshot: Equatable {
         microphoneAuthorized
             && inputResponding
             && accessibilityAuthorized
-            && modelReady
+            && modelStatus.isReady
             && shortcutVerified
             && firstDictationCompleted
     }
@@ -40,6 +40,7 @@ final class KikiCheckupWindowController: NSWindowController {
     private let inputRow = KikiCheckupStatusRow(title: "Live input")
     private let accessibilityRow = KikiCheckupStatusRow(title: "Accessibility permission")
     private let modelRow = KikiCheckupStatusRow(title: "Local model")
+    private let modelProgress = NSProgressIndicator()
     private let shortcutRow = KikiCheckupStatusRow(title: "Dictation shortcut")
     private let firstDictationRow = KikiCheckupStatusRow(title: "First dictation")
     private let monitor = AudioRecorder()
@@ -65,7 +66,7 @@ final class KikiCheckupWindowController: NSWindowController {
                 microphoneAuthorized: false,
                 inputResponding: false,
                 accessibilityAuthorized: false,
-                modelReady: false,
+                modelStatus: .unavailable(model: Settings.transcriptionModel),
                 shortcutVerified: false,
                 firstDictationCompleted: false
             )
@@ -144,7 +145,14 @@ final class KikiCheckupWindowController: NSWindowController {
         microphoneRow.setPassed(snapshot.microphoneAuthorized, detail: snapshot.microphoneAuthorized ? "Allowed" : "Needs permission")
         inputRow.setPassed(snapshot.inputResponding, detail: snapshot.inputResponding ? "Signal detected" : "Speak to test")
         accessibilityRow.setPassed(snapshot.accessibilityAuthorized, detail: snapshot.accessibilityAuthorized ? "Allowed" : "Needs permission")
-        modelRow.setPassed(snapshot.modelReady, detail: snapshot.modelReady ? "Ready and local" : "Not ready")
+        modelRow.setPassed(snapshot.modelStatus.isReady, detail: snapshot.modelStatus.checkupDetail)
+        if let fraction = snapshot.modelStatus.downloadFraction {
+            modelProgress.doubleValue = fraction
+            modelProgress.isHidden = false
+            modelProgress.setAccessibilityValue("\(Int((fraction * 100).rounded(.down))) percent")
+        } else {
+            modelProgress.isHidden = true
+        }
         shortcutRow.setPassed(snapshot.shortcutVerified, detail: snapshot.shortcutVerified ? "Verified" : "Not tested")
         firstDictationRow.setPassed(snapshot.firstDictationCompleted, detail: snapshot.firstDictationCompleted ? "Completed" : "Not completed")
         readinessLabel.stringValue = snapshot.isReady ? "Kiki is ready" : "Finish the checks below"
@@ -171,7 +179,7 @@ final class KikiCheckupWindowController: NSWindowController {
         microphonePopup.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.microphone")
         microphonePopup.target = self
         microphonePopup.action = #selector(microphoneChanged)
-        microphonePopup.focusRingType = .none
+        microphonePopup.focusRingType = .default
         inputMeter.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.input-meter")
         let deviceTitle = kikiLabel("Input device", size: 13, weight: .semibold)
         let deviceHelp = kikiLabel("Choose a microphone, then speak normally. The meter should respond without reaching the end.", size: 12.5, color: KikiPalette.secondaryText)
@@ -183,18 +191,28 @@ final class KikiCheckupWindowController: NSWindowController {
         let deviceCard = card(containing: deviceStack)
 
         let checksTitle = kikiLabel("Readiness checks", size: 13, weight: .semibold)
+        modelProgress.style = .bar
+        modelProgress.isIndeterminate = false
+        modelProgress.minValue = 0
+        modelProgress.maxValue = 1
+        modelProgress.controlSize = .small
+        modelProgress.isHidden = true
+        modelProgress.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.model-progress")
+        modelProgress.setAccessibilityLabel("Local model download progress")
         let statusStack = NSStackView(views: [
             checksTitle,
             microphoneRow,
             inputRow,
             accessibilityRow,
             modelRow,
+            modelProgress,
             shortcutRow,
             firstDictationRow,
         ])
         statusStack.orientation = .vertical
         statusStack.alignment = .leading
         statusStack.spacing = 8
+        modelProgress.widthAnchor.constraint(equalTo: statusStack.widthAnchor).isActive = true
         let statusCard = card(containing: statusStack)
 
         practiceText.string = "Kiki, this is my first private dictation."

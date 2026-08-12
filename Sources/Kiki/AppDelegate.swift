@@ -22,7 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkupPracticeArmed = false
     private var embeddedViews: [ObjectIdentifier: NSView] = [:]
     private var pendingVoicePrefill: String?
+    private var settingsWindowHasLoaded = false
     private lazy var settingsWindow: SettingsWindowController = {
+        settingsWindowHasLoaded = true
         let controller = SettingsWindowController()
         controller.onSettingsChange = { [weak self] shortcut, mode in
             self?.hotkeys.dictationShortcut = shortcut
@@ -194,6 +196,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.render(state)
             self?.refreshCheckup(restartInputMonitor: false)
         }
+        controller.onModelPreparationChange = { [weak self] status in
+            guard let self else { return }
+            if self.settingsWindowHasLoaded {
+                self.settingsWindow.updateModelPreparationStatus(status)
+            }
+            self.refreshCheckup(restartInputMonitor: false)
+        }
         controller.onSuccessfulInsertion = { [weak self] _, context in
             guard let self,
                   self.checkupPracticeArmed,
@@ -352,7 +361,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestPermissions() {
-        AVCaptureDevice.requestAccess(for: .audio) { _ in }
+        AVCaptureDevice.requestAccess(for: .audio) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.refreshCheckup(restartInputMonitor: false)
+            }
+        }
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
     }
@@ -497,6 +510,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func openWorkbench(section: GuidedWorkbenchSection, subpage: Int = 0) {
         _ = captureExternalContext()
+        refreshCheckup(restartInputMonitor: false)
         workbenchWindow.show(section: section, subpage: subpage)
         if section == .settings, subpage == 4 {
             refreshCheckup(restartInputMonitor: true)
@@ -523,7 +537,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return GuidedWorkbenchSurface(view: workbenchDictationView, sizing: .fill)
             }
             return GuidedWorkbenchSurface(
-                view: settingsWindow.workbenchPage(1),
+                view: settingsPage(1),
                 sizing: .fill
             )
         case .meetings:
@@ -569,7 +583,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         case .models:
             return GuidedWorkbenchSurface(
-                view: settingsWindow.workbenchPage(2),
+                view: settingsPage(2),
                 sizing: .fill
             )
         case .settings:
@@ -577,7 +591,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case 0, 1, 2, 3:
                 let settingsPage = [0, 1, 3, 4][route.subpage]
                 return GuidedWorkbenchSurface(
-                    view: settingsWindow.workbenchPage(settingsPage),
+                    view: self.settingsPage(settingsPage),
                     sizing: .fill
                 )
             case 4:
@@ -598,6 +612,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return GuidedWorkbenchSurface(view: workbenchAboutView, sizing: .fill)
             }
         }
+    }
+
+    private func settingsPage(_ index: Int) -> NSView {
+        let settings = settingsWindow
+        settings.updateModelPreparationStatus(controller.modelPreparationStatus)
+        return settings.workbenchPage(index)
     }
 
     private func embeddedView(for controller: NSWindowController) -> NSView {
@@ -669,6 +689,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func refreshCheckup(restartInputMonitor: Bool) {
+        let microphoneAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        let snapshot = KikiCheckupSnapshot(
+            microphoneAuthorized: microphoneAuthorized,
+            inputResponding: microphoneAuthorized && checkupInputResponding,
+            accessibilityAuthorized: AXIsProcessTrusted(),
+            modelStatus: controller.modelPreparationStatus,
+            shortcutVerified: Settings.checkupShortcutVerified,
+            firstDictationCompleted: Settings.checkupFirstDictationCompleted
+        )
+        workbenchHomeView.update(snapshot: snapshot)
+        workbenchWindow.updateCheckupSnapshot(snapshot)
+
         guard isCheckupVisible else { return }
         let microphones = AudioInputDevice.available()
         let selected = AudioInputDevice.selected(from: microphones, preferredID: Settings.microphoneDeviceUID)
@@ -677,17 +709,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             microphones.map { .init(name: $0.name, uniqueID: $0.uniqueID) },
             selectedID: selected?.uniqueID
         )
-        let microphoneAuthorized = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
-        checkupWindow.update(
-            snapshot: KikiCheckupSnapshot(
-                microphoneAuthorized: microphoneAuthorized,
-                inputResponding: microphoneAuthorized && checkupInputResponding,
-                accessibilityAuthorized: AXIsProcessTrusted(),
-                modelReady: controller.isModelReady,
-                shortcutVerified: Settings.checkupShortcutVerified,
-                firstDictationCompleted: Settings.checkupFirstDictationCompleted
-            )
-        )
+        checkupWindow.update(snapshot: snapshot)
         if restartInputMonitor, microphoneAuthorized { checkupWindow.startInputMonitor() }
     }
 

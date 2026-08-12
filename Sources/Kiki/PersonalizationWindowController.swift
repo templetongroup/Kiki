@@ -45,19 +45,19 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     )
     private lazy var removeCorrectionButton = KikiActionButton(
         "Forget Selected Rule",
-        kind: .hardware,
+        kind: .danger,
         target: self,
         action: #selector(removeCorrection)
     )
     private lazy var addTermButton = KikiActionButton("Add Term", kind: .primary, target: self, action: #selector(addManualTerm))
-    private lazy var removeTermButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removeVocabularyTerm))
+    private lazy var removeTermButton = KikiActionButton("Remove Selected", kind: .danger, target: self, action: #selector(removeVocabularyTerm))
     private lazy var saveSnippetButton = KikiActionButton("Save Snippet", kind: .primary, target: self, action: #selector(saveSnippet))
-    private lazy var removeSnippetButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removeSnippet))
+    private lazy var removeSnippetButton = KikiActionButton("Remove Selected", kind: .danger, target: self, action: #selector(removeSnippet))
     private lazy var addPrivateAppButton = KikiActionButton("Add Bundle ID", kind: .primary, target: self, action: #selector(addPrivateBundle))
-    private lazy var removePrivateAppButton = KikiActionButton("Remove Selected", kind: .hardware, target: self, action: #selector(removePrivateBundle))
+    private lazy var removePrivateAppButton = KikiActionButton("Remove Selected", kind: .danger, target: self, action: #selector(removePrivateBundle))
     private lazy var copyAlternateButton = KikiActionButton("Copy Whisper Alternative", kind: .primary, target: self, action: #selector(copyAlternate))
-    private lazy var dismissReviewButton = KikiActionButton("Dismiss", kind: .hardware, target: self, action: #selector(removeConfidenceReview))
-    private lazy var clearReviewsButton = KikiActionButton("Clear All", kind: .hardware, target: self, action: #selector(clearConfidenceReviews))
+    private lazy var dismissReviewButton = KikiActionButton("Dismiss", kind: .danger, target: self, action: #selector(removeConfidenceReview))
+    private lazy var clearReviewsButton = KikiActionButton("Clear All", kind: .danger, target: self, action: #selector(clearConfidenceReviews))
     private var dataSurfaces: [ObjectIdentifier: KikiDataSurfaceView] = [:]
     private var pages: [NSView] = []
     private var openingContext: AppContextSnapshot?
@@ -249,7 +249,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private func configureWorkflowControls() {
         [manualTermField, snippetTriggerField, snippetTemplateField, privateBundleField].forEach {
             $0.delegate = self
-            $0.focusRingType = .none
+            $0.focusRingType = .default
         }
         manualTermField.setAccessibilityLabel("Vocabulary term")
         snippetTriggerField.setAccessibilityLabel("Spoken snippet trigger")
@@ -744,7 +744,13 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             statusLabel.stringValue = "Choose an approved rule to forget."
             return
         }
-        CorrectionMemoryStore.shared.removeCorrection(id: CorrectionMemoryStore.shared.corrections[row].id)
+        let correction = CorrectionMemoryStore.shared.corrections[row]
+        guard confirmKikiDestructiveAction(
+            message: "Forget this approved rule?",
+            detail: "Kiki will stop replacing “\(correction.heard)” with “\(correction.replacement)”.",
+            confirmTitle: "Forget Rule"
+        ) else { return }
+        CorrectionMemoryStore.shared.removeCorrection(id: correction.id)
         statusLabel.stringValue = "Approved rule forgotten."
     }
 
@@ -788,7 +794,14 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     @objc private func removeVocabularyTerm() {
         let row = vocabularyTable.selectedRow
         guard ContextVocabularyStore.shared.terms.indices.contains(row) else { return }
-        ContextVocabularyStore.shared.remove(id: ContextVocabularyStore.shared.terms[row].id)
+        let term = ContextVocabularyStore.shared.terms[row]
+        guard confirmKikiDestructiveAction(
+            message: "Remove this vocabulary term?",
+            detail: "Kiki will no longer use “\(term.value)” as approved local vocabulary.",
+            confirmTitle: "Remove Term"
+        ) else { return }
+        ContextVocabularyStore.shared.remove(id: term.id)
+        statusLabel.stringValue = "Removed “\(term.value)” from local vocabulary."
     }
 
     @objc private func saveSnippet() {
@@ -816,6 +829,11 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         let row = snippetsTable.selectedRow
         guard VoiceSnippetStore.shared.snippets.indices.contains(row) else { return }
         let snippet = VoiceSnippetStore.shared.snippets[row]
+        guard confirmKikiDestructiveAction(
+            message: "Remove this voice snippet?",
+            detail: "The “\(snippet.trigger)” trigger and its saved text will be deleted from this Mac.",
+            confirmTitle: "Remove Snippet"
+        ) else { return }
         VoiceSnippetStore.shared.remove(id: snippet.id)
         if editingSnippetID == snippet.id {
             editingSnippetID = nil
@@ -848,7 +866,14 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     @objc private func removePrivateBundle() {
         let row = privateAppsTable.selectedRow
         guard PrivateZoneStore.shared.bundleIdentifiers.indices.contains(row) else { return }
-        PrivateZoneStore.shared.remove(PrivateZoneStore.shared.bundleIdentifiers[row])
+        let bundle = PrivateZoneStore.shared.bundleIdentifiers[row]
+        guard confirmKikiDestructiveAction(
+            message: "Remove this private app?",
+            detail: "Kiki may save history and learning data again when you dictate in \(bundle).",
+            confirmTitle: "Remove Private App"
+        ) else { return }
+        PrivateZoneStore.shared.remove(bundle)
+        statusLabel.stringValue = "Removed \(bundle) from private apps."
     }
 
     @objc private func copyAlternate() {
@@ -860,9 +885,25 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     @objc private func removeConfidenceReview() {
         let row = confidenceTable.selectedRow
         guard ConfidenceReviewStore.shared.reviews.indices.contains(row) else { return }
-        ConfidenceReviewStore.shared.remove(id: ConfidenceReviewStore.shared.reviews[row].id)
+        let review = ConfidenceReviewStore.shared.reviews[row]
+        guard confirmKikiDestructiveAction(
+            message: "Dismiss this confidence review?",
+            detail: "This removes the saved comparison from Kiki’s local review queue.",
+            confirmTitle: "Dismiss Review"
+        ) else { return }
+        ConfidenceReviewStore.shared.remove(id: review.id)
+        statusLabel.stringValue = "Confidence review dismissed."
     }
-    @objc private func clearConfidenceReviews() { ConfidenceReviewStore.shared.clear() }
+    @objc private func clearConfidenceReviews() {
+        guard !ConfidenceReviewStore.shared.reviews.isEmpty else { return }
+        guard confirmKikiDestructiveAction(
+            message: "Clear all confidence reviews?",
+            detail: "This permanently removes every saved local model comparison.",
+            confirmTitle: "Clear All Reviews"
+        ) else { return }
+        ConfidenceReviewStore.shared.clear()
+        statusLabel.stringValue = "All confidence reviews cleared."
+    }
 }
 
 @MainActor

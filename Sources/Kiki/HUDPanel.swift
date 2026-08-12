@@ -11,6 +11,7 @@ final class HUDPanel {
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
+    private let modelProgress = NSProgressIndicator()
     private let waveformView = KikiWaveformView()
     private let textStack = NSStackView()
     private var hasLogo = false
@@ -60,7 +61,16 @@ final class HUDPanel {
         transcriptLabel.lineBreakMode = .byTruncatingTail
         transcriptLabel.isHidden = true
 
-        textStack.setViews([statusLabel, transcriptLabel], in: .leading)
+        modelProgress.style = .bar
+        modelProgress.isIndeterminate = false
+        modelProgress.minValue = 0
+        modelProgress.maxValue = 1
+        modelProgress.controlSize = .small
+        modelProgress.isHidden = true
+        modelProgress.setAccessibilityLabel("Model download progress")
+        modelProgress.widthAnchor.constraint(equalToConstant: 285).isActive = true
+
+        textStack.setViews([statusLabel, transcriptLabel, modelProgress], in: .leading)
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 2
@@ -96,9 +106,36 @@ final class HUDPanel {
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
+        modelProgress.isHidden = true
         let logoWidth: CGFloat = logoView.isHidden ? 0 : 37
         let width = max(180, statusLabel.intrinsicContentSize.width + logoWidth + 54)
         present(width: width, height: 54)
+    }
+
+    func showModelPreparation(_ status: ModelPreparationStatus) {
+        presentation = .message
+        applyAppearance()
+        logoView.isHidden = !hasLogo
+        textStack.isHidden = false
+        waveformView.isHidden = true
+        waveformView.reset()
+        statusLabel.stringValue = status.compactTitle
+        statusLabel.textColor = KikiPalette.primaryText
+        transcriptLabel.isHidden = true
+        if let fraction = status.downloadFraction {
+            modelProgress.doubleValue = fraction
+            modelProgress.isHidden = false
+            modelProgress.setAccessibilityValue("\(Int((fraction * 100).rounded(.down))) percent")
+            present(width: 410, height: 70)
+        } else {
+            modelProgress.isHidden = true
+            present(width: 410, height: 56)
+        }
+    }
+
+    var diagnosticModelStatusText: String { statusLabel.stringValue }
+    var diagnosticModelProgressValue: Double? {
+        modelProgress.isHidden ? nil : modelProgress.doubleValue
     }
 
     func showListening(transcript: String? = nil) {
@@ -114,6 +151,7 @@ final class HUDPanel {
         transcriptLabel.stringValue = displayText(transcript)
         transcriptLabel.textColor = transcript == nil ? .secondaryLabelColor : .labelColor
         transcriptLabel.isHidden = false
+        modelProgress.isHidden = true
         if needsPresentation { showExpanded() }
     }
 
@@ -123,6 +161,7 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = true
         textStack.isHidden = true
+        modelProgress.isHidden = true
         waveformView.isHidden = false
         if reset { waveformView.reset() }
         waveformView.update(samples: samples)
@@ -141,6 +180,7 @@ final class HUDPanel {
         transcriptLabel.stringValue = displayText(transcript)
         transcriptLabel.textColor = transcript == nil ? .secondaryLabelColor : .labelColor
         transcriptLabel.isHidden = false
+        modelProgress.isHidden = true
         showExpanded()
     }
 

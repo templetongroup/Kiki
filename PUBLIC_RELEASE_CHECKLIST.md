@@ -29,7 +29,7 @@ Feature scope is frozen until every required check below passes against the same
 - [ ] Read Selection prefills Voice Studio and does not generate until Generate is clicked.
 - [ ] Pawprints opt-in, aggregate update, opt-out, Private Session exclusion, and complete reset work.
 - [ ] A support ZIP opens and contains only `diagnostics.json` and `README.txt` with no user content.
-- [ ] Existing Settings, Models, Personalization, Meeting Mode, audio-file transcription, Voice Studio playback/stop, exports, and light/dark layouts still work.
+- [ ] Existing Settings, Models, Personalization, Meeting Mode, audio-file transcription, Voice Studio playback/stop, exports, and the supported dark Studio Hardware layout still work.
 
 ## Publication gate
 

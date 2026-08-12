@@ -1,6 +1,6 @@
 import Foundation
 
-enum TranscriptionModelID: String, CaseIterable, Codable {
+enum TranscriptionModelID: String, CaseIterable, Codable, Sendable {
     case parakeetEnglish
     case parakeetMultilingual
     case whisperLargeTurbo

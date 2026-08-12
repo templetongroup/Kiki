@@ -15,11 +15,17 @@ enum DictationState: Equatable {
 @MainActor
 final class DictationController {
     var onStateChange: ((DictationState) -> Void)?
+    var onModelPreparationChange: ((ModelPreparationStatus) -> Void)?
     var onSuccessfulInsertion: ((String, AppContextSnapshot) -> Void)?
     var onLastDictationActionsChange: ((Bool, Bool) -> Void)?
 
     private(set) var state: DictationState = .loadingModel {
         didSet { onStateChange?(state) }
+    }
+    private(set) var modelPreparationStatus = ModelPreparationStatus.loading(
+        model: Settings.transcriptionModel
+    ) {
+        didSet { onModelPreparationChange?(modelPreparationStatus) }
     }
 
     private struct DictationJob {
@@ -50,6 +56,7 @@ final class DictationController {
     private let transcribeQueue = DispatchQueue(label: "kiki.transcribe", qos: .userInitiated)
     private let hud = HUDPanel()
     private var preparationID = UUID()
+    private var preparationTask: Task<Void, Never>?
     private var livePreviewID = UUID()
     private var liveAudioFeed: AudioSampleFeed?
     private var livePreviewSession: ParakeetLiveSession?
@@ -67,7 +74,7 @@ final class DictationController {
     }
 
     var isModelReady: Bool {
-        state != .noModel && state != .loadingModel
+        modelPreparationStatus.isReady
     }
 
     var canUndoLastDictation: Bool { lastInsertion != nil && lastInsertionIsPresent }
@@ -75,7 +82,9 @@ final class DictationController {
 
     func prepare() {
         let selectedModel = Settings.transcriptionModel
+        preparationTask?.cancel()
         guard selectedModel.isCompatible else {
+            publishModelPreparation(.unavailable(model: selectedModel))
             state = .noModel
             return
         }
@@ -84,31 +93,87 @@ final class DictationController {
         whisperTranscriber = nil
         parakeetTranscriber = nil
         state = .loadingModel
+        let modelIsLocal = selectedModel.isParakeet
+            ? ParakeetTranscriber.isInstalled(model: selectedModel)
+            : ModelStore.isWhisperModelInstalled(selectedModel)
+        publishModelPreparation(modelIsLocal
+            ? .loading(model: selectedModel)
+            : .downloading(model: selectedModel, fraction: 0))
 
-        if selectedModel.isParakeet {
-            hud.show("Downloading or loading \(selectedModel.displayName)…")
-            Task { [weak self] in
-                let loaded = try? await ParakeetTranscriber.load(model: selectedModel)
-                guard let self, self.preparationID == currentPreparationID else { return }
-                self.hud.hide()
-                self.parakeetTranscriber = loaded
-                self.state = loaded == nil ? .noModel : .idle
-            }
-            return
-        }
+        preparationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                if selectedModel.isParakeet {
+                    let loaded = try await ParakeetTranscriber.load(
+                        model: selectedModel
+                    ) { [weak self] status in
+                        guard let self,
+                              self.preparationID == currentPreparationID else { return }
+                        self.publishModelPreparation(status)
+                    }
+                    try Task.checkCancellation()
+                    guard self.preparationID == currentPreparationID else { return }
+                    self.parakeetTranscriber = loaded
+                } else {
+                    if !ModelStore.isWhisperModelInstalled(selectedModel) {
+                        self.publishModelPreparation(.downloading(model: selectedModel, fraction: 0))
+                        try await ModelDownloadService.downloadWhisperModel(
+                            selectedModel
+                        ) { [weak self] progress in
+                            guard let self,
+                                  self.preparationID == currentPreparationID else { return }
+                            self.publishModelPreparation(.downloading(
+                                model: selectedModel,
+                                fraction: progress.fraction
+                            ))
+                        }
+                    }
+                    try Task.checkCancellation()
+                    guard self.preparationID == currentPreparationID,
+                          let modelURL = ModelStore.modelURL(for: selectedModel) else {
+                        throw KikiError("The downloaded model could not be found.")
+                    }
+                    self.publishModelPreparation(.loading(model: selectedModel))
+                    let language = Settings.language
+                    let loaded: WhisperTranscriber? = await withCheckedContinuation { continuation in
+                        self.transcribeQueue.async {
+                            continuation.resume(returning: try? WhisperTranscriber(
+                                modelPath: modelURL.path,
+                                language: language
+                            ))
+                        }
+                    }
+                    try Task.checkCancellation()
+                    guard self.preparationID == currentPreparationID, let loaded else {
+                        throw KikiError("Kiki could not load the selected model into memory.")
+                    }
+                    self.whisperTranscriber = loaded
+                }
 
-        guard let modelURL = ModelStore.modelURL(for: selectedModel) else {
-            state = .noModel
-            return
-        }
-        let language = Settings.language
-        transcribeQueue.async { [weak self] in
-            let loaded = try? WhisperTranscriber(modelPath: modelURL.path, language: language)
-            DispatchQueue.main.async {
-                guard let self, self.preparationID == currentPreparationID else { return }
-                self.whisperTranscriber = loaded
-                self.state = loaded == nil ? .noModel : .idle
+                self.publishModelPreparation(.ready(model: selectedModel))
+                self.state = .idle
+            } catch is CancellationError {
+                return
+            } catch {
+                guard self.preparationID == currentPreparationID else { return }
+                self.publishModelPreparation(.failed(
+                    model: selectedModel,
+                    message: error.localizedDescription
+                ))
+                self.state = .noModel
             }
+        }
+    }
+
+    private func publishModelPreparation(_ status: ModelPreparationStatus) {
+        modelPreparationStatus = status
+        switch status {
+        case .downloading, .loading:
+            hud.showModelPreparation(status)
+        case .unavailable, .failed:
+            hud.show(status.compactTitle)
+        case .ready:
+            hud.hide()
         }
     }
 
@@ -649,6 +714,7 @@ final class DictationController {
     }
 
     func prepareForTermination() {
+        preparationTask?.cancel()
         if state == .recording { _ = recorder.stop() }
         recorder.setSamplesHandler(nil)
         _ = stopLivePreview()

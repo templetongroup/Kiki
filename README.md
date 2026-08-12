@@ -27,7 +27,7 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - Fully local dictation with a choice of Parakeet and Whisper models
 - Low-latency live transcript in Kiki's branded listening window with Parakeet
 - Customizable global shortcut with hold-to-dictate and press-to-toggle modes
-- Launch at login, signed automatic updates, light/dark/system appearance, brand colors, and dictation sounds
+- Launch at login, signed automatic updates, a dark Studio Hardware appearance, brand colors, and dictation sounds
 - Custom dictionary for names, jargon, abbreviations, and exact spellings
 - Text-only transcription history with app/source, model, duration, and an explicit local-processing indicator
 - Drag-and-drop local audio-file transcription with editable, copyable, and exportable results

@@ -8,7 +8,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
     private let countLabel = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(labelWithString: "")
     private lazy var addButton = KikiActionButton("Add or Replace", kind: .primary, target: self, action: #selector(addEntry))
-    private lazy var deleteButton = KikiActionButton("Delete Selected", kind: .hardware, target: self, action: #selector(deleteSelected))
+    private lazy var deleteButton = KikiActionButton("Delete Selected", kind: .danger, target: self, action: #selector(deleteSelected))
     private var tableSurface: KikiDataSurfaceView?
 
     init() {
@@ -149,7 +149,13 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
             statusLabel.stringValue = "Choose an entry before deleting it."
             return
         }
-        CustomDictionaryStore.shared.remove(id: CustomDictionaryStore.shared.entries[row].id)
+        let entry = CustomDictionaryStore.shared.entries[row]
+        guard confirmKikiDestructiveAction(
+            message: "Delete this dictionary entry?",
+            detail: "Kiki will stop replacing “\(entry.spoken)” with “\(entry.replacement)”.",
+            confirmTitle: "Delete Entry"
+        ) else { return }
+        CustomDictionaryStore.shared.remove(id: entry.id)
         statusLabel.stringValue = "Dictionary entry deleted."
         reload()
     }

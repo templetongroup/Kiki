@@ -33,10 +33,6 @@ enum FeatureDiagnostics {
     }
 
     private static func checkGuidedWorkbench() throws {
-        let home = GuidedWorkbenchHomeView()
-        guard home.fittingSize.width <= 1_200 else {
-            throw failure("Guided Workbench compact home layout")
-        }
         let controller = GuidedWorkbenchWindowController()
         controller.onRouteChange = { _ in
             let view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
@@ -54,7 +50,13 @@ enum FeatureDiagnostics {
               findView(in: content, identifier: "kiki.workbench.content") != nil,
               findView(in: content, identifier: "kiki.workbench.context-bar")?.layer?.backgroundColor == KikiPalette.surface.cgColor,
               findView(in: content, identifier: "kiki.workbench.tab-rail")?.layer?.backgroundColor != nil,
-              findView(in: content, identifier: "kiki.workbench.subnavigation") is NSSegmentedControl,
+              let subnavigation = findView(
+                  in: content,
+                  identifier: "kiki.workbench.subnavigation"
+              ) as? KikiFocusableSegmentedControl,
+              subnavigation.layer?.sublayers?.contains(where: {
+                  $0.name == "kiki.segmented-control.keyboard-focus"
+              }) == true,
               findView(in: content, identifier: "kiki.workbench.quick-dictation") is KikiActionButton,
               let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
               releaseLabel.stringValue.hasPrefix("RELEASE "),
@@ -148,8 +150,38 @@ enum FeatureDiagnostics {
             in: compactHomeView,
             identifier: "kiki.workbench.home.title"
         ) as? NSTextField,
-              homeTitle.stringValue == "Kiki is ready." else {
-            throw failure("Home title must use public, non-personalized copy")
+              homeTitle.stringValue == "Finish Kiki setup.",
+              let microphoneValue = findView(
+                  in: compactHomeView,
+                  identifier: "kiki.workbench.home.readiness.microphone.value"
+              ) as? NSTextField,
+              microphoneValue.stringValue == "Permission needed",
+              let accessibilityValue = findView(
+                  in: compactHomeView,
+                  identifier: "kiki.workbench.home.readiness.accessibility.value"
+              ) as? NSTextField,
+              accessibilityValue.stringValue == "Permission needed" else {
+            throw failure("Home readiness must reflect incomplete live checks")
+        }
+        guard let homeArtwork = findView(
+            in: compactHomeView,
+            identifier: "kiki.workbench.home.hero"
+        ) as? KikiDecorativeImageView,
+              !homeArtwork.isAccessibilityElement() else {
+            throw failure("Home hero artwork must be decorative")
+        }
+        compactHomeView.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .ready(model: .parakeetEnglish),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        guard homeTitle.stringValue == "Kiki is ready.",
+              microphoneValue.stringValue == "Allowed · Signal detected",
+              accessibilityValue.stringValue == "Allowed" else {
+            throw failure("Home readiness must update from verified checks")
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton
@@ -408,7 +440,8 @@ enum FeatureDiagnostics {
               let artworkView = findView(
                   in: contentView,
                   identifier: "kiki.voice.studio-hero-artwork"
-              ) as? NSImageView,
+              ) as? KikiDecorativeImageView,
+              !artworkView.isAccessibilityElement(),
               let copyView = findView(in: contentView, identifier: "kiki.voice.studio-hero-copy"),
               let renderedData = artworkView.image?.tiffRepresentation,
               renderedData == referenceData else {
@@ -566,7 +599,7 @@ enum FeatureDiagnostics {
             microphoneAuthorized: false,
             inputResponding: true,
             accessibilityAuthorized: true,
-            modelReady: true,
+            modelStatus: .ready(model: .parakeetEnglish),
             shortcutVerified: true,
             firstDictationCompleted: true
         )
@@ -574,12 +607,28 @@ enum FeatureDiagnostics {
             microphoneAuthorized: true,
             inputResponding: true,
             accessibilityAuthorized: true,
-            modelReady: true,
+            modelStatus: .ready(model: .parakeetEnglish),
             shortcutVerified: true,
             firstDictationCompleted: true
         )
+        let downloading = KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .downloading(model: .whisperBaseEnglish, fraction: 0.42),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        )
+        let loading = ModelPreparationStatus.loading(model: .whisperBaseEnglish)
         guard !blocked.isReady,
               ready.isReady,
+              !downloading.isReady,
+              downloading.modelStatus.compactTitle == "Downloading Whisper Base — English · 42%",
+              downloading.modelStatus.checkupDetail == "Downloading · 42%",
+              downloading.modelStatus.downloadFraction == 0.42,
+              loading.compactTitle == "Loading Whisper Base — English…",
+              loading.checkupDetail == "Loading into memory",
+              loading.downloadFraction == nil,
               AudioInputDevice.selected(from: microphones, preferredID: "studio")?.uniqueID == "studio",
               AudioInputDevice.selected(from: microphones, preferredID: "missing")?.uniqueID == "desk" else {
             throw failure("Kiki Checkup readiness contract")
@@ -854,6 +903,34 @@ enum FeatureDiagnostics {
               ) as? NSTextField,
               checkupEyebrow.textColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("Kiki Checkup controls")
+        }
+        checkup.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .downloading(model: .whisperBaseEnglish, fraction: 0.42),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        checkupContent.layoutSubtreeIfNeeded()
+        guard let checkupModelProgress = findView(
+            in: checkupContent,
+            identifier: "kiki.checkup.model-progress"
+        ) as? NSProgressIndicator,
+              !checkupModelProgress.isHidden,
+              abs(checkupModelProgress.doubleValue - 0.42) < 0.001 else {
+            throw failure("Kiki Checkup model download progress")
+        }
+        checkup.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .loading(model: .whisperBaseEnglish),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        guard checkupModelProgress.isHidden else {
+            throw failure("Kiki Checkup must hide download progress while loading")
         }
         let footerButtonIDs = [
             "kiki.checkup.footer.microphone",

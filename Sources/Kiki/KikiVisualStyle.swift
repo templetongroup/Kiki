@@ -56,8 +56,8 @@ enum KikiPalette {
         light: NSColor(red: 0.420, green: 0.404, blue: 0.341, alpha: 1) // #6b6757
     )
     static let tertiaryText = adaptive(
-        dark: NSColor(red: 0.514, green: 0.486, blue: 0.424, alpha: 1), // #837c6c
-        light: NSColor(red: 0.604, green: 0.584, blue: 0.525, alpha: 1) // #9a9586
+        dark: NSColor(red: 0.690, green: 0.655, blue: 0.573, alpha: 1), // #b0a792
+        light: NSColor(red: 0.408, green: 0.384, blue: 0.325, alpha: 1) // #686253
     )
     static let accent = adaptive(
         dark: NSColor(red: 0.322, green: 0.400, blue: 0.239, alpha: 1), // #52663d
@@ -112,8 +112,78 @@ enum KikiPalette {
 }
 
 @MainActor
+func confirmKikiDestructiveAction(message: String, detail: String, confirmTitle: String) -> Bool {
+    let alert = NSAlert()
+    alert.messageText = message
+    alert.informativeText = detail
+    alert.alertStyle = .warning
+    alert.addButton(withTitle: confirmTitle)
+    alert.addButton(withTitle: "Cancel")
+    return alert.runModal() == .alertFirstButtonReturn
+}
+
+@MainActor
 final class KikiFlippedView: NSView {
     override var isFlipped: Bool { true }
+}
+
+@MainActor
+final class KikiDecorativeImageView: NSImageView {
+    override func isAccessibilityElement() -> Bool { false }
+    override func accessibilityRole() -> NSAccessibility.Role? { nil }
+}
+
+@MainActor
+final class KikiFocusableSegmentedControl: NSSegmentedControl {
+    private let keyboardFocusLayer = CAShapeLayer()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        focusRingType = .none
+        wantsLayer = true
+        keyboardFocusLayer.fillColor = NSColor.clear.cgColor
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.lineWidth = 2
+        keyboardFocusLayer.isHidden = true
+        keyboardFocusLayer.name = "kiki.segmented-control.keyboard-focus"
+        layer?.addSublayer(keyboardFocusLayer)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        updateKeyboardFocus()
+        return accepted
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        updateKeyboardFocus()
+        return resigned
+    }
+
+    override func layout() {
+        super.layout()
+        keyboardFocusLayer.frame = bounds
+        keyboardFocusLayer.path = CGPath(
+            roundedRect: bounds.insetBy(dx: 1.5, dy: 1.5),
+            cornerWidth: 5,
+            cornerHeight: 5,
+            transform: nil
+        )
+        updateKeyboardFocus()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateKeyboardFocus()
+    }
+
+    private func updateKeyboardFocus() {
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.isHidden = window?.firstResponder !== self || !isEnabled
+    }
 }
 
 @MainActor
@@ -552,9 +622,10 @@ final class KikiActionButton: NSButton {
                 layer?.borderWidth = 0
                 applyTitleColor(KikiPalette.secondaryText)
             case .danger:
-                layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.88).cgColor
-                layer?.borderWidth = 0
-                applyTitleColor(.white)
+                layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.16).cgColor
+                layer?.borderWidth = 1
+                layer?.borderColor = NSColor.systemRed.withAlphaComponent(0.68).cgColor
+                applyTitleColor(NSColor.systemRed.blended(withFraction: 0.18, of: KikiPalette.primaryText) ?? .systemRed)
             }
         }
     }

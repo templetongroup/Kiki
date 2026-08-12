@@ -12,8 +12,41 @@ final class ParakeetTranscriber {
     }
 
     static func load(model: TranscriptionModelID) async throws -> ParakeetTranscriber {
+        try await load(model: model) { _ in }
+    }
+
+    static func isInstalled(model: TranscriptionModelID) -> Bool {
         let version: AsrModelVersion = model == .parakeetMultilingual ? .v3 : .v2
-        let models = try await AsrModels.downloadAndLoad(version: version)
+        let directory = AsrModels.defaultCacheDirectory(for: version)
+        return AsrModels.modelsExist(at: directory, version: version)
+    }
+
+    static func load(
+        model: TranscriptionModelID,
+        onPreparationChange: @MainActor @escaping (ModelPreparationStatus) -> Void
+    ) async throws -> ParakeetTranscriber {
+        let version: AsrModelVersion = model == .parakeetMultilingual ? .v3 : .v2
+        let progressMapper = ParakeetDownloadProgressMapper(
+            model: model,
+            operationCount: version == .v3 ? 3 : 4
+        )
+        let directory = try await AsrModels.download(version: version) { progress in
+            guard let status = progressMapper.status(for: progress) else { return }
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    onPreparationChange(status)
+                }
+            }
+        }
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    onPreparationChange(.loading(model: model))
+                }
+                continuation.resume()
+            }
+        }
+        let models = try await AsrModels.load(from: directory, version: version)
         return ParakeetTranscriber(models: models)
     }
 
@@ -36,6 +69,37 @@ final class ParakeetTranscriber {
         let session = ParakeetLiveSession(manager: AsrManager(models: models))
         session.start(audio: audio, onUpdate: onUpdate)
         return session
+    }
+}
+
+private final class ParakeetDownloadProgressMapper: @unchecked Sendable {
+    private let lock = NSLock()
+    private let model: TranscriptionModelID
+    private let operationCount: Int
+    private var operationIndex = -1
+
+    init(model: TranscriptionModelID, operationCount: Int) {
+        self.model = model
+        self.operationCount = max(1, operationCount)
+    }
+
+    func status(for progress: DownloadProgress) -> ModelPreparationStatus? {
+        lock.lock()
+        defer { lock.unlock() }
+        switch progress.phase {
+        case .listing:
+            operationIndex = min(operationIndex + 1, operationCount - 1)
+            return nil
+        case let .downloading(_, totalFiles):
+            guard totalFiles > 0 else { return nil }
+            let downloadFraction = min(1, max(0, progress.fractionCompleted * 2))
+            let completedOperations = max(0, operationIndex)
+            let overallFraction = (Double(completedOperations) + downloadFraction)
+                / Double(operationCount)
+            return .downloading(model: model, fraction: overallFraction)
+        case .compiling:
+            return .loading(model: model)
+        }
     }
 }
 

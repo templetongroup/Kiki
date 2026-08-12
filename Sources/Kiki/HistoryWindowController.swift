@@ -7,8 +7,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private let countLabel = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(labelWithString: "")
     private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
-    private lazy var deleteButton = KikiActionButton("Delete", kind: .hardware, target: self, action: #selector(deleteSelected))
-    private lazy var clearButton = KikiActionButton("Clear History…", kind: .hardware, target: self, action: #selector(clearAll))
+    private lazy var deleteButton = KikiActionButton("Delete", kind: .danger, target: self, action: #selector(deleteSelected))
+    private lazy var clearButton = KikiActionButton("Clear History…", kind: .danger, target: self, action: #selector(clearAll))
     private var tableSurface: KikiDataSurfaceView?
     private let detailEmptyState = KikiEmptyStateView(
         symbol: "text.alignleft",
@@ -241,6 +241,11 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
             statusLabel.stringValue = "Choose a transcription before deleting."
             return
         }
+        guard confirmKikiDestructiveAction(
+            message: "Delete this transcript?",
+            detail: "This permanently removes the selected transcript text from this Mac.",
+            confirmTitle: "Delete Transcript"
+        ) else { return }
         TranscriptionHistoryStore.shared.remove(id: record.id)
         textView.string = ""
         detailEmptyState.isHidden = false

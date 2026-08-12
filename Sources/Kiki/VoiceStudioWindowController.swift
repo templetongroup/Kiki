@@ -125,7 +125,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
 
-        let artwork = NSImageView()
+        let artwork = KikiDecorativeImageView()
         artwork.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero-artwork")
         if let url = Bundle.main.url(forResource: "VoiceStudioHero", withExtension: "png") {
             artwork.image = NSImage(contentsOf: url)
@@ -134,7 +134,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         artwork.imageAlignment = .alignTopRight
         artwork.translatesAutoresizingMaskIntoConstraints = false
         let eyebrow = kikiLabel("VOICE STUDIO · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Kiki is ready", size: 30, weight: .bold)
+        let title = kikiLabel("Record, shape, and create", size: 30, weight: .bold)
         let subtitle = kikiLabel("Professional voice recording with local intelligence. Everything stays on this Mac.", size: 13, color: KikiPalette.secondaryText)
         let headerText = NSStackView(views: [eyebrow, title, subtitle])
         headerText.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero-copy")
