@@ -5,12 +5,14 @@ final class SettingsWindowController: NSWindowController {
     var onSettingsChange: (@MainActor (DictationShortcut, ActivationMode) -> Void)?
     var onModelChange: (@MainActor (TranscriptionModelID) -> Void)?
     var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
+    var onMicrophoneChange: (@MainActor (String) -> Void)?
     var onOpenPersonalization: (@MainActor () -> Void)?
 
     private let shortcutButton = NSButton(title: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
     private let speechProfilePopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
+    private let microphonePopup = NSPopUpButton()
     private let listeningPositionPopup = NSPopUpButton()
     private let listeningDisplayControl = NSSegmentedControl(
         labels: ListeningDisplayMode.allCases.map(\.title),
@@ -261,6 +263,12 @@ final class SettingsWindowController: NSWindowController {
         launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
         automaticUpdatesCheckbox.target = self
         automaticUpdatesCheckbox.action = #selector(automaticUpdatesChanged)
+        microphonePopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.microphone")
+        microphonePopup.target = self
+        microphonePopup.action = #selector(microphoneChanged)
+        microphonePopup.controlSize = .large
+        microphonePopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        microphonePopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
         silenceAudioCheckbox.target = self
         silenceAudioCheckbox.action = #selector(silenceAudioChanged)
         listeningDisplayControl.target = self
@@ -330,6 +338,12 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func makeGeneralPage() -> NSView {
+        let microphoneRow = labeledRow(
+            "Microphone",
+            controls: [microphonePopup],
+            identifier: "kiki.settings.microphone-row",
+            placesControlsAtTrailingEdge: false
+        )
         let soundRow = labeledRow(
             "Dictation sounds",
             controls: [soundPopup],
@@ -341,6 +355,11 @@ final class SettingsWindowController: NSWindowController {
                 title: "Startup & Updates",
                 subtitle: "Keep Kiki ready and securely up to date.",
                 views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, startupStatusLabel]
+            ),
+            SettingsCard(
+                title: "Input",
+                subtitle: "Choose the microphone Kiki uses for dictation, meetings, and voice recording.",
+                views: [microphoneRow]
             ),
             SettingsCard(
                 title: "Sound",
@@ -567,6 +586,25 @@ final class SettingsWindowController: NSWindowController {
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
         automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
             || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
+        let microphones = AudioInputDevice.available()
+        let selectedMicrophone = AudioInputDevice.selected(
+            from: microphones,
+            preferredID: Settings.microphoneDeviceUID
+        )
+        microphonePopup.removeAllItems()
+        for microphone in microphones {
+            microphonePopup.addItem(withTitle: microphone.name)
+            microphonePopup.lastItem?.representedObject = microphone.uniqueID
+        }
+        if let selectedMicrophone,
+           let index = microphonePopup.itemArray.firstIndex(where: {
+               ($0.representedObject as? String) == selectedMicrophone.uniqueID
+           }) {
+            microphonePopup.selectItem(at: index)
+        } else {
+            microphonePopup.addItem(withTitle: "No microphone found")
+        }
+        microphonePopup.isEnabled = !microphones.isEmpty
         soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
         speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
@@ -701,6 +739,11 @@ final class SettingsWindowController: NSWindowController {
         startupStatusLabel.stringValue = enabled
             ? "Kiki will automatically check for signed updates."
             : "Automatic update checks are off. You can still check from the menu."
+    }
+    @objc private func microphoneChanged() {
+        guard let uniqueID = microphonePopup.selectedItem?.representedObject as? String else { return }
+        Settings.microphoneDeviceUID = uniqueID
+        onMicrophoneChange?(uniqueID)
     }
     @objc private func soundChanged() {
         Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem]

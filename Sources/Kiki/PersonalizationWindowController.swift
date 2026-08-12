@@ -334,6 +334,10 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         actionRow.orientation = .horizontal
         actionRow.alignment = .centerY
         actionRow.spacing = 8
+        [approveSuggestionButton, ignoreSuggestionButton].forEach {
+            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.widthAnchor.constraint(equalToConstant: 150).isActive = true
+        }
         let approveStep = KikiGuidedStepView(
             number: 3,
             title: "Approve or ignore",

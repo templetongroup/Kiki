@@ -446,6 +446,7 @@ final class KikiActionButton: NSButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override var title: String { didSet { updateStyle() } }
+    override var font: NSFont? { didSet { updateStyle() } }
     override var isEnabled: Bool {
         didSet {
             updateStyle()

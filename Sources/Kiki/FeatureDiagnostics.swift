@@ -67,15 +67,24 @@ enum FeatureDiagnostics {
               (controller.window?.minSize.width ?? 0) >= 900 else {
             throw failure("Guided Workbench shell")
         }
+        controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
         content.layoutSubtreeIfNeeded()
         let navigationControls = descendants(of: content).compactMap { $0 as? NSControl }
             .filter { $0.identifier?.rawValue.hasPrefix("kiki.workbench.nav.") == true || $0.identifier?.rawValue == "kiki.workbench.quick-dictation" }
-        guard navigationControls.allSatisfy({ control in
+        let navigationHitFailures = navigationControls.compactMap { control -> String? in
+            control.scrollToVisible(control.bounds)
+            content.layoutSubtreeIfNeeded()
             let point = control.convert(NSPoint(x: control.bounds.midX, y: control.bounds.midY), to: content)
-            guard let hit = content.hitTest(point) else { return false }
-            return hit === control || hit.isDescendant(of: control)
-        }) else {
-            throw failure("Guided Workbench native click routing")
+            guard let hit = content.hitTest(point) else {
+                return "\(control.identifier?.rawValue ?? "unknown") hit nothing frame=\(control.frame)"
+            }
+            guard hit === control || hit.isDescendant(of: control) else {
+                return "\(control.identifier?.rawValue ?? "unknown") hit \(type(of: hit)) frame=\(control.frame)"
+            }
+            return nil
+        }
+        guard navigationHitFailures.isEmpty else {
+            throw failure("Guided Workbench native click routing [\(navigationHitFailures.joined(separator: "; "))]")
         }
 
         controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
@@ -98,7 +107,8 @@ enum FeatureDiagnostics {
         }
 
         controller.select(GuidedWorkbenchRoute(section: .meetings))
-        guard (controller.window?.minSize.height ?? 0) >= 760 else {
+        let availableMeetingHeight = (controller.window?.screen ?? NSScreen.main)?.visibleFrame.height ?? 760
+        guard (controller.window?.minSize.height ?? 0) >= min(760, availableMeetingHeight) else {
             throw failure("Meeting route must open tall enough to expose its actions")
         }
         controller.select(GuidedWorkbenchRoute(section: .library))
@@ -149,6 +159,12 @@ enum FeatureDiagnostics {
         let homeActionMinY = homeActionButtons.map(\.frame.minY)
         let homeActionFontSizes = homeActionButtons.compactMap { $0.font?.pointSize }
         let homeActionFontNames = homeActionButtons.compactMap { $0.font?.fontName }
+        let homeActionRenderedFontSizes = homeActionButtons.compactMap {
+            $0.attributedTitle.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        }.map(\.pointSize)
+        let homeActionRenderedFontNames = homeActionButtons.compactMap {
+            $0.attributedTitle.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        }.map(\.fontName)
         guard homeActionButtons.count == homeActionIDs.count,
               let minimumHomeActionHeight = homeActionHeights.min(),
               let maximumHomeActionHeight = homeActionHeights.max(),
@@ -160,9 +176,12 @@ enum FeatureDiagnostics {
               let maximumHomeActionMinY = homeActionMinY.max(),
               maximumHomeActionMinY - minimumHomeActionMinY <= 0.5,
               Set(homeActionFontSizes).count == 1,
-              Set(homeActionFontNames).count == 1 else {
+              Set(homeActionFontNames).count == 1,
+              Set(homeActionRenderedFontSizes).count == 1,
+              Set(homeActionRenderedFontNames).count == 1,
+              homeActionRenderedFontSizes.allSatisfy({ abs($0 - 13) < 0.1 }) else {
             throw failure(
-                "Home actions must share one geometry and label treatment widths=\(homeActionWidths) heights=\(homeActionHeights) y=\(homeActionMinY) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes)"
+                "Home actions must share one geometry and label treatment widths=\(homeActionWidths) heights=\(homeActionHeights) y=\(homeActionMinY) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes) renderedFonts=\(homeActionRenderedFontNames) renderedSizes=\(homeActionRenderedFontSizes)"
             )
         }
 
@@ -260,6 +279,7 @@ enum FeatureDiagnostics {
         narrowGeneralSettingsHost.layoutSubtreeIfNeeded()
         let groupedSettingsControls: [(page: NSView, rowID: String, controlID: String)] = [
             (embeddedSettings, "kiki.settings.sound-row", "kiki.sound-style"),
+            (embeddedSettings, "kiki.settings.microphone-row", "kiki.settings.microphone"),
             (dictationSettings, "kiki.settings.shortcut-row", "kiki.dictation-shortcut"),
             (dictationSettings, "kiki.settings.behavior-row", "kiki.activation-mode"),
             (dictationSettings, "kiki.settings.speech-profile-row", "kiki.speech-profile"),
@@ -878,6 +898,7 @@ enum FeatureDiagnostics {
             throw failure("Pawprints controls")
         }
         let meetingWindow = MeetingWindowController()
+        meetingWindow.window?.contentView?.layoutSubtreeIfNeeded()
         guard let meetingContent = meetingWindow.window?.contentView,
               let identifySpeakers = findButton(in: meetingContent, title: "Identify Speakers…") as? KikiActionButton,
               let meetingExport = findView(in: meetingContent, identifier: "kiki.meeting.export") as? KikiActionButton,
@@ -886,6 +907,9 @@ enum FeatureDiagnostics {
               !identifySpeakers.isEnabled,
               !meetingExport.isEnabled,
               !meetingCopy.isEnabled,
+              abs(meetingExport.frame.width - meetingCopy.frame.width) < 0.5,
+              abs(meetingExport.frame.height - meetingCopy.frame.height) < 0.5,
+              abs(meetingExport.frame.height - 42) < 0.5,
               identifySpeakers.contentTintColor?.isEqual(
                   KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true else {
@@ -910,6 +934,9 @@ enum FeatureDiagnostics {
                 in: personalizationContent,
                 identifier: "kiki.personalization.ignore"
               ) as? KikiActionButton,
+              abs(approveSuggestion.frame.width - ignoreSuggestion.frame.width) < 0.5,
+              abs(approveSuggestion.frame.height - ignoreSuggestion.frame.height) < 0.5,
+              abs(approveSuggestion.frame.height - 42) < 0.5,
               findView(
                 in: personalizationContent,
                 identifier: "kiki.personalization.suggestions.surface"
@@ -1008,6 +1035,7 @@ enum FeatureDiagnostics {
         }
 
         let history = HistoryWindowController()
+        history.window?.contentView?.layoutSubtreeIfNeeded()
         guard let historyContent = history.window?.contentView,
               let historyCopy = findView(in: historyContent, identifier: "kiki.history.copy") as? KikiActionButton,
               let historyDelete = findView(in: historyContent, identifier: "kiki.history.delete") as? KikiActionButton,
@@ -1015,9 +1043,18 @@ enum FeatureDiagnostics {
               let historyTable = findView(in: historyContent, identifier: "kiki.history.table") as? NSTableView,
               historyTable.columnAutoresizingStyle == .lastColumnOnlyAutoresizingStyle,
               abs(historyTable.rowHeight - 34) < 0.5,
+              abs(historyCopy.frame.width - historyDelete.frame.width) < 0.5,
+              abs(historyCopy.frame.height - historyDelete.frame.height) < 0.5,
+              abs(historyCopy.frame.height - 42) < 0.5,
               !historyCopy.isEnabled,
               !historyDelete.isEnabled else {
-            throw failure("History selection-aware actions")
+            let copyFrame = (history.window?.contentView.flatMap {
+                findView(in: $0, identifier: "kiki.history.copy")
+            })?.frame ?? .zero
+            let deleteFrame = (history.window?.contentView.flatMap {
+                findView(in: $0, identifier: "kiki.history.delete")
+            })?.frame ?? .zero
+            throw failure("History selection-aware actions copy=\(copyFrame) delete=\(deleteFrame)")
         }
 
         let dictionary = CustomDictionaryWindowController()

@@ -198,6 +198,10 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         footer.orientation = .horizontal
         footer.alignment = .centerY
         footer.spacing = 8
+        [exportButton, copyButton].forEach {
+            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.widthAnchor.constraint(equalToConstant: 92).isActive = true
+        }
 
         identifySpeakersButton.isEnabled = false
         identifySpeakersButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.identify-speakers")

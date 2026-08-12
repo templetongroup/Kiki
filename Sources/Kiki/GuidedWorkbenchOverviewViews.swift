@@ -52,18 +52,16 @@ final class GuidedWorkbenchHomeView: NSView {
         let meeting = KikiActionButton("Capture Meeting", kind: .hardware, target: self, action: #selector(openMeeting))
         let voice = KikiActionButton("Open Voice Studio", kind: .hardware, target: self, action: #selector(openVoiceStudio))
         let audio = KikiActionButton("Transcribe Audio", kind: .hardware, target: self, action: #selector(openAudioFile))
-        let secondaryActions = [meeting, voice, audio]
-        secondaryActions.forEach {
+        let homeActions = [start, meeting, voice, audio]
+        homeActions.forEach {
             $0.font = .systemFont(ofSize: 13, weight: .semibold)
             $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.widthAnchor.constraint(equalToConstant: 130).isActive = true
         }
         start.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.dictation")
         meeting.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.meeting")
         voice.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.voice")
         audio.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.audio")
-        [start, meeting, voice, audio].forEach {
-            $0.widthAnchor.constraint(equalToConstant: 130).isActive = true
-        }
         let actions = NSStackView(views: [start, meeting, voice, audio])
         actions.orientation = .horizontal
         actions.alignment = .centerY

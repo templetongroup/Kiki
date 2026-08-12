@@ -37,6 +37,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onAutomaticUpdatesChange = { [weak self] enabled in
             self?.updateController.automaticallyChecksForUpdates = enabled
         }
+        controller.onMicrophoneChange = { [weak self] _ in
+            self?.checkupInputResponding = false
+            self?.refreshCheckup(restartInputMonitor: true)
+        }
         controller.onOpenPersonalization = { [weak self] in
             self?.openWorkbench(section: .personalization)
         }

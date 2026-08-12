@@ -131,6 +131,10 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         detailActions.orientation = .horizontal
         detailActions.alignment = .centerY
         detailActions.spacing = 8
+        [copyButton, deleteButton].forEach {
+            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.widthAnchor.constraint(equalToConstant: 80).isActive = true
+        }
         let detailHeader = NSStackView(views: [detailEyebrow, detailActions])
         detailHeader.orientation = .horizontal
         detailHeader.alignment = .centerY
