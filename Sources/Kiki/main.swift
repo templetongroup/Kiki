@@ -31,7 +31,7 @@ if args.count >= 2, args[1] == "--preview-file-transcription" {
         AppearanceController.apply()
         let controller = FileTranscriptionWindowController()
         controller.showPreview(
-            transcription: "Tony welcomed Anna to the meeting and reviewed the launch plan.",
+            transcription: "Alex welcomed Jordan to the meeting and reviewed the launch plan.",
             sourceURL: URL(fileURLWithPath: "/tmp/Launch Interview.m4a")
         )
         app.run()
@@ -45,8 +45,8 @@ if args.count >= 2, args[1] == "--preview-meeting" {
         app.finishLaunching()
         AppearanceController.apply()
         let segments = [
-            MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "Tony", text: "Let’s review the launch plan."),
-            MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Anna", text: "I’ll send the final artwork this afternoon."),
+            MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "Alex", text: "Let’s review the launch plan."),
+            MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Jordan", text: "I’ll send the final artwork this afternoon."),
         ]
         let meeting = MeetingTranscript(
             title: "Launch Planning",

@@ -44,8 +44,9 @@ final class GuidedWorkbenchHomeView: NSView {
         addSubview(backdrop)
 
         let eyebrow = kikiLabel("TODAY · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Good morning, Tony.", size: 31, weight: .bold)
-        let intro = kikiLabel("Kiki is ready to dictate, capture a meeting, create audio, or work with a recording.", size: 14, color: KikiPalette.secondaryText)
+        let title = kikiLabel("Kiki is ready.", size: 31, weight: .bold)
+        title.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.title")
+        let intro = kikiLabel("Dictate into any app, capture a meeting, create audio, or work with a recording.", size: 14, color: KikiPalette.secondaryText)
         intro.maximumNumberOfLines = 0
         let start = KikiActionButton("Start Dictation", kind: .primary, target: self, action: #selector(startDictation))
         let meeting = KikiActionButton("Capture Meeting", kind: .hardware, target: self, action: #selector(openMeeting))

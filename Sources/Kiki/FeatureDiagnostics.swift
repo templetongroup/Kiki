@@ -134,6 +134,13 @@ enum FeatureDiagnostics {
             "kiki.workbench.home.voice",
             "kiki.workbench.home.audio",
         ]
+        guard let homeTitle = findView(
+            in: compactHomeView,
+            identifier: "kiki.workbench.home.title"
+        ) as? NSTextField,
+              homeTitle.stringValue == "Kiki is ready." else {
+            throw failure("Home title must use public, non-personalized copy")
+        }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton
         }
@@ -275,9 +282,9 @@ enum FeatureDiagnostics {
 
     static func benchmarkPostProcessing(iterations: Int = 100) -> TimeInterval {
         let store = ContextVocabularyStore(fileURL: temporaryFile("benchmark-context.json"))
-        let syntheticTerms = (0..<2_000).map { "ProjectTerm\($0)" } + ["Ricciardi", "Kubernetes"]
+        let syntheticTerms = (0..<2_000).map { "ProjectTerm\($0)" } + ["Northwind", "Kubernetes"]
         store.add(values: syntheticTerms, source: .project)
-        let sample = "Tony Ricciardl will review Kubernetez with the team tomorrow morning."
+        let sample = "Alex Northwimd will review Kubernetez with the team tomorrow morning."
         let started = ProcessInfo.processInfo.systemUptime
         for _ in 0..<iterations {
             _ = store.apply(to: sample, bundleIdentifier: nil)
@@ -406,11 +413,11 @@ enum FeatureDiagnostics {
 
     private static func checkCorrectionMemory() throws {
         let store = CorrectionMemoryStore(fileURL: temporaryFile("learning.json"))
-        store.suggest(heard: "Riccardi", replacement: "Ricciardi", bundleIdentifier: "com.apple.mail")
+        store.suggest(heard: "Northwimd", replacement: "Northwind", bundleIdentifier: "com.apple.mail")
         guard let suggestion = store.suggestions.first else { throw failure("correction suggestion") }
         store.approve(suggestion, scopeToApp: true)
-        guard store.apply(to: "Tony Riccardi", bundleIdentifier: "com.apple.mail") == "Tony Ricciardi",
-              store.apply(to: "Tony Riccardi", bundleIdentifier: "com.apple.TextEdit") == "Tony Riccardi"
+        guard store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.mail") == "Alex Northwind",
+              store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.TextEdit") == "Alex Northwimd"
         else { throw failure("correction scoping") }
     }
 
@@ -431,8 +438,8 @@ enum FeatureDiagnostics {
         Settings.useContextVocabulary = true
         defer { Settings.useContextVocabulary = previous }
         let store = ContextVocabularyStore(fileURL: temporaryFile("context.json"))
-        store.add(values: ["Ricciardi", "Kubernetes"], source: .manual)
-        guard store.apply(to: "Ricciardl uses Kubernetez", bundleIdentifier: nil) == "Ricciardi uses Kubernetes",
+        store.add(values: ["Northwind", "Kubernetes"], source: .manual)
+        guard store.apply(to: "Northwimd uses Kubernetez", bundleIdentifier: nil) == "Northwind uses Kubernetes",
               store.apply(to: "This is ordinary prose", bundleIdentifier: nil) == "This is ordinary prose"
         else { throw failure("context vocabulary") }
     }
@@ -462,8 +469,11 @@ enum FeatureDiagnostics {
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
-        let renamed = meeting.renamingSpeaker(from: "Speaker 1", to: "Tony")
-        let assigned = renamed.assigningSpeaker("Anna", to: [segments[0].id])
+        let renamed = meeting.renamingSpeaker(from: "Speaker 1", to: "Alex")
+        let assigned = renamed.assigningSpeaker(
+            "Jordan",
+            to: Set(segments.filter { $0.speaker == "You" }.map(\.id))
+        )
         let sentenceRows = MeetingTranscriptSegment.sentenceSegments(
             startTime: 0,
             endTime: 12,
@@ -494,10 +504,10 @@ enum FeatureDiagnostics {
               meeting.vtt.hasPrefix("WEBVTT"),
               meeting.actionItems.count == 2,
               !renamed.markdown.contains("Speaker 1"),
-              renamed.markdown.contains("Tony"),
-              renamed.srt.contains("Tony:"),
-              renamed.vtt.contains("<v Tony>"),
-              assigned.speakerNames == ["Anna", "Tony"],
+              renamed.markdown.contains("Alex"),
+              renamed.srt.contains("Alex:"),
+              renamed.vtt.contains("<v Alex>"),
+              assigned.speakerNames == ["Jordan", "Alex"],
               sentenceRows.count == 2,
               sentenceRows[0].endTime == sentenceRows[1].startTime,
               permissionError.requiresScreenRecordingSettings,
