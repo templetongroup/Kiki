@@ -6,6 +6,16 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.11</title>
+            <pubDate>Tue, 11 Aug 2026 22:12:03 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.11</link>
+            <sparkle:version>44</sparkle:version>
+            <sparkle:shortVersionString>0.6.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.11/Kiki-0.6.11-macOS.zip" length="53711367" type="application/octet-stream" sparkle:edSignature="O6Pi1HdfAqennKDl/B1prsW5tkY2bPi6VBN0lf234/jpGeWrzGpTDr5yGKpaz/3KVyEVRbQdDXuDH7FHztBdCA=="/>
+        </item>
+        <item>
             <title>0.6.10</title>
             <pubDate>Tue, 11 Aug 2026 16:47:47 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.10</link>
@@ -55,24 +65,6 @@
 - Adds release diagnostics that reject duplicated legacy navigation and empty single-page tab strips.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.7/Kiki-0.6.7-macOS.zip" length="53694886" type="application/octet-stream" sparkle:edSignature="3lC1tziChCq/oonf2rRpDqQRwYX3Iz9nerXYfr/QS6SoYLkdyme9jIkJIEMr0erOsI9MS0owxhOPXmVmSurxBg=="/>
-        </item>
-        <item>
-            <title>0.6.6</title>
-            <pubDate>Tue, 11 Aug 2026 13:58:03 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.6</link>
-            <sparkle:version>39</sparkle:version>
-            <sparkle:shortVersionString>0.6.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.6
-
-- Makes Kiki a dark-only Studio Hardware app across the Workbench, title and context chrome, settings, controls, popovers, and listening display.
-- Removes the Light and Follow System appearance choices from Settings.
-- Prevents layer-backed Workbench chrome from caching light palette colors before it joins the dark window hierarchy.
-- Keeps the approved Templeton Slate palette, Studio Hardware graphics, layout, and workflows unchanged.
-- Adds release diagnostics that reject a non-dark application or Workbench window.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.6/Kiki-0.6.6-macOS.zip" length="53690218" type="application/octet-stream" sparkle:edSignature="aZ4GvqFwMtIBg1tOQFgCpO4jqDsinyIJk5Wy5Vx5HLvcdPO79uvtPFjc6i6aanbfhu8QEnAd9SZ5QgaOdcypAA=="/>
         </item>
     </channel>
 </rss>
