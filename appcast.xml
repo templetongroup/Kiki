@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.18</title>
+            <pubDate>Wed, 12 Aug 2026 23:29:51 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.18</link>
+            <sparkle:version>51</sparkle:version>
+            <sparkle:shortVersionString>0.6.18</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.18
+
+- Aligns every Setup Check action in one consistent trailing column.
+- Gives peer buttons identical width and height.
+- Keeps each status visible on the same row instead of compressing it away.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.18/Kiki-0.6.18-macOS.zip" length="53756708" type="application/octet-stream" sparkle:edSignature="AxPRYeR0pUvk9yd8HMdvYZU3ru7LwjTgUYLyTXL6eHhLbQrDTE8x8tkpmAkLIBfhfooEaVpzNe0OmzWC2c4uAw=="/>
+        </item>
+        <item>
             <title>0.6.17</title>
             <pubDate>Wed, 12 Aug 2026 23:16:42 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.17</link>
@@ -70,25 +86,6 @@
 - Explains in the listening window which shortcut stops and inserts the dictation.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.14/Kiki-0.6.14-macOS.zip" length="53751147" type="application/octet-stream" sparkle:edSignature="rvZ8OpKwKfn4uof86RjtVJmtBgqfXdRETq3D7Bcmu38YP6wtgHonmF7SzlVyiBtlJg6u6wfnaB3x+lvD+fzKDA=="/>
-        </item>
-        <item>
-            <title>0.6.13</title>
-            <pubDate>Wed, 12 Aug 2026 15:46:17 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.13</link>
-            <sparkle:version>46</sparkle:version>
-            <sparkle:shortVersionString>0.6.13</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.13
-
-- Adds real model-download progress to Kiki Checkup and the compact transcription window.
-- Clearly distinguishes downloading a model from loading it for transcription.
-- Keeps Parakeet multi-file progress continuous and reports Whisper downloads from transferred bytes.
-- Makes Home and Checkup readiness reflect live microphone, accessibility, model, shortcut, and first-dictation state.
-- Improves keyboard focus, readable secondary text, destructive-action confirmation, and action-row consistency across Kiki.
-- Preserves the approved dark Studio Hardware layout while tightening responsive and accessibility behavior.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.13/Kiki-0.6.13-macOS.zip" length="53744068" type="application/octet-stream" sparkle:edSignature="j5qSjwXv6XHggfXhbYwuXyDWrappsQ2jMcTUg1rKOE4pvUYZcoBjulPye4CIEQWlxNW4MeT3QSOUXzdDtzhcAw=="/>
         </item>
     </channel>
 </rss>
