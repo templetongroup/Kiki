@@ -495,6 +495,8 @@ private final class KikiCheckupStatusRow: NSView {
     private let detailLabel = kikiLabel("Not checked", size: 11.5, color: KikiPalette.secondaryText)
     private let guidanceLabel = kikiLabel("", size: 11.5, color: KikiPalette.secondaryText)
     private var actionButton: KikiActionButton?
+    private var guidanceRow: NSStackView?
+    private var actionRow: NSStackView?
 
     init(
         title: String,
@@ -507,43 +509,62 @@ private final class KikiCheckupStatusRow: NSView {
         super.init(frame: .zero)
         indicator.wantsLayer = true
         indicator.layer?.cornerRadius = 4
+        detailLabel.maximumNumberOfLines = 1
+        detailLabel.lineBreakMode = .byTruncatingTail
+        detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         guidanceLabel.maximumNumberOfLines = 0
         guidanceLabel.lineBreakMode = .byWordWrapping
-        guidanceLabel.isHidden = true
         if let actionIdentifier {
             let baseIdentifier = actionIdentifier.replacingOccurrences(of: ".action", with: "")
+            identifier = NSUserInterfaceItemIdentifier(baseIdentifier)
             detailLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).detail")
             guidanceLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).guidance")
         }
-        let spacer = NSView()
-        let heading = NSStackView(views: [titleLabel, spacer, detailLabel])
+        let heading = NSStackView(views: [indicator, titleLabel, NSView(), detailLabel])
         heading.orientation = .horizontal
         heading.alignment = .centerY
         heading.spacing = 8
-        let copy = NSStackView(views: [heading, guidanceLabel])
-        copy.orientation = .vertical
-        copy.alignment = .leading
-        copy.spacing = 3
-        var views: [NSView] = [indicator, copy]
+        let guidanceIndent = NSView()
+        guidanceIndent.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        let guidance = NSStackView(views: [guidanceIndent, guidanceLabel])
+        guidance.orientation = .horizontal
+        guidance.alignment = .top
+        guidance.spacing = 0
+        guidance.isHidden = true
+        guidanceRow = guidance
+
+        var rows: [NSView] = [heading, guidance]
         if let actionTitle, let action {
             let button = KikiActionButton(actionTitle, kind: .hardware, target: target, action: action)
             if let actionIdentifier {
                 button.identifier = NSUserInterfaceItemIdentifier(actionIdentifier)
             }
-            button.widthAnchor.constraint(equalToConstant: 112).isActive = true
+            button.widthAnchor.constraint(equalToConstant: 128).isActive = true
             button.heightAnchor.constraint(equalToConstant: 30).isActive = true
             actionButton = button
-            views.append(button)
+            let actionIndent = NSView()
+            actionIndent.widthAnchor.constraint(equalToConstant: 16).isActive = true
+            let actionContainer = NSStackView(views: [actionIndent, button, NSView()])
+            actionContainer.orientation = .horizontal
+            actionContainer.alignment = .centerY
+            actionContainer.spacing = 0
+            actionContainer.isHidden = true
+            actionRow = actionContainer
+            rows.append(actionContainer)
         }
-        let stack = NSStackView(views: views)
-        stack.alignment = .top
-        stack.spacing = 8
+        let stack = NSStackView(views: rows)
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
+        heading.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        guidance.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        actionRow?.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         NSLayoutConstraint.activate([
             indicator.widthAnchor.constraint(equalToConstant: 8),
             indicator.heightAnchor.constraint(equalToConstant: 8),
-            copy.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
@@ -557,7 +578,8 @@ private final class KikiCheckupStatusRow: NSView {
         indicator.layer?.backgroundColor = (passed ? KikiPalette.accentText : KikiPalette.tertiaryText).cgColor
         detailLabel.stringValue = detail
         guidanceLabel.stringValue = guidance ?? ""
-        guidanceLabel.isHidden = guidance == nil
+        guidanceRow?.isHidden = guidance == nil
+        actionRow?.isHidden = !showsAction
         actionButton?.isHidden = !showsAction
         actionButton?.setAccessibilityHelp(guidance ?? "")
     }

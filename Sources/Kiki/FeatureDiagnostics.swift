@@ -979,6 +979,35 @@ enum FeatureDiagnostics {
               checkupEyebrow.textColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("Kiki Checkup controls")
         }
+        guard let shortcutStatusRow = findView(
+                  in: checkupContent,
+                  identifier: "kiki.checkup.readiness.shortcut"
+              ),
+              let shortcutDetail = findView(
+                  in: checkupContent,
+                  identifier: "kiki.checkup.readiness.shortcut.detail"
+              ) as? NSTextField else {
+            throw failure("Kiki Checkup shortcut row geometry")
+        }
+        for width in [850.0, 1_000.0, 1_240.0] {
+            checkup.window?.setContentSize(NSSize(width: width, height: 700))
+            checkupContent.layoutSubtreeIfNeeded()
+            let guidanceFrame = shortcutGuidance.convert(shortcutGuidance.bounds, to: shortcutStatusRow)
+            let detailFrame = shortcutDetail.convert(shortcutDetail.bounds, to: shortcutStatusRow)
+            let actionFrame = inlineShortcutAction.convert(inlineShortcutAction.bounds, to: shortcutStatusRow)
+            guard guidanceFrame.width >= 160,
+                  guidanceFrame.height <= 60,
+                  detailFrame.width >= 80,
+                  detailFrame.height <= 22,
+                  abs(actionFrame.width - 128) <= 1,
+                  actionFrame.minX >= -0.5,
+                  actionFrame.maxX <= shortcutStatusRow.bounds.maxX + 0.5,
+                  actionFrame.maxY <= shortcutStatusRow.bounds.maxY + 0.5 else {
+                throw failure(
+                    "Kiki Checkup shortcut row must resist compression at width \(width) guidance=\(guidanceFrame) detail=\(detailFrame) action=\(actionFrame) row=\(shortcutStatusRow.bounds)"
+                )
+            }
+        }
         var didRequestShortcutTest = false
         checkup.onTestShortcut = { didRequestShortcutTest = true }
         inlineShortcutAction.performClick(nil)
