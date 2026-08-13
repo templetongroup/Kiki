@@ -34,7 +34,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private lazy var deleteVoiceButton = KikiActionButton("Delete Voice", kind: .secondary, target: self, action: #selector(deleteVoice))
     private let recordingTimeLabel = NSTextField(labelWithString: "00:00")
     private let recordingMeter = NSProgressIndicator()
-    private let qualityLabel = NSTextField(wrappingLabelWithString: "Read the sentence exactly as written in a quiet room.")
+    private let qualityLabel = NSTextField(wrappingLabelWithString: "Read all three sentences exactly as written in a quiet room.")
 
     private let modelStatusLabel = NSTextField(wrappingLabelWithString: "")
     private lazy var modelButton = KikiActionButton("Install Voice Engine (2 GB)", kind: .secondary, target: self, action: #selector(toggleModelDownload))
@@ -301,7 +301,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             voiceNameField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             enrollmentModeDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scriptPanel.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scriptPanel.heightAnchor.constraint(equalToConstant: 76),
+            scriptPanel.heightAnchor.constraint(equalToConstant: 112),
             consentCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor),
             meterRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordingMeter.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
@@ -449,10 +449,10 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
                 ? (VoiceModelStore.isInstalled
                     ? "Ready. Type on the right, then choose Generate in My Voice."
                     : "Next: install the voice engine below. Kiki handles the downloaded files automatically.")
-                : "Choose Record Again and read the one short sentence exactly as written.")
+                : "Choose Record Again and read the three short sentences exactly as written.")
             consentCheckbox.state = .on
         } else {
-            profileStatusLabel.stringValue = "Record one short sample. It stays private on this Mac."
+            profileStatusLabel.stringValue = "Record one short, three-sentence sample. It stays private on this Mac."
             if recordingSamples == nil && recordingStartedAt == nil {
                 qualityLabel.stringValue = voiceFeedback ?? selectedEnrollmentMode.explanation
             }
@@ -560,7 +560,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             try recorder.start()
             recordingStartedAt = Date()
             recordButton.title = "Stop Recording"
-            qualityLabel.stringValue = "Recording locally… read the sentence exactly as written, then stop."
+            qualityLabel.stringValue = "Recording locally… read all three sentences exactly as written, then stop."
             recordingTimeLabel.textColor = .systemRed
             onCaptureStateChange?(true)
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in

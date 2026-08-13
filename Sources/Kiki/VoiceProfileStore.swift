@@ -15,7 +15,7 @@ enum VoiceEnrollmentMode: String, Codable, CaseIterable, Sendable {
     var explanation: String {
         switch self {
         case .quick:
-            "Read one sentence exactly as written. It takes about 5–10 seconds."
+            "Read all three sentences exactly as written. It takes about 10–15 seconds."
         case .full:
             "Legacy extended recording"
         }
@@ -30,14 +30,14 @@ enum VoiceEnrollmentMode: String, Codable, CaseIterable, Sendable {
 
     var minimumDuration: TimeInterval {
         switch self {
-        case .quick: 3
+        case .quick: 8
         case .full: 300
         }
     }
 
     var maximumDuration: TimeInterval {
         switch self {
-        case .quick: 15
+        case .quick: 18
         case .full: 1_200
         }
     }
@@ -60,7 +60,7 @@ struct KikiVoiceProfile: Codable, Sendable {
 
 enum VoiceProfileStore {
     static let quickEnrollmentScript = """
-    This is my voice, recorded for my private Kiki voice model.
+    This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement. Later, I may slow down to explain a thoughtful idea.
     """
 
     static let fullEnrollmentScript = """

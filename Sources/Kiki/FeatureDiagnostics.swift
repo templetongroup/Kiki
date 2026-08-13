@@ -462,14 +462,14 @@ enum FeatureDiagnostics {
               VoiceEnrollmentMode.quick.script == VoiceProfileStore.quickEnrollmentScript,
               VoiceEnrollmentMode.full.script == expected,
               VoiceEnrollmentMode.full.minimumDuration > VoiceEnrollmentMode.quick.maximumDuration,
-              VoiceProfileStore.quickEnrollmentScript == "This is my voice, recorded for my private Kiki voice model." else {
+              VoiceProfileStore.quickEnrollmentScript == "This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement. Later, I may slow down to explain a thoughtful idea." else {
             throw failure("full voice enrollment script")
         }
 
         let compatibleProfile = KikiVoiceProfile(
             name: "Test Voice",
             transcript: VoiceProfileStore.quickEnrollmentScript,
-            duration: 6,
+            duration: 14,
             createdAt: Date(),
             consentVersion: 1,
             enrollmentMode: .quick
@@ -947,7 +947,7 @@ enum FeatureDiagnostics {
         guard clean.canSave, !quiet.canSave, quiet.isTooQuiet else {
             throw failure("voice studio recording quality")
         }
-        guard VoiceProfileStore.enrollmentScript.count < 100,
+        guard VoiceProfileStore.enrollmentScript.count < 200,
               !VoiceProfileStore.quickEnrollmentScript.contains("I consent"),
               VoiceProfileStore.quickEnrollmentScript.contains("private Kiki voice model"),
               VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
