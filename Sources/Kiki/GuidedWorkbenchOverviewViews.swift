@@ -6,19 +6,22 @@ final class GuidedWorkbenchHomeView: NSView {
     var onOpenMeeting: (() -> Void)?
     var onOpenVoiceStudio: (() -> Void)?
     var onOpenAudioFile: (() -> Void)?
-    var onOpenPersonalization: (() -> Void)?
     var onOpenCheckup: (() -> Void)?
+    var onOpenModels: (() -> Void)?
     private weak var heroArtworkView: KikiDecorativeImageView?
     private let homeTitleLabel = kikiLabel("Finish Kiki setup.", size: 31, weight: .bold)
-    private let attentionTitleLabel = kikiLabel("Needs your attention", size: 18, weight: .semibold)
-    private let attentionDetailLabel = kikiLabel("Complete Checkup before relying on Kiki.", size: 12, color: KikiPalette.secondaryText)
-    private lazy var checkupButton = KikiActionButton("Finish Kiki Checkup", kind: .hardware, target: self, action: #selector(openCheckup))
-    private let readinessDetailLabel = kikiLabel("Complete the remaining checks for private local speech.", size: 12, color: KikiPalette.secondaryText)
+    private let nextTitleLabel = kikiLabel("Check your microphone", size: 18, weight: .semibold)
+    private let nextDetailLabel = kikiLabel("Open Checkup and confirm Kiki can hear the selected microphone.", size: 12, color: KikiPalette.secondaryText)
+    private lazy var nextActionButton = KikiActionButton("Open Checkup", kind: .primary, target: self, action: #selector(performNextAction))
+    private let readinessDetailLabel = kikiLabel("Each action opens the exact place needed to complete or review that check.", size: 12, color: KikiPalette.secondaryText)
     private let microphoneReadinessRow = GuidedWorkbenchReadinessRow(title: "Microphone", identifier: "microphone")
     private let accessibilityReadinessRow = GuidedWorkbenchReadinessRow(title: "Accessibility", identifier: "accessibility")
     private let modelReadinessRow = GuidedWorkbenchReadinessRow(title: "Local model", identifier: "model")
-    private let setupReadinessRow = GuidedWorkbenchReadinessRow(title: "Checkup", identifier: "checkup")
+    private let shortcutReadinessRow = GuidedWorkbenchReadinessRow(title: "Dictation shortcut", identifier: "shortcut")
+    private let firstDictationReadinessRow = GuidedWorkbenchReadinessRow(title: "First dictation", identifier: "first-dictation")
     private lazy var startDictationButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(startDictation))
+    private enum NextAction { case checkup, models, dictation }
+    private var nextAction: NextAction = .checkup
     private var wideHeroConstraints: [NSLayoutConstraint] = []
     private var compactHeroConstraint: NSLayoutConstraint?
     private var usesCompactHero: Bool?
@@ -26,6 +29,11 @@ final class GuidedWorkbenchHomeView: NSView {
     init() {
         super.init(frame: .zero)
         buildContent()
+        microphoneReadinessRow.onActivate = { [weak self] in self?.onOpenCheckup?() }
+        accessibilityReadinessRow.onActivate = { [weak self] in self?.onOpenCheckup?() }
+        modelReadinessRow.onActivate = { [weak self] in self?.onOpenModels?() }
+        shortcutReadinessRow.onActivate = { [weak self] in self?.onOpenCheckup?() }
+        firstDictationReadinessRow.onActivate = { [weak self] in self?.onStartDictation?() }
         update(snapshot: KikiCheckupSnapshot(
             microphoneAuthorized: false,
             inputResponding: false,
@@ -53,41 +61,68 @@ final class GuidedWorkbenchHomeView: NSView {
 
     func update(snapshot: KikiCheckupSnapshot) {
         homeTitleLabel.stringValue = snapshot.isReady ? "Kiki is ready." : "Finish Kiki setup."
-        attentionTitleLabel.stringValue = snapshot.isReady ? "Keep improving" : "Needs your attention"
-        attentionDetailLabel.stringValue = snapshot.isReady
-            ? "Review corrections or rerun Checkup at any time."
-            : "Complete Checkup before relying on Kiki."
-        checkupButton.title = snapshot.isReady ? "Review Kiki Checkup" : "Finish Kiki Checkup"
-        readinessDetailLabel.stringValue = snapshot.isReady
-            ? "Everything required for private local speech."
-            : "Complete the remaining checks for private local speech."
+
+        if !snapshot.microphoneAuthorized || !snapshot.inputResponding {
+            nextTitleLabel.stringValue = "Check your microphone"
+            nextDetailLabel.stringValue = snapshot.microphoneAuthorized
+                ? "Open Checkup and speak until the input meter responds."
+                : "Open Checkup to allow microphone access and choose an input."
+            nextActionButton.title = "Open microphone check"
+            nextAction = .checkup
+        } else if !snapshot.accessibilityAuthorized {
+            nextTitleLabel.stringValue = "Allow text insertion"
+            nextDetailLabel.stringValue = "Open Checkup, then enable Accessibility so Kiki can insert dictated text."
+            nextActionButton.title = "Open accessibility check"
+            nextAction = .checkup
+        } else if !snapshot.modelStatus.isReady {
+            nextTitleLabel.stringValue = "Prepare a local model"
+            nextDetailLabel.stringValue = "Open Models to download or load the speech model Kiki uses."
+            nextActionButton.title = "Open Models"
+            nextAction = .models
+        } else if !snapshot.shortcutVerified {
+            nextTitleLabel.stringValue = "Test your dictation shortcut"
+            nextDetailLabel.stringValue = "Open Checkup, click Test Shortcut, then press \(Settings.dictationShortcut.displayString)."
+            nextActionButton.title = "Test in Checkup"
+            nextAction = .checkup
+        } else if !snapshot.firstDictationCompleted {
+            nextTitleLabel.stringValue = "Try your first dictation"
+            nextDetailLabel.stringValue = "Use the guided practice field to speak, stop, and confirm that text appears."
+            nextActionButton.title = "Try Dictation"
+            nextAction = .dictation
+        } else {
+            nextTitleLabel.stringValue = "You're ready to dictate"
+            nextDetailLabel.stringValue = "In any text field, press \(Settings.dictationShortcut.displayString) to start. Press it again to stop and insert."
+            nextActionButton.title = "Try Dictation"
+            nextAction = .dictation
+        }
 
         microphoneReadinessRow.update(
             passed: snapshot.microphoneAuthorized && snapshot.inputResponding,
             value: !snapshot.microphoneAuthorized
                 ? "Permission needed"
-                : snapshot.inputResponding ? "Allowed · Signal detected" : "Allowed · Test input"
+                : snapshot.inputResponding ? "Ready" : "Test input",
+            actionTitle: snapshot.microphoneAuthorized && snapshot.inputResponding ? "Review" : snapshot.microphoneAuthorized ? "Test" : "Fix"
         )
         accessibilityReadinessRow.update(
             passed: snapshot.accessibilityAuthorized,
-            value: snapshot.accessibilityAuthorized ? "Allowed" : "Permission needed"
+            value: snapshot.accessibilityAuthorized ? "Ready" : "Permission needed",
+            actionTitle: snapshot.accessibilityAuthorized ? "Review" : "Fix"
         )
         modelReadinessRow.update(
             passed: snapshot.modelStatus.isReady,
-            value: snapshot.modelStatus.checkupDetail
+            value: snapshot.modelStatus.isReady ? "Ready" : snapshot.modelStatus.checkupDetail,
+            actionTitle: "Models"
         )
-        let setupComplete = snapshot.shortcutVerified && snapshot.firstDictationCompleted
-        let setupValue: String
-        if setupComplete {
-            setupValue = "Shortcut and first dictation complete"
-        } else if !snapshot.shortcutVerified && !snapshot.firstDictationCompleted {
-            setupValue = "2 steps left"
-        } else if !snapshot.shortcutVerified {
-            setupValue = "Test shortcut"
-        } else {
-            setupValue = "Complete first dictation"
-        }
-        setupReadinessRow.update(passed: setupComplete, value: setupValue)
+        shortcutReadinessRow.update(
+            passed: snapshot.shortcutVerified,
+            value: snapshot.shortcutVerified ? Settings.dictationShortcut.displayString : "Not tested",
+            actionTitle: snapshot.shortcutVerified ? "Review" : "Test"
+        )
+        firstDictationReadinessRow.update(
+            passed: snapshot.firstDictationCompleted,
+            value: snapshot.firstDictationCompleted ? "Completed" : "Not completed",
+            actionTitle: snapshot.firstDictationCompleted ? "Try again" : "Try"
+        )
     }
 
     override func layout() {
@@ -102,6 +137,9 @@ final class GuidedWorkbenchHomeView: NSView {
 
         let eyebrow = kikiLabel("TODAY · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
         homeTitleLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.title")
+        nextTitleLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.next.title")
+        nextDetailLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.next.detail")
+        nextActionButton.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.next.action")
         let intro = kikiLabel("Dictate into any app, capture a meeting, create audio, or work with a recording.", size: 14, color: KikiPalette.secondaryText)
         intro.maximumNumberOfLines = 0
         let start = startDictationButton
@@ -195,8 +233,8 @@ final class GuidedWorkbenchHomeView: NSView {
             hero.widthAnchor.constraint(equalTo: stack.widthAnchor),
             hero.heightAnchor.constraint(equalToConstant: 235),
             body.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            attention.heightAnchor.constraint(equalToConstant: 260),
-            readiness.heightAnchor.constraint(equalToConstant: 260),
+            attention.heightAnchor.constraint(equalToConstant: 320),
+            readiness.heightAnchor.constraint(equalToConstant: 320),
         ])
     }
 
@@ -215,25 +253,26 @@ final class GuidedWorkbenchHomeView: NSView {
 
     private func makeAttentionCard() -> KikiCardView {
         let card = KikiCardView()
-        let personalize = KikiActionButton("Review Corrections", kind: .hardware, target: self, action: #selector(openPersonalization))
-        let stack = NSStackView(views: [attentionTitleLabel, attentionDetailLabel, separator(), personalize, checkupButton])
+        let eyebrow = kikiLabel("NEXT STEP", size: 10, weight: .bold, color: KikiPalette.accentText)
+        nextDetailLabel.maximumNumberOfLines = 0
+        let stack = NSStackView(views: [eyebrow, nextTitleLabel, nextDetailLabel, separator(), nextActionButton])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        personalize.widthAnchor.constraint(equalToConstant: 180).isActive = true
-        checkupButton.widthAnchor.constraint(equalTo: personalize.widthAnchor).isActive = true
+        nextActionButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         install(stack, in: card)
         return card
     }
 
     private func makeReadinessCard() -> KikiCardView {
         let card = KikiCardView()
-        let title = kikiLabel("System readiness", size: 18, weight: .semibold)
+        let title = kikiLabel("Setup checks", size: 18, weight: .semibold)
         let rows: [NSView] = [
             microphoneReadinessRow,
             accessibilityReadinessRow,
             modelReadinessRow,
-            setupReadinessRow,
+            shortcutReadinessRow,
+            firstDictationReadinessRow,
         ]
         let stack = NSStackView(views: [title, readinessDetailLabel, separator()] + rows)
         stack.orientation = .vertical
@@ -266,40 +305,57 @@ final class GuidedWorkbenchHomeView: NSView {
     @objc private func openMeeting() { onOpenMeeting?() }
     @objc private func openVoiceStudio() { onOpenVoiceStudio?() }
     @objc private func openAudioFile() { onOpenAudioFile?() }
-    @objc private func openPersonalization() { onOpenPersonalization?() }
     @objc private func openCheckup() { onOpenCheckup?() }
+    @objc private func performNextAction() {
+        switch nextAction {
+        case .checkup: onOpenCheckup?()
+        case .models: onOpenModels?()
+        case .dictation: onStartDictation?()
+        }
+    }
 }
 
 @MainActor
 private final class GuidedWorkbenchReadinessRow: NSStackView {
+    var onActivate: (() -> Void)?
     private let dot = NSView()
     private let valueLabel = kikiLabel("Not checked", size: 11.5, color: KikiPalette.secondaryText)
+    private lazy var actionButton = KikiActionButton("Open", kind: .hardware, target: self, action: #selector(activate))
 
     init(title: String, identifier: String) {
         super.init(frame: .zero)
         self.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.readiness.\(identifier)")
         valueLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.readiness.\(identifier).value")
+        actionButton.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.readiness.\(identifier).action")
         dot.wantsLayer = true
         dot.layer?.cornerRadius = 4
         dot.setAccessibilityElement(false)
         let titleLabel = kikiLabel(title, size: 12.5, weight: .medium)
-        addArrangedSubview(dot)
-        addArrangedSubview(titleLabel)
-        addArrangedSubview(NSView())
+        let heading = NSStackView(views: [dot, titleLabel, NSView(), actionButton])
+        heading.orientation = .horizontal
+        heading.alignment = .centerY
+        heading.spacing = 8
+        addArrangedSubview(heading)
         addArrangedSubview(valueLabel)
-        orientation = .horizontal
-        alignment = .centerY
-        spacing = 8
+        orientation = .vertical
+        alignment = .leading
+        spacing = 2
         dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
         dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
+        heading.widthAnchor.constraint(equalTo: widthAnchor).isActive = true
+        actionButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 62).isActive = true
+        actionButton.heightAnchor.constraint(equalToConstant: 28).isActive = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func update(passed: Bool, value: String) {
+    func update(passed: Bool, value: String, actionTitle: String) {
         dot.layer?.backgroundColor = (passed ? KikiPalette.accentText : KikiPalette.khaki).cgColor
         valueLabel.stringValue = value
+        actionButton.title = actionTitle
     }
+
+    @objc private func activate() { onActivate?() }
 }
 
 @MainActor

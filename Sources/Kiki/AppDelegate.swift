@@ -127,8 +127,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         view.onOpenMeeting = { [weak self] in self?.openWorkbench(section: .meetings) }
         view.onOpenVoiceStudio = { [weak self] in self?.openWorkbench(section: .voice) }
         view.onOpenAudioFile = { [weak self] in self?.openWorkbench(section: .library, subpage: 1) }
-        view.onOpenPersonalization = { [weak self] in self?.openWorkbench(section: .personalization) }
         view.onOpenCheckup = { [weak self] in self?.openCheckup() }
+        view.onOpenModels = { [weak self] in self?.openWorkbench(section: .models) }
         return view
     }()
     private lazy var workbenchDictationView: GuidedWorkbenchDictationView = {
@@ -543,7 +543,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch route.section {
         case .home:
-            return GuidedWorkbenchSurface(view: workbenchHomeView, sizing: .fill)
+            return GuidedWorkbenchSurface(
+                view: workbenchHomeView,
+                sizing: .scroll(NSSize(width: 900, height: 720))
+            )
         case .dictation:
             if route.subpage == 0 {
                 workbenchDictationView.update(

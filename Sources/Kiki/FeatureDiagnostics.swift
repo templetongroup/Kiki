@@ -160,7 +160,17 @@ enum FeatureDiagnostics {
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.readiness.accessibility.value"
               ) as? NSTextField,
-              accessibilityValue.stringValue == "Permission needed" else {
+              accessibilityValue.stringValue == "Permission needed",
+              let nextTitle = findView(
+                  in: compactHomeView,
+                  identifier: "kiki.workbench.home.next.title"
+              ) as? NSTextField,
+              nextTitle.stringValue == "Check your microphone",
+              let nextAction = findView(
+                  in: compactHomeView,
+                  identifier: "kiki.workbench.home.next.action"
+              ) as? KikiActionButton,
+              nextAction.title == "Open microphone check" else {
             throw failure("Home readiness must reflect incomplete live checks")
         }
         guard let homeDictationButton = findView(
@@ -186,10 +196,30 @@ enum FeatureDiagnostics {
             firstDictationCompleted: true
         ))
         guard homeTitle.stringValue == "Kiki is ready.",
-              microphoneValue.stringValue == "Allowed · Signal detected",
-              accessibilityValue.stringValue == "Allowed",
+              microphoneValue.stringValue == "Ready",
+              accessibilityValue.stringValue == "Ready",
+              nextTitle.stringValue == "You're ready to dictate",
+              nextAction.title == "Try Dictation",
               homeDictationButton.title == "Try Dictation" else {
             throw failure("Home readiness must update from verified checks")
+        }
+        var homeRouteChecks: [String] = []
+        compactHomeView.onOpenCheckup = { homeRouteChecks.append("checkup") }
+        compactHomeView.onOpenModels = { homeRouteChecks.append("models") }
+        compactHomeView.onStartDictation = { homeRouteChecks.append("dictation") }
+        let readinessActionChecks = [
+            ("kiki.workbench.home.readiness.shortcut.action", "checkup"),
+            ("kiki.workbench.home.readiness.model.action", "models"),
+            ("kiki.workbench.home.readiness.first-dictation.action", "dictation"),
+        ]
+        for (identifier, expectedRoute) in readinessActionChecks {
+            guard let action = findView(in: compactHomeView, identifier: identifier) as? KikiActionButton else {
+                throw failure("Home readiness action \(identifier)")
+            }
+            action.performClick(nil)
+            guard homeRouteChecks.last == expectedRoute else {
+                throw failure("Home readiness action \(identifier) must open \(expectedRoute)")
+            }
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton
