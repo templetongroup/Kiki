@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.22</title>
+            <pubDate>Thu, 13 Aug 2026 12:35:33 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.22</link>
+            <sparkle:version>55</sparkle:version>
+            <sparkle:shortVersionString>0.6.22</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.22
+
+- Fixes Voice Studio generating words from the enrollment recording instead of the text in Create Audio.
+- Replaces long voice enrollment with one short, transcript-matched sample for faster, reliable generation.
+- Clearly asks for a new short sample and blocks generation when an older recording could produce incorrect speech.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.22/Kiki-0.6.22-macOS.zip" length="53763507" type="application/octet-stream" sparkle:edSignature="73l4pqgH0q7JLe33nQ/+pagKY0QiuoqZ8O+7bj2hMu4uQejFsnRoB5d78v1W09hejuzO1Q8//pOplX88OvImCw=="/>
+        </item>
+        <item>
             <title>0.6.21</title>
             <pubDate>Thu, 13 Aug 2026 00:26:48 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.21</link>
@@ -68,23 +84,6 @@
 - Keeps each status visible on the same row instead of compressing it away.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.18/Kiki-0.6.18-macOS.zip" length="53756708" type="application/octet-stream" sparkle:edSignature="AxPRYeR0pUvk9yd8HMdvYZU3ru7LwjTgUYLyTXL6eHhLbQrDTE8x8tkpmAkLIBfhfooEaVpzNe0OmzWC2c4uAw=="/>
-        </item>
-        <item>
-            <title>0.6.17</title>
-            <pubDate>Wed, 12 Aug 2026 23:16:42 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.17</link>
-            <sparkle:version>50</sparkle:version>
-            <sparkle:shortVersionString>0.6.17</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.17
-
-- Replaces the vague “Needs your attention” and correction-review detour with one clear next setup step.
-- Splits readiness into microphone, accessibility, model, shortcut, and first-dictation checks.
-- Adds a visible action to every readiness item that opens the exact screen needed.
-- Explains how to use the dictation shortcut when setup is complete.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.17/Kiki-0.6.17-macOS.zip" length="53753678" type="application/octet-stream" sparkle:edSignature="XiuBsq8rqbE8TIEiCrAFiWmX/TzVwsFBPI6C/2rrX1QlmP+IllDOCCvXLIIW2FWycnym+MdefnR18HzIiOA/DA=="/>
         </item>
     </channel>
 </rss>
