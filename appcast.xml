@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.20</title>
+            <pubDate>Wed, 12 Aug 2026 23:59:57 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.20</link>
+            <sparkle:version>53</sparkle:version>
+            <sparkle:shortVersionString>0.6.20</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.20
+
+- Prevents unresolved Checkup rows from collapsing during window resizing.
+- Keeps status, guidance, and actions on stable dedicated lines.
+- Adds intermediate-width layout checks alongside minimum and full-size coverage.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.20/Kiki-0.6.20-macOS.zip" length="53765721" type="application/octet-stream" sparkle:edSignature="FQbI5++fJiFnIAzhMZ2jVzbNhHVQaRLBxP4s2zQn9SYNiq/AK7SxwGlGJ+K3QA2/rPyF6Hs39v2tC6J1tJMWDA=="/>
+        </item>
+        <item>
             <title>0.6.19</title>
             <pubDate>Wed, 12 Aug 2026 23:50:45 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.19</link>
@@ -69,22 +85,6 @@
 - Keeps listening, insertion, and transcription feedback in one visible place.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.16/Kiki-0.6.16-macOS.zip" length="53743139" type="application/octet-stream" sparkle:edSignature="Wf+UU9vMk9xyIO2vTd0AHntDnlB/AWWNZ4iwY+JpOnDsXU56YozWGYoKMp/A22qqnvDJeKfYuJUkP0OZi5x7BA=="/>
-        </item>
-        <item>
-            <title>0.6.15</title>
-            <pubDate>Wed, 12 Aug 2026 22:47:38 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.15</link>
-            <sparkle:version>48</sparkle:version>
-            <sparkle:shortVersionString>0.6.15</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.15
-
-- Replaces ambiguous Workbench “Start Dictation” actions with “Try Dictation.”
-- Keeps Kiki visible and opens a focused practice field for every in-window dictation test.
-- Reserves dictation into other apps for the global shortcut and explicit menu-bar command.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.15/Kiki-0.6.15-macOS.zip" length="53744505" type="application/octet-stream" sparkle:edSignature="VLm0XXDtNWIYBYBzvfFW/l5pL+2MpZ91AQJdTP08gbMG7QABpKQjXk1pJB3MD3RIEcj5Wyv/gQOrEe1GJBeSCQ=="/>
         </item>
     </channel>
 </rss>
