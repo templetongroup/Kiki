@@ -52,7 +52,6 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     func update(snapshot: KikiCheckupSnapshot) {
-        startDictationButton.title = snapshot.firstDictationCompleted ? "Start Dictation" : "Try Dictation"
         homeTitleLabel.stringValue = snapshot.isReady ? "Kiki is ready." : "Finish Kiki setup."
         attentionTitleLabel.stringValue = snapshot.isReady ? "Keep improving" : "Needs your attention"
         attentionDetailLabel.stringValue = snapshot.isReady
@@ -311,7 +310,7 @@ final class GuidedWorkbenchDictationView: NSView {
     var onPrivateSession: (() -> Void)?
 
     private let stateLabel = kikiLabel("READY", size: 10, weight: .bold, color: KikiPalette.accentText)
-    private lazy var toggleButton = KikiActionButton("Start Dictation", kind: .primary, target: self, action: #selector(toggle))
+    private lazy var toggleButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(toggle))
     private lazy var undoButton = KikiActionButton("Undo Last Dictation", kind: .hardware, target: self, action: #selector(undo))
     private lazy var retryButton = KikiActionButton("Retry Last Dictation", kind: .hardware, target: self, action: #selector(retry))
     private lazy var privateButton = KikiActionButton("Start Private Session", kind: .hardware, target: self, action: #selector(togglePrivate))
@@ -338,13 +337,13 @@ final class GuidedWorkbenchDictationView: NSView {
             toggleButton.isEnabled = false
         case .idle:
             stateLabel.stringValue = "READY"
-            toggleButton.title = "Start Dictation"
+            toggleButton.title = "Try Dictation"
         case .recording:
             stateLabel.stringValue = "LISTENING"
             toggleButton.title = "Stop, Transcribe & Insert"
         case .transcribing:
             stateLabel.stringValue = "TRANSCRIBING"
-            toggleButton.title = Settings.enableZeroWaitChaining ? "Start Another Dictation" : "Transcribing…"
+            toggleButton.title = Settings.enableZeroWaitChaining ? "Try Another Dictation" : "Transcribing…"
             toggleButton.isEnabled = Settings.enableZeroWaitChaining
         }
         if state == .idle || state == .recording { toggleButton.isEnabled = true }

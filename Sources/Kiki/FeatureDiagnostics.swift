@@ -57,7 +57,11 @@ enum FeatureDiagnostics {
               subnavigation.layer?.sublayers?.contains(where: {
                   $0.name == "kiki.segmented-control.keyboard-focus"
               }) == true,
-              findView(in: content, identifier: "kiki.workbench.quick-dictation") is KikiActionButton,
+              let quickDictation = findView(
+                  in: content,
+                  identifier: "kiki.workbench.quick-dictation"
+              ) as? KikiActionButton,
+              quickDictation.title == "Try Dictation",
               let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
               releaseLabel.stringValue.hasPrefix("RELEASE "),
               GuidedWorkbenchSection.allCases.allSatisfy({
@@ -188,30 +192,8 @@ enum FeatureDiagnostics {
         guard homeTitle.stringValue == "Kiki is ready.",
               microphoneValue.stringValue == "Allowed · Signal detected",
               accessibilityValue.stringValue == "Allowed",
-              homeDictationButton.title == "Start Dictation" else {
+              homeDictationButton.title == "Try Dictation" else {
             throw failure("Home readiness must update from verified checks")
-        }
-        let diagnosticContext = AppContextSnapshot(
-            processIdentifier: 42,
-            bundleIdentifier: "com.example.Editor",
-            applicationName: "Editor",
-            capturedAt: Date(timeIntervalSince1970: 0),
-            isSecureField: false,
-            privateSessionActive: false
-        )
-        guard WorkbenchDictationDestinationResolver.resolve(
-            firstDictationCompleted: false,
-            externalContext: diagnosticContext
-        ) == .practice,
-              WorkbenchDictationDestinationResolver.resolve(
-                  firstDictationCompleted: true,
-                  externalContext: diagnosticContext
-              ) == .external(diagnosticContext),
-              WorkbenchDictationDestinationResolver.resolve(
-                  firstDictationCompleted: true,
-                  externalContext: nil
-              ) == .practice else {
-            throw failure("Workbench dictation must route first use to practice and later use to the external app")
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton

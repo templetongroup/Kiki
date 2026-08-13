@@ -104,7 +104,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private let titleLabel = kikiLabel("Home", size: 15, weight: .semibold)
     private let readinessLabel = kikiLabel("● Ready", size: 11, weight: .semibold, color: KikiPalette.accentText)
     private let subnavigation = KikiFocusableSegmentedControl()
-    private let quickDictationButton = KikiActionButton("Start Dictation", kind: .primary, target: nil, action: nil)
+    private let quickDictationButton = KikiActionButton("Try Dictation", kind: .primary, target: nil, action: nil)
     private var navButtons: [GuidedWorkbenchSection: WorkbenchNavigationButton] = [:]
     private var currentWrapper: NSView?
     private var tabRailHeightConstraint: NSLayoutConstraint?
@@ -159,10 +159,6 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func hideForDictation() {
-        window?.orderOut(nil)
-    }
-
     func select(_ route: GuidedWorkbenchRoute) {
         self.route = route
         updateNavigation()
@@ -204,7 +200,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
                 readinessLabel.stringValue = "● Checkup incomplete"
                 readinessLabel.textColor = KikiPalette.khaki
             }
-            quickDictationButton.title = "Start Dictation"
+            quickDictationButton.title = "Try Dictation"
         case .recording:
             readinessLabel.stringValue = "● Listening"
             readinessLabel.textColor = KikiPalette.accentText
@@ -212,7 +208,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         case .transcribing:
             readinessLabel.stringValue = "● Transcribing"
             readinessLabel.textColor = KikiPalette.khaki
-            quickDictationButton.title = Settings.enableZeroWaitChaining ? "Start Another" : "Transcribing…"
+            quickDictationButton.title = Settings.enableZeroWaitChaining ? "Try Another" : "Transcribing…"
         }
         quickDictationButton.isEnabled = state != .noModel && state != .loadingModel
     }
