@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.14</title>
+            <pubDate>Wed, 12 Aug 2026 20:51:38 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.14</link>
+            <sparkle:version>47</sparkle:version>
+            <sparkle:shortVersionString>0.6.14</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.14
+
+- Makes the first Home-screen dictation a guided practice that inserts into Kiki's practice field.
+- Returns focus to the previously active app before normal Workbench dictation starts.
+- Preserves the intended destination through microphone permission and recording startup.
+- Explains in the listening window which shortcut stops and inserts the dictation.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.14/Kiki-0.6.14-macOS.zip" length="53751147" type="application/octet-stream" sparkle:edSignature="rvZ8OpKwKfn4uof86RjtVJmtBgqfXdRETq3D7Bcmu38YP6wtgHonmF7SzlVyiBtlJg6u6wfnaB3x+lvD+fzKDA=="/>
+        </item>
+        <item>
             <title>0.6.13</title>
             <pubDate>Wed, 12 Aug 2026 15:46:17 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.13</link>
@@ -53,16 +70,6 @@
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.10/Kiki-0.6.10-macOS.zip" length="53712406" type="application/octet-stream" sparkle:edSignature="N0BOsbZxBmGNyEEiMEUPQi+x7mMV1GpSIr9i4TCdGd8EaQppNRbWOl0xsXLhwd2/Lp4jn7+FfX9wF6XVacaTAg=="/>
-        </item>
-        <item>
-            <title>0.6.9</title>
-            <pubDate>Tue, 11 Aug 2026 16:22:10 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.9</link>
-            <sparkle:version>42</sparkle:version>
-            <sparkle:shortVersionString>0.6.9</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.9/Kiki-0.6.9-macOS.zip" length="53706549" type="application/octet-stream" sparkle:edSignature="caHIF4gyubwpb3PTh13IfMU8860U2fHv7l0IzlUickhj5qmx3xa+pMmcOHTtEJa1nEYvCGunvlnMmMd24KDUAA=="/>
         </item>
     </channel>
 </rss>
