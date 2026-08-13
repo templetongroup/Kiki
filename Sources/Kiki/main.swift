@@ -11,6 +11,35 @@ MainActor.assumeIsolated {
     _ = NSApplication.shared
     ApplicationMenu.install()
 }
+if args.count >= 2, args[1] == "--preview-ready-home" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let home = GuidedWorkbenchHomeView()
+        home.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .ready(model: .parakeetEnglish),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        let controller = GuidedWorkbenchWindowController()
+        controller.onRouteChange = { route in
+            route.section == .home
+                ? GuidedWorkbenchSurface(view: home, sizing: .fill)
+                : nil
+        }
+        controller.select(GuidedWorkbenchRoute(section: .home))
+        controller.window?.setContentSize(NSSize(width: 1_240, height: 840))
+        controller.window?.makeKeyAndOrderFront(nil)
+        app.activate(ignoringOtherApps: true)
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--preview-voice-studio" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared

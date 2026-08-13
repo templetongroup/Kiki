@@ -25,7 +25,7 @@ enum GuidedWorkbenchSection: String, CaseIterable {
 
     var subtitle: String {
         switch self {
-        case .home: "Status and next actions"
+        case .home: "Status and setup"
         case .dictation: "Speak into any app"
         case .meetings: "Capture and review"
         case .voice: "Record and create audio"

@@ -136,13 +136,12 @@ enum FeatureDiagnostics {
         guard let compactHomeContent = compactHomeController.window?.contentView,
               compactHomeContent.bounds.width <= 900.5,
               compactHomeView.bounds.width <= 665,
-              let compactHomeBody = findView(
+              findView(
                   in: compactHomeView,
-                  identifier: "kiki.workbench.home.body"
-              ) as? NSStackView,
-              compactHomeBody.orientation == .vertical else {
+                  identifier: "kiki.workbench.home.readiness-card"
+              ) != nil else {
             throw failure(
-                "Home content must stack its cards in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
+                "Home content must fit its single setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
             )
         }
         let homeActionIDs = [
@@ -166,16 +165,11 @@ enum FeatureDiagnostics {
                   identifier: "kiki.workbench.home.readiness.accessibility.value"
               ) as? NSTextField,
               accessibilityValue.stringValue == "Permission needed",
-              let nextTitle = findView(
+              let shortcutHelp = findView(
                   in: compactHomeView,
-                  identifier: "kiki.workbench.home.next.title"
+                  identifier: "kiki.workbench.home.shortcut-help"
               ) as? NSTextField,
-              nextTitle.stringValue == "Check your microphone",
-              let nextAction = findView(
-                  in: compactHomeView,
-                  identifier: "kiki.workbench.home.next.action"
-              ) as? KikiActionButton,
-              nextAction.title == "Open microphone check" else {
+              shortcutHelp.stringValue.contains(Settings.dictationShortcut.displayString) else {
             throw failure("Home readiness must reflect incomplete live checks")
         }
         guard let homeDictationButton = findView(
@@ -192,22 +186,6 @@ enum FeatureDiagnostics {
               !homeArtwork.isAccessibilityElement() else {
             throw failure("Home hero artwork must be decorative")
         }
-        compactHomeView.update(snapshot: KikiCheckupSnapshot(
-            microphoneAuthorized: true,
-            inputResponding: true,
-            accessibilityAuthorized: true,
-            modelStatus: .ready(model: .parakeetEnglish),
-            shortcutVerified: true,
-            firstDictationCompleted: true
-        ))
-        guard homeTitle.stringValue == "Kiki is ready.",
-              microphoneValue.stringValue == "Ready",
-              accessibilityValue.stringValue == "Ready",
-              nextTitle.stringValue == "You're ready to dictate",
-              nextAction.title == "Try Dictation",
-              homeDictationButton.title == "Try Dictation" else {
-            throw failure("Home readiness must update from verified checks")
-        }
         var homeRouteChecks: [String] = []
         compactHomeView.onOpenCheckup = { homeRouteChecks.append("checkup") }
         compactHomeView.onOpenModels = { homeRouteChecks.append("models") }
@@ -215,7 +193,6 @@ enum FeatureDiagnostics {
         let readinessActionChecks = [
             ("kiki.workbench.home.readiness.shortcut.action", "checkup"),
             ("kiki.workbench.home.readiness.model.action", "models"),
-            ("kiki.workbench.home.readiness.first-dictation.action", "dictation"),
         ]
         for (identifier, expectedRoute) in readinessActionChecks {
             guard let action = findView(in: compactHomeView, identifier: identifier) as? KikiActionButton else {
@@ -231,7 +208,6 @@ enum FeatureDiagnostics {
             "kiki.workbench.home.readiness.accessibility.action",
             "kiki.workbench.home.readiness.model.action",
             "kiki.workbench.home.readiness.shortcut.action",
-            "kiki.workbench.home.readiness.first-dictation.action",
         ]
         compactHomeView.layoutSubtreeIfNeeded()
         let readinessActions = readinessActionIDs.compactMap {
@@ -247,6 +223,46 @@ enum FeatureDiagnostics {
               actionWidths.allSatisfy({ abs($0 - 104) <= 1 }),
               actionHeights.allSatisfy({ abs($0 - 30) <= 1 }) else {
             throw failure("Home readiness actions must share one aligned column x=\(actionMinX) widths=\(actionWidths) heights=\(actionHeights)")
+        }
+        guard let firstDictationAction = findView(
+            in: compactHomeView,
+            identifier: "kiki.workbench.home.readiness.first-dictation.action"
+        ) as? KikiActionButton,
+              firstDictationAction.isHidden else {
+            throw failure("First dictation must use the single hero action")
+        }
+        homeDictationButton.performClick(nil)
+        guard homeRouteChecks.last == "dictation" else {
+            throw failure("Home Try Dictation must open guided dictation")
+        }
+        compactHomeView.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true,
+            inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .ready(model: .parakeetEnglish),
+            shortcutVerified: true,
+            firstDictationCompleted: true
+        ))
+        let readinessActionsWhenReady = [
+            "kiki.workbench.home.readiness.microphone.action",
+            "kiki.workbench.home.readiness.accessibility.action",
+            "kiki.workbench.home.readiness.model.action",
+            "kiki.workbench.home.readiness.shortcut.action",
+            "kiki.workbench.home.readiness.first-dictation.action",
+        ].compactMap { findView(in: compactHomeView, identifier: $0) as? KikiActionButton }
+        let visibleTryDictationButtons = descendants(of: compactHomeView)
+            .compactMap { $0 as? NSButton }
+            .filter { !$0.isHidden && $0.title == "Try Dictation" }
+        guard homeTitle.stringValue == "Kiki is ready.",
+              microphoneValue.stringValue == "Ready",
+              accessibilityValue.stringValue == "Ready",
+              shortcutHelp.stringValue.contains(Settings.dictationShortcut.displayString),
+              homeDictationButton.title == "Try Dictation",
+              readinessActionsWhenReady.count == 5,
+              readinessActionsWhenReady.allSatisfy(\.isHidden),
+              visibleTryDictationButtons.count == 1,
+              visibleTryDictationButtons.first === homeDictationButton else {
+            throw failure("Ready Home must have one dictation action and status-only setup checks")
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton
