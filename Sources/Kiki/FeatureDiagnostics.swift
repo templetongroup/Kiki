@@ -135,9 +135,14 @@ enum FeatureDiagnostics {
         compactHomeController.window?.contentView?.layoutSubtreeIfNeeded()
         guard let compactHomeContent = compactHomeController.window?.contentView,
               compactHomeContent.bounds.width <= 900.5,
-              compactHomeView.bounds.width <= 665 else {
+              compactHomeView.bounds.width <= 665,
+              let compactHomeBody = findView(
+                  in: compactHomeView,
+                  identifier: "kiki.workbench.home.body"
+              ) as? NSStackView,
+              compactHomeBody.orientation == .vertical else {
             throw failure(
-                "Home content must preserve a 900-point resized window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
+                "Home content must stack its cards in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
             )
         }
         let homeActionIDs = [
@@ -220,6 +225,28 @@ enum FeatureDiagnostics {
             guard homeRouteChecks.last == expectedRoute else {
                 throw failure("Home readiness action \(identifier) must open \(expectedRoute)")
             }
+        }
+        let readinessActionIDs = [
+            "kiki.workbench.home.readiness.microphone.action",
+            "kiki.workbench.home.readiness.accessibility.action",
+            "kiki.workbench.home.readiness.model.action",
+            "kiki.workbench.home.readiness.shortcut.action",
+            "kiki.workbench.home.readiness.first-dictation.action",
+        ]
+        compactHomeView.layoutSubtreeIfNeeded()
+        let readinessActions = readinessActionIDs.compactMap {
+            findView(in: compactHomeView, identifier: $0) as? KikiActionButton
+        }
+        let actionMinX = readinessActions.map(\.frame.minX)
+        let actionWidths = readinessActions.map(\.frame.width)
+        let actionHeights = readinessActions.map(\.frame.height)
+        guard readinessActions.count == readinessActionIDs.count,
+              let minimumActionX = actionMinX.min(),
+              let maximumActionX = actionMinX.max(),
+              maximumActionX - minimumActionX <= 1,
+              actionWidths.allSatisfy({ abs($0 - 104) <= 1 }),
+              actionHeights.allSatisfy({ abs($0 - 30) <= 1 }) else {
+            throw failure("Home readiness actions must share one aligned column x=\(actionMinX) widths=\(actionWidths) heights=\(actionHeights)")
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton

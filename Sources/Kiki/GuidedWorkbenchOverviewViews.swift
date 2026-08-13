@@ -9,6 +9,7 @@ final class GuidedWorkbenchHomeView: NSView {
     var onOpenCheckup: (() -> Void)?
     var onOpenModels: (() -> Void)?
     private weak var heroArtworkView: KikiDecorativeImageView?
+    private weak var bodyStackView: NSStackView?
     private let homeTitleLabel = kikiLabel("Finish Kiki setup.", size: 31, weight: .bold)
     private let nextTitleLabel = kikiLabel("Check your microphone", size: 18, weight: .semibold)
     private let nextDetailLabel = kikiLabel("Open Checkup and confirm Kiki can hear the selected microphone.", size: 12, color: KikiPalette.secondaryText)
@@ -25,6 +26,8 @@ final class GuidedWorkbenchHomeView: NSView {
     private var wideHeroConstraints: [NSLayoutConstraint] = []
     private var compactHeroConstraint: NSLayoutConstraint?
     private var usesCompactHero: Bool?
+    private var compactBodyConstraints: [NSLayoutConstraint] = []
+    private var usesStackedBody: Bool?
 
     init() {
         super.init(frame: .zero)
@@ -204,11 +207,17 @@ final class GuidedWorkbenchHomeView: NSView {
         let attention = makeAttentionCard()
         let readiness = makeReadinessCard()
         let body = NSStackView(views: [attention, readiness])
+        body.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.body")
         body.orientation = .horizontal
         body.alignment = .top
         body.distribution = .fillEqually
         body.spacing = 14
+        bodyStackView = body
         attention.widthAnchor.constraint(equalTo: readiness.widthAnchor).isActive = true
+        compactBodyConstraints = [
+            attention.widthAnchor.constraint(equalTo: body.widthAnchor),
+            readiness.widthAnchor.constraint(equalTo: body.widthAnchor),
+        ]
 
         let stack = NSStackView(views: [hero, body])
         stack.orientation = .vertical
@@ -239,16 +248,33 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     private func updateHeroLayout(compact: Bool) {
-        guard usesCompactHero != compact else { return }
-        usesCompactHero = compact
-        if compact {
-            NSLayoutConstraint.deactivate(wideHeroConstraints)
-            compactHeroConstraint?.isActive = true
-        } else {
-            compactHeroConstraint?.isActive = false
-            NSLayoutConstraint.activate(wideHeroConstraints)
+        if usesCompactHero != compact {
+            usesCompactHero = compact
+            if compact {
+                NSLayoutConstraint.deactivate(wideHeroConstraints)
+                compactHeroConstraint?.isActive = true
+            } else {
+                compactHeroConstraint?.isActive = false
+                NSLayoutConstraint.activate(wideHeroConstraints)
+            }
+            heroArtworkView?.isHidden = compact
         }
-        heroArtworkView?.isHidden = compact
+
+        let stackedBody = bounds.width < 760
+        if usesStackedBody != stackedBody, let bodyStackView {
+            usesStackedBody = stackedBody
+            if stackedBody {
+                bodyStackView.orientation = .vertical
+                bodyStackView.alignment = .leading
+                bodyStackView.distribution = .fill
+                NSLayoutConstraint.activate(compactBodyConstraints)
+            } else {
+                NSLayoutConstraint.deactivate(compactBodyConstraints)
+                bodyStackView.orientation = .horizontal
+                bodyStackView.alignment = .top
+                bodyStackView.distribution = .fillEqually
+            }
+        }
     }
 
     private func makeAttentionCard() -> KikiCardView {
@@ -274,10 +300,13 @@ final class GuidedWorkbenchHomeView: NSView {
             shortcutReadinessRow,
             firstDictationReadinessRow,
         ]
-        let stack = NSStackView(views: [title, readinessDetailLabel, separator()] + rows)
+        let divider = separator()
+        let stack = NSStackView(views: [title, readinessDetailLabel, divider] + rows)
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 10
+        stack.spacing = 8
+        divider.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        rows.forEach { $0.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
         install(stack, in: card)
         return card
     }
@@ -331,20 +360,23 @@ private final class GuidedWorkbenchReadinessRow: NSStackView {
         dot.layer?.cornerRadius = 4
         dot.setAccessibilityElement(false)
         let titleLabel = kikiLabel(title, size: 12.5, weight: .medium)
-        let heading = NSStackView(views: [dot, titleLabel, NSView(), actionButton])
-        heading.orientation = .horizontal
-        heading.alignment = .centerY
-        heading.spacing = 8
-        addArrangedSubview(heading)
+        valueLabel.alignment = .right
+        valueLabel.lineBreakMode = .byTruncatingTail
+        valueLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        addArrangedSubview(dot)
+        addArrangedSubview(titleLabel)
+        addArrangedSubview(NSView())
         addArrangedSubview(valueLabel)
-        orientation = .vertical
-        alignment = .leading
-        spacing = 2
+        addArrangedSubview(actionButton)
+        orientation = .horizontal
+        alignment = .centerY
+        spacing = 8
         dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
         dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
-        heading.widthAnchor.constraint(equalTo: widthAnchor).isActive = true
-        actionButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 62).isActive = true
-        actionButton.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        titleLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 132).isActive = true
+        actionButton.widthAnchor.constraint(equalToConstant: 104).isActive = true
+        actionButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        heightAnchor.constraint(equalToConstant: 34).isActive = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
