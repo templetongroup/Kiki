@@ -106,6 +106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.onBeginPractice = { [weak self] in
             self?.togglePracticeDictation()
         }
+        window.onOpenModels = { [weak self] in
+            self?.openWorkbench(section: .models)
+        }
         window.onMicrophoneSelected = { [weak self] uniqueID in
             Settings.microphoneDeviceUID = uniqueID
             self?.checkupInputResponding = false

@@ -118,7 +118,7 @@ final class GuidedWorkbenchHomeView: NSView {
         )
         shortcutReadinessRow.update(
             passed: snapshot.shortcutVerified,
-            value: snapshot.shortcutVerified ? Settings.dictationShortcut.displayString : "Not tested",
+            value: snapshot.shortcutVerified ? Settings.dictationShortcut.displayString : "Needs test",
             actionTitle: snapshot.shortcutVerified ? "Review" : "Test"
         )
         firstDictationReadinessRow.update(

@@ -28,6 +28,7 @@ final class KikiCheckupWindowController: NSWindowController {
     var onRefresh: (() -> Void)?
     var onTestShortcut: (() -> Void)?
     var onBeginPractice: (() -> Void)?
+    var onOpenModels: (() -> Void)?
     var onMicrophoneSelected: ((String) -> Void)?
     var onInputDetected: (() -> Void)?
     var onWillClose: (() -> Void)?
@@ -36,13 +37,43 @@ final class KikiCheckupWindowController: NSWindowController {
     private let microphonePopup = NSPopUpButton()
     private let inputMeter = KikiCheckupInputMeter()
     private let practiceText = NSTextView()
-    private let microphoneRow = KikiCheckupStatusRow(title: "Microphone permission")
+    private lazy var microphoneRow = KikiCheckupStatusRow(
+        title: "Microphone permission",
+        actionTitle: "Open settings",
+        actionIdentifier: "kiki.checkup.readiness.microphone.action",
+        target: self,
+        action: #selector(openMicrophoneSettings)
+    )
     private let inputRow = KikiCheckupStatusRow(title: "Live input")
-    private let accessibilityRow = KikiCheckupStatusRow(title: "Accessibility permission")
-    private let modelRow = KikiCheckupStatusRow(title: "Local model")
+    private lazy var accessibilityRow = KikiCheckupStatusRow(
+        title: "Accessibility permission",
+        actionTitle: "Open settings",
+        actionIdentifier: "kiki.checkup.readiness.accessibility.action",
+        target: self,
+        action: #selector(openAccessibilitySettings)
+    )
+    private lazy var modelRow = KikiCheckupStatusRow(
+        title: "Local model",
+        actionTitle: "Open Models",
+        actionIdentifier: "kiki.checkup.readiness.model.action",
+        target: self,
+        action: #selector(openModels)
+    )
     private let modelProgress = NSProgressIndicator()
-    private let shortcutRow = KikiCheckupStatusRow(title: "Dictation shortcut")
-    private let firstDictationRow = KikiCheckupStatusRow(title: "First dictation")
+    private lazy var shortcutRow = KikiCheckupStatusRow(
+        title: "Dictation shortcut",
+        actionTitle: "Test shortcut",
+        actionIdentifier: "kiki.checkup.readiness.shortcut.action",
+        target: self,
+        action: #selector(testShortcut)
+    )
+    private lazy var firstDictationRow = KikiCheckupStatusRow(
+        title: "First dictation",
+        actionTitle: "Try dictation",
+        actionIdentifier: "kiki.checkup.readiness.first-dictation.action",
+        target: self,
+        action: #selector(beginPractice)
+    )
     private lazy var practiceButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(beginPractice))
     private let monitor = AudioRecorder()
     private var hasDetectedInput = false
@@ -132,21 +163,58 @@ final class KikiCheckupWindowController: NSWindowController {
     }
 
     func armShortcutTest(displayString: String) {
-        shortcutRow.setPassed(false, detail: "Press \(displayString) now")
+        shortcutRow.update(
+            passed: false,
+            detail: "Waiting",
+            guidance: "Press \(displayString) now. Kiki will mark this check complete.",
+            showsAction: false
+        )
     }
 
     func preparePractice() {
         stopInputMonitor()
         practiceText.string = ""
         practiceText.window?.makeFirstResponder(practiceText)
-        firstDictationRow.setPassed(false, detail: "Use your shortcut and speak")
+        firstDictationRow.update(
+            passed: false,
+            detail: "In progress",
+            guidance: "Speak, then click Stop & Insert. Your text will appear in the field.",
+            showsAction: false
+        )
     }
 
     func update(snapshot: KikiCheckupSnapshot) {
-        microphoneRow.setPassed(snapshot.microphoneAuthorized, detail: snapshot.microphoneAuthorized ? "Allowed" : "Needs permission")
-        inputRow.setPassed(snapshot.inputResponding, detail: snapshot.inputResponding ? "Signal detected" : "Speak to test")
-        accessibilityRow.setPassed(snapshot.accessibilityAuthorized, detail: snapshot.accessibilityAuthorized ? "Allowed" : "Needs permission")
-        modelRow.setPassed(snapshot.modelStatus.isReady, detail: snapshot.modelStatus.checkupDetail)
+        microphoneRow.update(
+            passed: snapshot.microphoneAuthorized,
+            detail: snapshot.microphoneAuthorized ? "Allowed" : "Action needed",
+            guidance: snapshot.microphoneAuthorized ? nil : "Allow Kiki to use your microphone in System Settings.",
+            showsAction: !snapshot.microphoneAuthorized
+        )
+        inputRow.update(
+            passed: snapshot.inputResponding,
+            detail: snapshot.inputResponding ? "Signal detected" : "Waiting for sound",
+            guidance: snapshot.inputResponding ? nil : "Speak normally. The input meter above should move.",
+            showsAction: false
+        )
+        accessibilityRow.update(
+            passed: snapshot.accessibilityAuthorized,
+            detail: snapshot.accessibilityAuthorized ? "Allowed" : "Action needed",
+            guidance: snapshot.accessibilityAuthorized ? nil : "Allow Kiki to insert dictated text into other apps.",
+            showsAction: !snapshot.accessibilityAuthorized
+        )
+        let modelNeedsAction: Bool
+        switch snapshot.modelStatus {
+        case .unavailable, .failed:
+            modelNeedsAction = true
+        case .downloading, .loading, .ready:
+            modelNeedsAction = false
+        }
+        modelRow.update(
+            passed: snapshot.modelStatus.isReady,
+            detail: snapshot.modelStatus.checkupDetail,
+            guidance: modelNeedsAction ? "Choose and download a speech model before dictating." : nil,
+            showsAction: modelNeedsAction
+        )
         if let fraction = snapshot.modelStatus.downloadFraction {
             modelProgress.doubleValue = fraction
             modelProgress.isHidden = false
@@ -154,9 +222,31 @@ final class KikiCheckupWindowController: NSWindowController {
         } else {
             modelProgress.isHidden = true
         }
-        shortcutRow.setPassed(snapshot.shortcutVerified, detail: snapshot.shortcutVerified ? "Verified" : "Not tested")
-        firstDictationRow.setPassed(snapshot.firstDictationCompleted, detail: snapshot.firstDictationCompleted ? "Completed" : "Not completed")
-        readinessLabel.stringValue = snapshot.isReady ? "Kiki is ready" : "Finish the checks below"
+        shortcutRow.update(
+            passed: snapshot.shortcutVerified,
+            detail: snapshot.shortcutVerified ? "Verified" : "Needs a quick test",
+            guidance: snapshot.shortcutVerified
+                ? nil
+                : "Click Test shortcut, then press \(Settings.dictationShortcut.displayString). Kiki will confirm it works.",
+            showsAction: !snapshot.shortcutVerified
+        )
+        firstDictationRow.update(
+            passed: snapshot.firstDictationCompleted,
+            detail: snapshot.firstDictationCompleted ? "Completed" : "Try it once",
+            guidance: snapshot.firstDictationCompleted ? nil : "Use the guided field beside these checks to confirm text appears.",
+            showsAction: !snapshot.firstDictationCompleted
+        )
+        let remaining = [
+            snapshot.microphoneAuthorized,
+            snapshot.inputResponding,
+            snapshot.accessibilityAuthorized,
+            snapshot.modelStatus.isReady,
+            snapshot.shortcutVerified,
+            snapshot.firstDictationCompleted,
+        ].filter { !$0 }.count
+        readinessLabel.stringValue = snapshot.isReady
+            ? "Kiki is ready"
+            : "\(remaining) setup check\(remaining == 1 ? "" : "s") remaining"
         readinessLabel.textColor = snapshot.isReady ? KikiPalette.accentText : KikiPalette.primaryText
     }
 
@@ -233,6 +323,9 @@ final class KikiCheckupWindowController: NSWindowController {
         statusStack.orientation = .vertical
         statusStack.alignment = .leading
         statusStack.spacing = 8
+        [microphoneRow, inputRow, accessibilityRow, modelRow, shortcutRow, firstDictationRow].forEach {
+            $0.widthAnchor.constraint(equalTo: statusStack.widthAnchor).isActive = true
+        }
         modelProgress.widthAnchor.constraint(equalTo: statusStack.widthAnchor).isActive = true
         let statusCard = card(containing: statusStack)
 
@@ -260,28 +353,17 @@ final class KikiCheckupWindowController: NSWindowController {
         practiceStack.spacing = 8
         let practiceCard = card(containing: practiceStack)
 
-        let microphoneSettings = KikiActionButton("Microphone Settings", kind: .hardware, target: self, action: #selector(openMicrophoneSettings))
-        let accessibilitySettings = KikiActionButton("Accessibility Settings", kind: .hardware, target: self, action: #selector(openAccessibilitySettings))
-        let testShortcut = KikiActionButton("Test Shortcut", kind: .hardware, target: self, action: #selector(testShortcut))
         let refresh = KikiActionButton("Refresh Checks", kind: .hardware, target: self, action: #selector(refreshChecks))
-        microphoneSettings.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.footer.microphone")
-        accessibilitySettings.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.footer.accessibility")
-        testShortcut.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.footer.shortcut")
         refresh.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.footer.refresh")
-        for button in [practiceButton, microphoneSettings, accessibilitySettings, testShortcut, refresh] {
-            button.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        }
-        let footer = NSStackView(views: [microphoneSettings, accessibilitySettings, testShortcut, refresh])
+        practiceButton.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        refresh.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        refresh.widthAnchor.constraint(equalToConstant: 140).isActive = true
+        let footer = NSStackView(views: [NSView(), refresh])
         footer.orientation = .horizontal
         footer.alignment = .centerY
-        footer.distribution = .fillEqually
-        footer.spacing = 10
 
-        let bodyColumns = NSStackView(views: [statusCard, practiceCard])
-        bodyColumns.orientation = .horizontal
-        bodyColumns.alignment = .top
-        bodyColumns.distribution = .fillEqually
-        bodyColumns.spacing = 14
+        let bodyColumns = KikiCheckupBodyStack(statusCard: statusCard, practiceCard: practiceCard)
+        bodyColumns.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.body")
         statusCard.widthAnchor.constraint(equalTo: practiceCard.widthAnchor).isActive = true
 
         let stack = NSStackView(views: [header, deviceCard, bodyColumns, footer])
@@ -331,6 +413,7 @@ final class KikiCheckupWindowController: NSWindowController {
     @objc private func refreshChecks() { onRefresh?() }
     @objc private func testShortcut() { onTestShortcut?() }
     @objc private func beginPractice() { onBeginPractice?() }
+    @objc private func openModels() { onOpenModels?() }
     @objc private func microphoneChanged() {
         guard let uniqueID = microphonePopup.selectedItem?.representedObject as? String else { return }
         onMicrophoneSelected?(uniqueID)
@@ -355,25 +438,112 @@ extension KikiCheckupWindowController: NSWindowDelegate {
 }
 
 @MainActor
+private final class KikiCheckupBodyStack: NSStackView {
+    private let statusCard: NSView
+    private let practiceCard: NSView
+    private var stackedWidthConstraints: [NSLayoutConstraint] = []
+    private var usesStackedLayout: Bool?
+
+    init(statusCard: NSView, practiceCard: NSView) {
+        self.statusCard = statusCard
+        self.practiceCard = practiceCard
+        super.init(frame: .zero)
+        addArrangedSubview(statusCard)
+        addArrangedSubview(practiceCard)
+        spacing = 14
+        stackedWidthConstraints = [
+            statusCard.widthAnchor.constraint(equalTo: widthAnchor),
+            practiceCard.widthAnchor.constraint(equalTo: widthAnchor),
+        ]
+        updateLayout(for: frame.width)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        updateLayout(for: newSize.width)
+        super.setFrameSize(newSize)
+    }
+
+    override func layout() {
+        updateLayout(for: bounds.width)
+        super.layout()
+    }
+
+    private func updateLayout(for width: CGFloat) {
+        let stacked = width < 720
+        guard usesStackedLayout != stacked else { return }
+        usesStackedLayout = stacked
+        if stacked {
+            orientation = .vertical
+            alignment = .leading
+            distribution = .fill
+            NSLayoutConstraint.activate(stackedWidthConstraints)
+        } else {
+            NSLayoutConstraint.deactivate(stackedWidthConstraints)
+            orientation = .horizontal
+            alignment = .top
+            distribution = .fillEqually
+        }
+    }
+}
+
+@MainActor
 private final class KikiCheckupStatusRow: NSView {
     private let indicator = NSView()
     private let titleLabel: NSTextField
     private let detailLabel = kikiLabel("Not checked", size: 11.5, color: KikiPalette.secondaryText)
+    private let guidanceLabel = kikiLabel("", size: 11.5, color: KikiPalette.secondaryText)
+    private var actionButton: KikiActionButton?
 
-    init(title: String) {
+    init(
+        title: String,
+        actionTitle: String? = nil,
+        actionIdentifier: String? = nil,
+        target: AnyObject? = nil,
+        action: Selector? = nil
+    ) {
         titleLabel = kikiLabel(title, size: 12.5, weight: .medium)
         super.init(frame: .zero)
         indicator.wantsLayer = true
         indicator.layer?.cornerRadius = 4
+        guidanceLabel.maximumNumberOfLines = 0
+        guidanceLabel.lineBreakMode = .byWordWrapping
+        guidanceLabel.isHidden = true
+        if let actionIdentifier {
+            let baseIdentifier = actionIdentifier.replacingOccurrences(of: ".action", with: "")
+            detailLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).detail")
+            guidanceLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).guidance")
+        }
         let spacer = NSView()
-        let stack = NSStackView(views: [indicator, titleLabel, spacer, detailLabel])
-        stack.alignment = .centerY
+        let heading = NSStackView(views: [titleLabel, spacer, detailLabel])
+        heading.orientation = .horizontal
+        heading.alignment = .centerY
+        heading.spacing = 8
+        let copy = NSStackView(views: [heading, guidanceLabel])
+        copy.orientation = .vertical
+        copy.alignment = .leading
+        copy.spacing = 3
+        var views: [NSView] = [indicator, copy]
+        if let actionTitle, let action {
+            let button = KikiActionButton(actionTitle, kind: .hardware, target: target, action: action)
+            if let actionIdentifier {
+                button.identifier = NSUserInterfaceItemIdentifier(actionIdentifier)
+            }
+            button.widthAnchor.constraint(equalToConstant: 112).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            actionButton = button
+            views.append(button)
+        }
+        let stack = NSStackView(views: views)
+        stack.alignment = .top
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
             indicator.widthAnchor.constraint(equalToConstant: 8),
             indicator.heightAnchor.constraint(equalToConstant: 8),
+            copy.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
@@ -383,9 +553,13 @@ private final class KikiCheckupStatusRow: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func setPassed(_ passed: Bool, detail: String) {
+    func update(passed: Bool, detail: String, guidance: String?, showsAction: Bool) {
         indicator.layer?.backgroundColor = (passed ? KikiPalette.accentText : KikiPalette.tertiaryText).cgColor
         detailLabel.stringValue = detail
+        guidanceLabel.stringValue = guidance ?? ""
+        guidanceLabel.isHidden = guidance == nil
+        actionButton?.isHidden = !showsAction
+        actionButton?.setAccessibilityHelp(guidance ?? "")
     }
 }
 

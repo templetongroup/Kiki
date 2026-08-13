@@ -958,7 +958,17 @@ enum FeatureDiagnostics {
         guard
               findView(in: checkupContent, identifier: "kiki.checkup.microphone") is NSPopUpButton,
               findView(in: checkupContent, identifier: "kiki.checkup.input-meter") != nil,
-              findButton(in: checkupContent, title: "Test Shortcut") != nil,
+              let inlineShortcutAction = findView(
+                  in: checkupContent,
+                  identifier: "kiki.checkup.readiness.shortcut.action"
+              ) as? KikiActionButton,
+              inlineShortcutAction.title == "Test shortcut",
+              let shortcutGuidance = findView(
+                  in: checkupContent,
+                  identifier: "kiki.checkup.readiness.shortcut.guidance"
+              ) as? NSTextField,
+              shortcutGuidance.stringValue.contains("Click Test shortcut"),
+              shortcutGuidance.stringValue.contains(Settings.dictationShortcut.displayString),
               findButton(in: checkupContent, title: "Try Dictation") != nil,
               findButton(in: checkupContent, title: "Refresh Checks") != nil,
               findView(in: checkupContent, identifier: "kiki.checkup.readiness") is NSTextField,
@@ -968,6 +978,17 @@ enum FeatureDiagnostics {
               ) as? NSTextField,
               checkupEyebrow.textColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("Kiki Checkup controls")
+        }
+        var didRequestShortcutTest = false
+        checkup.onTestShortcut = { didRequestShortcutTest = true }
+        inlineShortcutAction.performClick(nil)
+        guard didRequestShortcutTest else {
+            throw failure("Kiki Checkup shortcut recovery must be actionable from its unresolved row")
+        }
+        checkup.armShortcutTest(displayString: Settings.dictationShortcut.displayString)
+        guard shortcutGuidance.stringValue.contains("Press \(Settings.dictationShortcut.displayString) now"),
+              inlineShortcutAction.isHidden else {
+            throw failure("Kiki Checkup shortcut test must explain the next physical step")
         }
         checkup.update(snapshot: KikiCheckupSnapshot(
             microphoneAuthorized: true,
@@ -1013,31 +1034,32 @@ enum FeatureDiagnostics {
               inCardPracticeButton.isEnabled else {
             throw failure("Kiki Checkup practice control must return to Try Dictation")
         }
-        let footerButtonIDs = [
-            "kiki.checkup.footer.microphone",
-            "kiki.checkup.footer.accessibility",
-            "kiki.checkup.footer.shortcut",
-            "kiki.checkup.footer.refresh",
-        ]
-        let footerWidths = footerButtonIDs.compactMap {
-            findView(in: checkupContent, identifier: $0)?.frame.width
-        }
-        let footerHeights = footerButtonIDs.compactMap {
-            findView(in: checkupContent, identifier: $0)?.frame.height
-        }
-        guard footerWidths.count == footerButtonIDs.count,
-              footerHeights.count == footerButtonIDs.count,
-              let minimumFooterWidth = footerWidths.min(),
-              let maximumFooterWidth = footerWidths.max(),
-              let minimumFooterHeight = footerHeights.min(),
-              let maximumFooterHeight = footerHeights.max(),
-              maximumFooterWidth - minimumFooterWidth <= 1,
-              maximumFooterHeight - minimumFooterHeight <= 1,
-              abs(maximumFooterHeight - 40) <= 1,
+        guard let refreshButton = findView(
+                  in: checkupContent,
+                  identifier: "kiki.checkup.footer.refresh"
+              ) as? KikiActionButton,
+              abs(refreshButton.frame.width - 140) <= 1,
+              abs(refreshButton.frame.height - 36) <= 1,
               let practiceButton = findView(in: checkupContent, identifier: "kiki.checkup.practice"),
-              practiceButton.frame.width > maximumFooterWidth,
-              abs(practiceButton.frame.height - maximumFooterHeight) <= 1 else {
-            throw failure("Kiki Checkup symmetric action layout")
+              practiceButton.frame.width > refreshButton.frame.width,
+              abs(practiceButton.frame.height - 40) <= 1 else {
+            throw failure("Kiki Checkup action hierarchy")
+        }
+        guard let checkupBody = findView(
+            in: checkupContent,
+            identifier: "kiki.checkup.body"
+        ) as? NSStackView else {
+            throw failure("Kiki Checkup responsive body")
+        }
+        checkup.window?.setContentSize(NSSize(width: 700, height: 650))
+        checkupContent.layoutSubtreeIfNeeded()
+        guard checkupBody.orientation == .vertical else {
+            throw failure("Kiki Checkup must stack readiness and practice at narrow widths")
+        }
+        checkup.window?.setContentSize(NSSize(width: 1_000, height: 650))
+        checkupContent.layoutSubtreeIfNeeded()
+        guard checkupBody.orientation == .horizontal else {
+            throw failure("Kiki Checkup must restore two columns when space is available")
         }
         let pawprints = PawprintsWindowController()
         guard let pawprintsContent = pawprints.window?.contentView,
