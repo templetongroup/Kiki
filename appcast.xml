@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.24</title>
+            <pubDate>Thu, 13 Aug 2026 17:11:33 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.24</link>
+            <sparkle:version>57</sparkle:version>
+            <sparkle:shortVersionString>0.6.24</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.24
+
+- Keeps normal-length Voice Studio scripts in one continuous generation instead of stitching together multiple acoustic takes.
+- Prevents abrupt changes in loudness, room tone, and delivery during ordinary generated audio.
+- Makes continuous generation faster while preserving sectioning for unusually long scripts.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.24/Kiki-0.6.24-macOS.zip" length="53771693" type="application/octet-stream" sparkle:edSignature="Ze6tI81wniwzTe8tymN5zx8QG2a5LUu9FY56b5t1Bi9EPE4OffyV6RjjyjHUyAB2uR/UxKHMPTIuscmjrlRRAg=="/>
+        </item>
+        <item>
             <title>0.6.23</title>
             <pubDate>Thu, 13 Aug 2026 13:14:09 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.23</link>
@@ -68,22 +84,6 @@
 - Adds intermediate-width layout checks alongside minimum and full-size coverage.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.20/Kiki-0.6.20-macOS.zip" length="53765721" type="application/octet-stream" sparkle:edSignature="FQbI5++fJiFnIAzhMZ2jVzbNhHVQaRLBxP4s2zQn9SYNiq/AK7SxwGlGJ+K3QA2/rPyF6Hs39v2tC6J1tJMWDA=="/>
-        </item>
-        <item>
-            <title>0.6.19</title>
-            <pubDate>Wed, 12 Aug 2026 23:50:45 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.19</link>
-            <sparkle:version>52</sparkle:version>
-            <sparkle:shortVersionString>0.6.19</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.19
-
-- Turns incomplete Checkup rows into clear, actionable next steps.
-- Places shortcut testing directly beside the shortcut check and explains what to press.
-- Removes the disconnected settings-button footer and keeps only a compact refresh action.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.19/Kiki-0.6.19-macOS.zip" length="53764041" type="application/octet-stream" sparkle:edSignature="5TmxAMgSYBSALRnth8si/2lXs3/axOHGFJi1WJZ89w8lDRHYqguFwOBMRjYMGvWtKfDCTVXCIyTpgoJQak0lCQ=="/>
         </item>
     </channel>
 </rss>
