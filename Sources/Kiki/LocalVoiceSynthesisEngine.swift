@@ -16,6 +16,7 @@ struct VoiceSynthesisProgress: Sendable {
 }
 
 actor LocalVoiceSynthesisEngine {
+    private static let maximumCharactersPerGeneration = 1_200
     private var model: Qwen3TTSModel?
     private var conditioning: Qwen3TTSModel.Qwen3TTSReferenceConditioning?
     private var conditionedProfileDate: Date?
@@ -43,7 +44,7 @@ actor LocalVoiceSynthesisEngine {
 
         let loadedModel = try await loadModelIfNeeded()
         let preparedConditioning = try prepareConditioningIfNeeded(model: loadedModel, profile: profile)
-        let chunks = Self.chunk(cleaned, maximumCharacters: 360)
+        let chunks = Self.chunk(cleaned, maximumCharacters: Self.maximumCharactersPerGeneration)
         let outputURL = try VoiceProfileStore.newGeneratedURL()
         let writer = try StreamingVoiceWAVWriter(url: outputURL, sampleRate: loadedModel.sampleRate)
 
@@ -131,6 +132,10 @@ actor LocalVoiceSynthesisEngine {
         conditioning = prepared
         conditionedProfileDate = profile.createdAt
         return prepared
+    }
+
+    static func sectionCountForDiagnostics(_ text: String) -> Int {
+        chunk(text, maximumCharacters: maximumCharactersPerGeneration).count
     }
 
     private static func chunk(_ text: String, maximumCharacters: Int) -> [String] {

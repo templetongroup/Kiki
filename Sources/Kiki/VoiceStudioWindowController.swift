@@ -339,7 +339,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private func makeGenerationCard() -> NSView {
         let card = KikiCardView()
         let sectionTitle = kikiLabel("3. Create audio", size: 18, weight: .bold)
-        let sectionDetail = kikiLabel("Write, paste, or edit a script. Longer text is generated in natural sections.", size: 12, color: KikiPalette.secondaryText)
+        let sectionDetail = kikiLabel("Write, paste, or edit a script. Kiki keeps normal-length text in one continuous take.", size: 12, color: KikiPalette.secondaryText)
 
         setupStatusLabel.font = .systemFont(ofSize: 12.5, weight: .semibold)
         setupStatusLabel.maximumNumberOfLines = 2

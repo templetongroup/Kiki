@@ -486,6 +486,13 @@ enum FeatureDiagnostics {
               !incompatibleProfile.isGenerationCompatible else {
             throw failure("voice generation compatibility")
         }
+        let normalScript = String(repeating: "A natural sentence should remain in one continuous take. ", count: 16)
+        let longScript = String(repeating: "A much longer script still needs safe processing sections. ", count: 50)
+        guard normalScript.count > 800,
+              LocalVoiceSynthesisEngine.sectionCountForDiagnostics(normalScript) == 1,
+              LocalVoiceSynthesisEngine.sectionCountForDiagnostics(longScript) >= 2 else {
+            throw failure("voice generation section continuity")
+        }
 
         let controller = VoiceStudioWindowController()
         guard let contentView = controller.window?.contentView,

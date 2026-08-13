@@ -1,5 +1,8 @@
 import AppKit
 import AVFoundation
+import MLX
+import MLXAudioCore
+import MLXAudioTTS
 
 MetalResources.configure()
 
@@ -10,6 +13,66 @@ let args = CommandLine.arguments
 MainActor.assumeIsolated {
     _ = NSApplication.shared
     ApplicationMenu.install()
+}
+
+if args.count >= 5, args[1] == "--analyze-voice-consistency" {
+    let audioURL = URL(fileURLWithPath: args[2])
+    let boundaries = args[3...].compactMap(Double.init)
+    Task {
+        do {
+            let model = try await Qwen3TTSModel.fromModelDirectory(VoiceModelStore.directory)
+            let (_, audio) = try loadAudioArray(from: audioURL, sampleRate: model.sampleRate)
+            let totalFrames = audio.dim(0)
+            let frameBoundaries = [0]
+                + boundaries.map { min(totalFrames, max(0, Int($0 * Double(model.sampleRate)))) }
+                + [totalFrames]
+            var embeddings: [[Float]] = []
+            var levels: [Double] = []
+            for index in 0..<(frameBoundaries.count - 1) {
+                let section = audio[frameBoundaries[index]..<frameBoundaries[index + 1]]
+                let samples = section.asArray(Float.self)
+                let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(max(1, samples.count))
+                levels.append(20 * log10(max(1e-12, sqrt(meanSquare))))
+                let conditioning = try model.prepareReferenceConditioning(
+                    refAudio: section,
+                    refText: "Voice consistency diagnostic.",
+                    language: "English"
+                )
+                guard let embedding = conditioning.speakerEmbedding else {
+                    throw KikiError("The voice model did not produce a speaker embedding.")
+                }
+                embeddings.append(embedding.asArray(Float.self))
+            }
+            func cosine(_ lhs: [Float], _ rhs: [Float]) -> Double {
+                let dot = zip(lhs, rhs).reduce(0.0) { $0 + Double($1.0 * $1.1) }
+                let leftNorm = sqrt(lhs.reduce(0.0) { $0 + Double($1 * $1) })
+                let rightNorm = sqrt(rhs.reduce(0.0) { $0 + Double($1 * $1) })
+                return dot / max(1e-12, leftNorm * rightNorm)
+            }
+            for index in levels.indices {
+                print("section \(index + 1): \(String(format: "%.2f", levels[index])) dBFS")
+            }
+            var similarities: [Double] = []
+            for index in 0..<(embeddings.count - 1) {
+                let value = cosine(embeddings[index], embeddings[index + 1])
+                similarities.append(value)
+                print("voice \(index + 1)-\(index + 2): \(String(format: "%.4f", value))")
+            }
+            let levelSpread = (levels.max() ?? 0) - (levels.min() ?? 0)
+            let minimumSimilarity = similarities.min() ?? 1
+            print("level spread: \(String(format: "%.2f", levelSpread)) dB")
+            if levelSpread > 1 || minimumSimilarity < 0.95 {
+                fputs("FAIL: generated sections are acoustically inconsistent\n", stderr)
+                exit(1)
+            }
+            print("PASS: generated sections are acoustically consistent")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
 }
 if args.count >= 2, args[1] == "--preview-ready-home" {
     MainActor.assumeIsolated {
