@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.23</title>
+            <pubDate>Thu, 13 Aug 2026 13:14:09 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.23</link>
+            <sparkle:version>56</sparkle:version>
+            <sparkle:shortVersionString>0.6.23</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.23
+
+- Expands voice enrollment to three concise sentences covering natural, energetic, and thoughtful delivery.
+- Keeps the sample to about 10–15 seconds so generation stays fast and avoids enrollment-script leakage.
+- Updates Voice Studio guidance and recording limits for the balanced sample.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.23/Kiki-0.6.23-macOS.zip" length="53764123" type="application/octet-stream" sparkle:edSignature="Aiv8ioUEen/CEj4wj6ws87k88GxqHp8EOUDEz+L57AI+WYrU3iIKeGYJoqGE/5a0CpfsOD5Sb8UojGZLtJMgAA=="/>
+        </item>
+        <item>
             <title>0.6.22</title>
             <pubDate>Thu, 13 Aug 2026 12:35:33 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.22</link>
@@ -68,22 +84,6 @@
 - Removes the disconnected settings-button footer and keeps only a compact refresh action.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.19/Kiki-0.6.19-macOS.zip" length="53764041" type="application/octet-stream" sparkle:edSignature="5TmxAMgSYBSALRnth8si/2lXs3/axOHGFJi1WJZ89w8lDRHYqguFwOBMRjYMGvWtKfDCTVXCIyTpgoJQak0lCQ=="/>
-        </item>
-        <item>
-            <title>0.6.18</title>
-            <pubDate>Wed, 12 Aug 2026 23:29:51 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.18</link>
-            <sparkle:version>51</sparkle:version>
-            <sparkle:shortVersionString>0.6.18</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.18
-
-- Aligns every Setup Check action in one consistent trailing column.
-- Gives peer buttons identical width and height.
-- Keeps each status visible on the same row instead of compressing it away.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.18/Kiki-0.6.18-macOS.zip" length="53756708" type="application/octet-stream" sparkle:edSignature="AxPRYeR0pUvk9yd8HMdvYZU3ru7LwjTgUYLyTXL6eHhLbQrDTE8x8tkpmAkLIBfhfooEaVpzNe0OmzWC2c4uAw=="/>
         </item>
     </channel>
 </rss>
