@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.17</title>
+            <pubDate>Wed, 12 Aug 2026 23:16:42 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.17</link>
+            <sparkle:version>50</sparkle:version>
+            <sparkle:shortVersionString>0.6.17</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.17
+
+- Replaces the vague “Needs your attention” and correction-review detour with one clear next setup step.
+- Splits readiness into microphone, accessibility, model, shortcut, and first-dictation checks.
+- Adds a visible action to every readiness item that opens the exact screen needed.
+- Explains how to use the dictation shortcut when setup is complete.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.17/Kiki-0.6.17-macOS.zip" length="53753678" type="application/octet-stream" sparkle:edSignature="XiuBsq8rqbE8TIEiCrAFiWmX/TzVwsFBPI6C/2rrX1QlmP+IllDOCCvXLIIW2FWycnym+MdefnR18HzIiOA/DA=="/>
+        </item>
+        <item>
             <title>0.6.16</title>
             <pubDate>Wed, 12 Aug 2026 23:05:26 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.16</link>
@@ -72,16 +89,6 @@
 - Preserves the approved dark Studio Hardware layout while tightening responsive and accessibility behavior.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.13/Kiki-0.6.13-macOS.zip" length="53744068" type="application/octet-stream" sparkle:edSignature="j5qSjwXv6XHggfXhbYwuXyDWrappsQ2jMcTUg1rKOE4pvUYZcoBjulPye4CIEQWlxNW4MeT3QSOUXzdDtzhcAw=="/>
-        </item>
-        <item>
-            <title>0.6.12</title>
-            <pubDate>Wed, 12 Aug 2026 10:24:19 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.12</link>
-            <sparkle:version>45</sparkle:version>
-            <sparkle:shortVersionString>0.6.12</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.12/Kiki-0.6.12-macOS.zip" length="53715523" type="application/octet-stream" sparkle:edSignature="sFolTlxECUC4dMN+1c4lTBE36dKBtIkwp5nRUsf8hRjFbrLoZ8L//h/EjbTK/ucDFjknLW1jDJ9rxlCeyyV9Dw=="/>
         </item>
     </channel>
 </rss>
