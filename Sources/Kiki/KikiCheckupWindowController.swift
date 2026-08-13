@@ -43,6 +43,7 @@ final class KikiCheckupWindowController: NSWindowController {
     private let modelProgress = NSProgressIndicator()
     private let shortcutRow = KikiCheckupStatusRow(title: "Dictation shortcut")
     private let firstDictationRow = KikiCheckupStatusRow(title: "First dictation")
+    private lazy var practiceButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(beginPractice))
     private let monitor = AudioRecorder()
     private var hasDetectedInput = false
 
@@ -159,6 +160,26 @@ final class KikiCheckupWindowController: NSWindowController {
         readinessLabel.textColor = snapshot.isReady ? KikiPalette.accentText : KikiPalette.primaryText
     }
 
+    func updateDictationState(_ state: DictationState) {
+        switch state {
+        case .noModel:
+            practiceButton.title = "Model Unavailable"
+            practiceButton.isEnabled = false
+        case .loadingModel:
+            practiceButton.title = "Loading Model…"
+            practiceButton.isEnabled = false
+        case .idle:
+            practiceButton.title = "Try Dictation"
+            practiceButton.isEnabled = true
+        case .recording:
+            practiceButton.title = "Stop & Insert"
+            practiceButton.isEnabled = true
+        case .transcribing:
+            practiceButton.title = "Transcribing…"
+            practiceButton.isEnabled = false
+        }
+    }
+
     private func buildContent() {
         guard let content = window?.contentView else { return }
         let backdrop = KikiBackdropView()
@@ -230,9 +251,8 @@ final class KikiCheckupWindowController: NSWindowController {
         practiceScroll.layer?.cornerRadius = 6
         practiceScroll.heightAnchor.constraint(equalToConstant: 66).isActive = true
         let practiceTitle = kikiLabel("Guided first dictation", size: 13, weight: .semibold)
-        let practiceHelp = kikiLabel("Click below, use your Kiki shortcut, and dictate into this field. This only passes after text is inserted.", size: 12.5, color: KikiPalette.secondaryText)
+        let practiceHelp = kikiLabel("Speak into the field below. Click Try Dictation to begin, then Stop & Insert when you're done.", size: 12.5, color: KikiPalette.secondaryText)
         practiceHelp.maximumNumberOfLines = 0
-        let practiceButton = KikiActionButton("Begin Practice Dictation", kind: .hardware, target: self, action: #selector(beginPractice))
         practiceButton.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.practice")
         let practiceStack = NSStackView(views: [practiceTitle, practiceHelp, practiceScroll, practiceButton])
         practiceStack.orientation = .vertical
@@ -310,10 +330,7 @@ final class KikiCheckupWindowController: NSWindowController {
 
     @objc private func refreshChecks() { onRefresh?() }
     @objc private func testShortcut() { onTestShortcut?() }
-    @objc private func beginPractice() {
-        preparePractice()
-        onBeginPractice?()
-    }
+    @objc private func beginPractice() { onBeginPractice?() }
     @objc private func microphoneChanged() {
         guard let uniqueID = microphonePopup.selectedItem?.representedObject as? String else { return }
         onMicrophoneSelected?(uniqueID)

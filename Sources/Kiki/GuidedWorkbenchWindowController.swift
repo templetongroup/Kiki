@@ -95,7 +95,6 @@ struct GuidedWorkbenchSurface {
 @MainActor
 final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegate {
     var onRouteChange: ((GuidedWorkbenchRoute) -> GuidedWorkbenchSurface?)?
-    var onToggleDictation: (() -> Void)?
     var onCanClose: (() -> Bool)?
 
     private let contentHost = NSView()
@@ -104,7 +103,6 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private let titleLabel = kikiLabel("Home", size: 15, weight: .semibold)
     private let readinessLabel = kikiLabel("● Ready", size: 11, weight: .semibold, color: KikiPalette.accentText)
     private let subnavigation = KikiFocusableSegmentedControl()
-    private let quickDictationButton = KikiActionButton("Try Dictation", kind: .primary, target: nil, action: nil)
     private var navButtons: [GuidedWorkbenchSection: WorkbenchNavigationButton] = [:]
     private var currentWrapper: NSView?
     private var tabRailHeightConstraint: NSLayoutConstraint?
@@ -187,11 +185,9 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         case .noModel:
             readinessLabel.stringValue = "● Model unavailable"
             readinessLabel.textColor = KikiPalette.khaki
-            quickDictationButton.title = "Open Models"
         case .loadingModel:
             readinessLabel.stringValue = "● Loading model"
             readinessLabel.textColor = KikiPalette.khaki
-            quickDictationButton.title = "Loading…"
         case .idle:
             if checkupSnapshot?.isReady == true {
                 readinessLabel.stringValue = "● Ready"
@@ -200,17 +196,13 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
                 readinessLabel.stringValue = "● Checkup incomplete"
                 readinessLabel.textColor = KikiPalette.khaki
             }
-            quickDictationButton.title = "Try Dictation"
         case .recording:
             readinessLabel.stringValue = "● Listening"
             readinessLabel.textColor = KikiPalette.accentText
-            quickDictationButton.title = "Stop & Insert"
         case .transcribing:
             readinessLabel.stringValue = "● Transcribing"
             readinessLabel.textColor = KikiPalette.khaki
-            quickDictationButton.title = Settings.enableZeroWaitChaining ? "Try Another" : "Transcribing…"
         }
-        quickDictationButton.isEnabled = state != .noModel && state != .loadingModel
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -319,15 +311,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
         ])
 
-        quickDictationButton.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.quick-dictation")
-        quickDictationButton.target = self
-        quickDictationButton.action = #selector(toggleDictation)
-
-        for view in [brand, workflowLabel, scroll, quickDictationButton] { view.translatesAutoresizingMaskIntoConstraints = false }
+        for view in [brand, workflowLabel, scroll] { view.translatesAutoresizingMaskIntoConstraints = false }
         sidebar.addSubview(brand)
         sidebar.addSubview(workflowLabel)
         sidebar.addSubview(scroll)
-        sidebar.addSubview(quickDictationButton)
         NSLayoutConstraint.activate([
             portrait.widthAnchor.constraint(equalToConstant: 48),
             portrait.heightAnchor.constraint(equalToConstant: 48),
@@ -339,10 +326,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             scroll.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14),
             scroll.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14),
             scroll.topAnchor.constraint(equalTo: workflowLabel.bottomAnchor, constant: 12),
-            scroll.bottomAnchor.constraint(equalTo: quickDictationButton.topAnchor, constant: -14),
-            quickDictationButton.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 16),
-            quickDictationButton.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -16),
-            quickDictationButton.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -16),
+            scroll.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -16),
         ])
         return sidebar
     }
@@ -542,7 +526,6 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         select(GuidedWorkbenchRoute(section: route.section, subpage: subnavigation.selectedSegment))
     }
 
-    @objc private func toggleDictation() { onToggleDictation?() }
 }
 
 @MainActor

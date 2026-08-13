@@ -104,9 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window?.armShortcutTest(displayString: Settings.dictationShortcut.displayString)
         }
         window.onBeginPractice = { [weak self] in
-            guard let self else { return }
-            self.checkupPracticeArmed = true
-            self.checkupShortcutArmed = false
+            self?.togglePracticeDictation()
         }
         window.onMicrophoneSelected = { [weak self] uniqueID in
             Settings.microphoneDeviceUID = uniqueID
@@ -156,7 +154,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var workbenchWindow: GuidedWorkbenchWindowController = {
         let window = GuidedWorkbenchWindowController()
         window.onRouteChange = { [weak self] route in self?.surface(for: route) }
-        window.onToggleDictation = { [weak self] in self?.togglePracticeDictation() }
         window.onCanClose = { [weak self] in self?.canCloseWorkbench() ?? true }
         return window
     }()
@@ -376,6 +373,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         undoLastDictationMenuItem.isEnabled = state == .idle && controller.canUndoLastDictation
         retryLastDictationMenuItem.isEnabled = state == .idle && controller.canRetryLastDictation
         workbenchWindow.updateDictationState(state)
+        if isCheckupVisible { checkupWindow.updateDictationState(state) }
         workbenchDictationView.update(
             state: state,
             canUndo: state == .idle && controller.canUndoLastDictation,
@@ -729,6 +727,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             selectedID: selected?.uniqueID
         )
         checkupWindow.update(snapshot: snapshot)
+        checkupWindow.updateDictationState(controller.state)
         if restartInputMonitor, microphoneAuthorized { checkupWindow.startInputMonitor() }
     }
 

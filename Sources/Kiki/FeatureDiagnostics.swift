@@ -57,11 +57,7 @@ enum FeatureDiagnostics {
               subnavigation.layer?.sublayers?.contains(where: {
                   $0.name == "kiki.segmented-control.keyboard-focus"
               }) == true,
-              let quickDictation = findView(
-                  in: content,
-                  identifier: "kiki.workbench.quick-dictation"
-              ) as? KikiActionButton,
-              quickDictation.title == "Try Dictation",
+              findView(in: content, identifier: "kiki.workbench.quick-dictation") == nil,
               let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
               releaseLabel.stringValue.hasPrefix("RELEASE "),
               GuidedWorkbenchSection.allCases.allSatisfy({
@@ -76,7 +72,7 @@ enum FeatureDiagnostics {
         controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
         content.layoutSubtreeIfNeeded()
         let navigationControls = descendants(of: content).compactMap { $0 as? NSControl }
-            .filter { $0.identifier?.rawValue.hasPrefix("kiki.workbench.nav.") == true || $0.identifier?.rawValue == "kiki.workbench.quick-dictation" }
+            .filter { $0.identifier?.rawValue.hasPrefix("kiki.workbench.nav.") == true }
         let navigationHitFailures = navigationControls.compactMap { control -> String? in
             control.scrollToVisible(control.bounds)
             content.layoutSubtreeIfNeeded()
@@ -906,7 +902,7 @@ enum FeatureDiagnostics {
               findView(in: checkupContent, identifier: "kiki.checkup.microphone") is NSPopUpButton,
               findView(in: checkupContent, identifier: "kiki.checkup.input-meter") != nil,
               findButton(in: checkupContent, title: "Test Shortcut") != nil,
-              findButton(in: checkupContent, title: "Begin Practice Dictation") != nil,
+              findButton(in: checkupContent, title: "Try Dictation") != nil,
               findButton(in: checkupContent, title: "Refresh Checks") != nil,
               findView(in: checkupContent, identifier: "kiki.checkup.readiness") is NSTextField,
               let checkupEyebrow = findView(
@@ -943,6 +939,22 @@ enum FeatureDiagnostics {
         ))
         guard checkupModelProgress.isHidden else {
             throw failure("Kiki Checkup must hide download progress while loading")
+        }
+        guard let inCardPracticeButton = findView(
+            in: checkupContent,
+            identifier: "kiki.checkup.practice"
+        ) as? KikiActionButton else {
+            throw failure("Kiki Checkup in-card practice control")
+        }
+        checkup.updateDictationState(.recording)
+        guard inCardPracticeButton.title == "Stop & Insert",
+              inCardPracticeButton.isEnabled else {
+            throw failure("Kiki Checkup must keep Stop & Insert beside the practice field")
+        }
+        checkup.updateDictationState(.idle)
+        guard inCardPracticeButton.title == "Try Dictation",
+              inCardPracticeButton.isEnabled else {
+            throw failure("Kiki Checkup practice control must return to Try Dictation")
         }
         let footerButtonIDs = [
             "kiki.checkup.footer.microphone",
