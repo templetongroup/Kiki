@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.19</title>
+            <pubDate>Wed, 12 Aug 2026 23:50:45 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.19</link>
+            <sparkle:version>52</sparkle:version>
+            <sparkle:shortVersionString>0.6.19</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.19
+
+- Turns incomplete Checkup rows into clear, actionable next steps.
+- Places shortcut testing directly beside the shortcut check and explains what to press.
+- Removes the disconnected settings-button footer and keeps only a compact refresh action.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.19/Kiki-0.6.19-macOS.zip" length="53764041" type="application/octet-stream" sparkle:edSignature="5TmxAMgSYBSALRnth8si/2lXs3/axOHGFJi1WJZ89w8lDRHYqguFwOBMRjYMGvWtKfDCTVXCIyTpgoJQak0lCQ=="/>
+        </item>
+        <item>
             <title>0.6.18</title>
             <pubDate>Wed, 12 Aug 2026 23:29:51 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.18</link>
@@ -69,23 +85,6 @@
 - Reserves dictation into other apps for the global shortcut and explicit menu-bar command.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.15/Kiki-0.6.15-macOS.zip" length="53744505" type="application/octet-stream" sparkle:edSignature="VLm0XXDtNWIYBYBzvfFW/l5pL+2MpZ91AQJdTP08gbMG7QABpKQjXk1pJB3MD3RIEcj5Wyv/gQOrEe1GJBeSCQ=="/>
-        </item>
-        <item>
-            <title>0.6.14</title>
-            <pubDate>Wed, 12 Aug 2026 20:51:38 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.14</link>
-            <sparkle:version>47</sparkle:version>
-            <sparkle:shortVersionString>0.6.14</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.14
-
-- Makes the first Home-screen dictation a guided practice that inserts into Kiki's practice field.
-- Returns focus to the previously active app before normal Workbench dictation starts.
-- Preserves the intended destination through microphone permission and recording startup.
-- Explains in the listening window which shortcut stops and inserts the dictation.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.14/Kiki-0.6.14-macOS.zip" length="53751147" type="application/octet-stream" sparkle:edSignature="rvZ8OpKwKfn4uof86RjtVJmtBgqfXdRETq3D7Bcmu38YP6wtgHonmF7SzlVyiBtlJg6u6wfnaB3x+lvD+fzKDA=="/>
         </item>
     </channel>
 </rss>
