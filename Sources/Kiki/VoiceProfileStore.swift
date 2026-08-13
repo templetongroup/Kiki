@@ -15,9 +15,9 @@ enum VoiceEnrollmentMode: String, Codable, CaseIterable, Sendable {
     var explanation: String {
         switch self {
         case .quick:
-            "About 30–60 seconds. Faster setup that works well, but captures less of your vocal range."
+            "Read one sentence exactly as written. It takes about 5–10 seconds."
         case .full:
-            "About 7–10 minutes. Takes longer, but captures more sounds, pacing, and expression for better accuracy and naturalness."
+            "Legacy extended recording"
         }
     }
 
@@ -30,14 +30,14 @@ enum VoiceEnrollmentMode: String, Codable, CaseIterable, Sendable {
 
     var minimumDuration: TimeInterval {
         switch self {
-        case .quick: 20
+        case .quick: 3
         case .full: 300
         }
     }
 
     var maximumDuration: TimeInterval {
         switch self {
-        case .quick: 90
+        case .quick: 15
         case .full: 1_200
         }
     }
@@ -50,11 +50,17 @@ struct KikiVoiceProfile: Codable, Sendable {
     let createdAt: Date
     let consentVersion: Int
     let enrollmentMode: VoiceEnrollmentMode?
+
+    var isGenerationCompatible: Bool {
+        transcript == VoiceProfileStore.quickEnrollmentScript
+            && duration >= VoiceEnrollmentMode.quick.minimumDuration
+            && duration <= VoiceEnrollmentMode.quick.maximumDuration
+    }
 }
 
 enum VoiceProfileStore {
     static let quickEnrollmentScript = """
-    This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement; later, I may slow down to explain a thoughtful idea. Clear words, quiet pauses, and natural expression all belong here. Numbers like twenty-seven, dates like October fifth, and questions such as, “Where should we begin?” help capture the way I actually sound. Kiki will keep this recording private on my Mac and use it only to create speech that sounds like me.
+    This is my voice, recorded for my private Kiki voice model.
     """
 
     static let fullEnrollmentScript = """

@@ -462,13 +462,34 @@ enum FeatureDiagnostics {
               VoiceEnrollmentMode.quick.script == VoiceProfileStore.quickEnrollmentScript,
               VoiceEnrollmentMode.full.script == expected,
               VoiceEnrollmentMode.full.minimumDuration > VoiceEnrollmentMode.quick.maximumDuration,
-              VoiceEnrollmentMode.full.explanation.contains("better accuracy") else {
+              VoiceProfileStore.quickEnrollmentScript == "This is my voice, recorded for my private Kiki voice model." else {
             throw failure("full voice enrollment script")
+        }
+
+        let compatibleProfile = KikiVoiceProfile(
+            name: "Test Voice",
+            transcript: VoiceProfileStore.quickEnrollmentScript,
+            duration: 6,
+            createdAt: Date(),
+            consentVersion: 1,
+            enrollmentMode: .quick
+        )
+        let incompatibleProfile = KikiVoiceProfile(
+            name: "Legacy Voice",
+            transcript: VoiceProfileStore.fullEnrollmentScript,
+            duration: 360,
+            createdAt: Date(),
+            consentVersion: 1,
+            enrollmentMode: .full
+        )
+        guard compatibleProfile.isGenerationCompatible,
+              !incompatibleProfile.isGenerationCompatible else {
+            throw failure("voice generation compatibility")
         }
 
         let controller = VoiceStudioWindowController()
         guard let contentView = controller.window?.contentView,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-mode") is NSSegmentedControl,
+              findView(in: contentView, identifier: "kiki.voice.enrollment-mode") == nil,
               findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
               findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView,
               findView(in: contentView, identifier: "kiki.voice.enrollment-panel") is KikiInsetPanelView,
@@ -926,9 +947,9 @@ enum FeatureDiagnostics {
         guard clean.canSave, !quiet.canSave, quiet.isTooQuiet else {
             throw failure("voice studio recording quality")
         }
-        guard VoiceProfileStore.enrollmentScript.count > 250,
+        guard VoiceProfileStore.enrollmentScript.count < 100,
               !VoiceProfileStore.quickEnrollmentScript.contains("I consent"),
-              VoiceProfileStore.quickEnrollmentScript.contains("keep this recording private on my Mac"),
+              VoiceProfileStore.quickEnrollmentScript.contains("private Kiki voice model"),
               VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
               VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
             throw failure("voice studio enrollment and model manifest")

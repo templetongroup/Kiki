@@ -326,6 +326,29 @@ if args.count >= 2, args[1] == "--preview-model-preparation" {
     }
 }
 
+if args.count >= 3, args[1] == "--self-test-voice-generation-routing" {
+    let requestedText = args[2]
+    Task {
+        do {
+            guard let profile = VoiceProfileStore.load() else {
+                throw KikiError("No saved voice profile is available for the routing diagnostic.")
+            }
+            let engine = LocalVoiceSynthesisEngine()
+            let startedAt = Date()
+            let output = try await engine.synthesize(text: requestedText, profile: profile) { progress in
+                fputs("Progress \(progress.completedChunks)/\(progress.totalChunks)\n", stderr)
+            }
+            fputs("Elapsed: \(Date().timeIntervalSince(startedAt))s\n", stderr)
+            print(output.path)
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
+}
+
 if args.count >= 2, args[1] == "--preview-checkup-model-preparation" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
@@ -463,21 +486,17 @@ if args.count >= 3, args[1] == "--transcribe-file" {
         let selectedModel = Settings.transcriptionModel
         fputs("Loading model: \(selectedModel.displayName)\n", stderr)
         if selectedModel.isParakeet {
-            let semaphore = DispatchSemaphore(value: 0)
-            var transcription = ""
-            var loadError: Error?
             Task {
                 do {
                     let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
-                    transcription = await transcriber.transcribe(samples)
+                    print(await transcriber.transcribe(samples))
+                    exit(0)
                 } catch {
-                    loadError = error
+                    fputs("Error: \(error)\n", stderr)
+                    exit(1)
                 }
-                semaphore.signal()
             }
-            semaphore.wait()
-            if let loadError { throw loadError }
-            print(transcription)
+            RunLoop.main.run()
         } else {
             guard let modelURL = ModelStore.modelURL(for: selectedModel) else {
                 throw KikiError("Selected Whisper model is not installed.")

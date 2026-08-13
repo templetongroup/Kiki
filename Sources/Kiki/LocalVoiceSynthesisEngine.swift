@@ -25,6 +25,9 @@ actor LocalVoiceSynthesisEngine {
         profile: KikiVoiceProfile,
         progress: @MainActor @escaping (VoiceSynthesisProgress) -> Void
     ) async throws -> URL {
+        guard profile.isGenerationCompatible else {
+            throw KikiError("Record the new short voice sample before generating audio. Older recordings can repeat the enrollment script.")
+        }
         guard VoiceModelStore.isInstalled else {
             throw KikiError("Download the local voice model before generating speech.")
         }
