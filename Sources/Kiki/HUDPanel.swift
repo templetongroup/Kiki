@@ -134,6 +134,7 @@ final class HUDPanel {
     }
 
     var diagnosticModelStatusText: String { statusLabel.stringValue }
+    var diagnosticTranscriptText: String { transcriptLabel.stringValue }
     var diagnosticModelProgressValue: Double? {
         modelProgress.isHidden ? nil : modelProgress.doubleValue
     }
@@ -198,7 +199,9 @@ final class HUDPanel {
     }
 
     private func displayText(_ transcript: String?) -> String {
-        guard let transcript, !transcript.isEmpty else { return "Speak now…" }
+        guard let transcript, !transcript.isEmpty else {
+            return "Speak now · \(Settings.dictationShortcut.displayString) to stop and insert"
+        }
         let limit = 220
         guard transcript.count > limit else { return transcript }
         return "…" + transcript.suffix(limit)

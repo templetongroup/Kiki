@@ -163,6 +163,13 @@ enum FeatureDiagnostics {
               accessibilityValue.stringValue == "Permission needed" else {
             throw failure("Home readiness must reflect incomplete live checks")
         }
+        guard let homeDictationButton = findView(
+            in: compactHomeView,
+            identifier: "kiki.workbench.home.dictation"
+        ) as? KikiActionButton,
+              homeDictationButton.title == "Try Dictation" else {
+            throw failure("Incomplete setup must offer a working practice dictation")
+        }
         guard let homeArtwork = findView(
             in: compactHomeView,
             identifier: "kiki.workbench.home.hero"
@@ -180,8 +187,31 @@ enum FeatureDiagnostics {
         ))
         guard homeTitle.stringValue == "Kiki is ready.",
               microphoneValue.stringValue == "Allowed · Signal detected",
-              accessibilityValue.stringValue == "Allowed" else {
+              accessibilityValue.stringValue == "Allowed",
+              homeDictationButton.title == "Start Dictation" else {
             throw failure("Home readiness must update from verified checks")
+        }
+        let diagnosticContext = AppContextSnapshot(
+            processIdentifier: 42,
+            bundleIdentifier: "com.example.Editor",
+            applicationName: "Editor",
+            capturedAt: Date(timeIntervalSince1970: 0),
+            isSecureField: false,
+            privateSessionActive: false
+        )
+        guard WorkbenchDictationDestinationResolver.resolve(
+            firstDictationCompleted: false,
+            externalContext: diagnosticContext
+        ) == .practice,
+              WorkbenchDictationDestinationResolver.resolve(
+                  firstDictationCompleted: true,
+                  externalContext: diagnosticContext
+              ) == .external(diagnosticContext),
+              WorkbenchDictationDestinationResolver.resolve(
+                  firstDictationCompleted: true,
+                  externalContext: nil
+              ) == .practice else {
+            throw failure("Workbench dictation must route first use to practice and later use to the external app")
         }
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton

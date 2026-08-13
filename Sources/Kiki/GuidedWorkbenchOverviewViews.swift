@@ -18,6 +18,7 @@ final class GuidedWorkbenchHomeView: NSView {
     private let accessibilityReadinessRow = GuidedWorkbenchReadinessRow(title: "Accessibility", identifier: "accessibility")
     private let modelReadinessRow = GuidedWorkbenchReadinessRow(title: "Local model", identifier: "model")
     private let setupReadinessRow = GuidedWorkbenchReadinessRow(title: "Checkup", identifier: "checkup")
+    private lazy var startDictationButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(startDictation))
     private var wideHeroConstraints: [NSLayoutConstraint] = []
     private var compactHeroConstraint: NSLayoutConstraint?
     private var usesCompactHero: Bool?
@@ -51,6 +52,7 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     func update(snapshot: KikiCheckupSnapshot) {
+        startDictationButton.title = snapshot.firstDictationCompleted ? "Start Dictation" : "Try Dictation"
         homeTitleLabel.stringValue = snapshot.isReady ? "Kiki is ready." : "Finish Kiki setup."
         attentionTitleLabel.stringValue = snapshot.isReady ? "Keep improving" : "Needs your attention"
         attentionDetailLabel.stringValue = snapshot.isReady
@@ -103,7 +105,7 @@ final class GuidedWorkbenchHomeView: NSView {
         homeTitleLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.title")
         let intro = kikiLabel("Dictate into any app, capture a meeting, create audio, or work with a recording.", size: 14, color: KikiPalette.secondaryText)
         intro.maximumNumberOfLines = 0
-        let start = KikiActionButton("Start Dictation", kind: .primary, target: self, action: #selector(startDictation))
+        let start = startDictationButton
         let meeting = KikiActionButton("Capture Meeting", kind: .hardware, target: self, action: #selector(openMeeting))
         let voice = KikiActionButton("Open Voice Studio", kind: .hardware, target: self, action: #selector(openVoiceStudio))
         let audio = KikiActionButton("Transcribe Audio", kind: .hardware, target: self, action: #selector(openAudioFile))

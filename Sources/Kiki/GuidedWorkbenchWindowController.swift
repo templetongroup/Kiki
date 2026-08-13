@@ -159,6 +159,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func hideForDictation() {
+        window?.orderOut(nil)
+    }
+
     func select(_ route: GuidedWorkbenchRoute) {
         self.route = route
         updateNavigation()

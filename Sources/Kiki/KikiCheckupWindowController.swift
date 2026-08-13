@@ -137,7 +137,7 @@ final class KikiCheckupWindowController: NSWindowController {
     func preparePractice() {
         stopInputMonitor()
         practiceText.string = ""
-        window?.makeFirstResponder(practiceText)
+        practiceText.window?.makeFirstResponder(practiceText)
         firstDictationRow.setPassed(false, detail: "Use your shortcut and speak")
     }
 

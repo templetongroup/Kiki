@@ -408,7 +408,7 @@ final class DictationController {
         }
     }
 
-    func startRecording() {
+    func startRecording(context preferredContext: AppContextSnapshot? = nil) {
         guard !meetingCaptureActive else {
             showTransientMessage("Meeting Mode is recording")
             return
@@ -430,14 +430,14 @@ final class DictationController {
 
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
-            startAuthorizedRecording()
+            startAuthorizedRecording(context: preferredContext)
         case .notDetermined:
             hud.show("Allow Microphone Access…")
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
                 DispatchQueue.main.async {
                     guard let self else { return }
                     if granted {
-                        self.startAuthorizedRecording()
+                        self.startAuthorizedRecording(context: preferredContext)
                     } else {
                         self.showTransientMessage("Microphone access is required")
                     }
@@ -450,11 +450,11 @@ final class DictationController {
         }
     }
 
-    private func startAuthorizedRecording() {
+    private func startAuthorizedRecording(context preferredContext: AppContextSnapshot? = nil) {
         guard state == .idle || (state == .transcribing && Settings.enableZeroWaitChaining) else {
             return
         }
-        recordingContext = AppContextSnapshot.capture()
+        recordingContext = preferredContext ?? AppContextSnapshot.capture()
         soundPlayer.playRecordingStarted()
         if Settings.silenceSystemAudioWhileRecording {
             systemAudioSilencer.silence()

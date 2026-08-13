@@ -341,6 +341,11 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                     fputs("Error: Kiki model loading state is ambiguous.\n", stderr)
                     exit(1)
                 }
+                hud.showListening()
+                guard hud.diagnosticTranscriptText.contains("to stop and insert") else {
+                    fputs("Error: Kiki listening state does not explain how to finish dictation.\n", stderr)
+                    exit(1)
+                }
                 hud.showListening(transcript: "Live transcription window test")
                 guard hud.isVisibleOnScreen else {
                     fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)

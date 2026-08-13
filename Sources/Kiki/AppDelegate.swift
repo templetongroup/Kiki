@@ -10,6 +10,21 @@ enum DictationMenuCopy {
     static let privateRecordingStatus = "Recording privately… Click again to stop and insert"
 }
 
+enum WorkbenchDictationDestination: Equatable {
+    case practice
+    case external(AppContextSnapshot)
+}
+
+enum WorkbenchDictationDestinationResolver {
+    static func resolve(
+        firstDictationCompleted: Bool,
+        externalContext: AppContextSnapshot?
+    ) -> WorkbenchDictationDestination {
+        guard firstDictationCompleted, let externalContext else { return .practice }
+        return .external(externalContext)
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -23,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var embeddedViews: [ObjectIdentifier: NSView] = [:]
     private var pendingVoicePrefill: String?
     private var settingsWindowHasLoaded = false
+    private var workspaceActivationObserver: NSObjectProtocol?
     private lazy var settingsWindow: SettingsWindowController = {
         settingsWindowHasLoaded = true
         let controller = SettingsWindowController()
@@ -125,7 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }()
     private lazy var workbenchHomeView: GuidedWorkbenchHomeView = {
         let view = GuidedWorkbenchHomeView()
-        view.onStartDictation = { [weak self] in self?.controller.toggleRecording() }
+        view.onStartDictation = { [weak self] in self?.startDictationFromHome() }
         view.onOpenMeeting = { [weak self] in self?.openWorkbench(section: .meetings) }
         view.onOpenVoiceStudio = { [weak self] in self?.openWorkbench(section: .voice) }
         view.onOpenAudioFile = { [weak self] in self?.openWorkbench(section: .library, subpage: 1) }
@@ -135,7 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }()
     private lazy var workbenchDictationView: GuidedWorkbenchDictationView = {
         let view = GuidedWorkbenchDictationView()
-        view.onToggleDictation = { [weak self] in self?.controller.toggleRecording() }
+        view.onToggleDictation = { [weak self] in self?.toggleDictationFromWorkbench() }
         view.onUndo = { [weak self] in self?.controller.undoLastDictation() }
         view.onRetry = { [weak self] in self?.controller.retryLastDictation() }
         view.onPrivateSession = { [weak self] in self?.togglePrivateSession() }
@@ -156,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var workbenchWindow: GuidedWorkbenchWindowController = {
         let window = GuidedWorkbenchWindowController()
         window.onRouteChange = { [weak self] route in self?.surface(for: route) }
-        window.onToggleDictation = { [weak self] in self?.controller.toggleRecording() }
+        window.onToggleDictation = { [weak self] in self?.toggleDictationFromWorkbench() }
         window.onCanClose = { [weak self] in self?.canCloseWorkbench() ?? true }
         return window
     }()
@@ -184,8 +200,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }()
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        _ = captureExternalContext()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceController.apply()
+        workspaceActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { _ = self?.captureExternalContext() }
+        }
         updateController.onUpdateAvailable = { [weak self] available in
             self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }
@@ -271,6 +298,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        if let workspaceActivationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(workspaceActivationObserver)
+        }
         controller.prepareForTermination()
     }
 
@@ -412,6 +442,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleDictation() {
         controller.toggleRecording()
+    }
+
+    private func startDictationFromHome() {
+        let destination = WorkbenchDictationDestinationResolver.resolve(
+            firstDictationCompleted: Settings.checkupFirstDictationCompleted,
+            externalContext: lastExternalContext
+        )
+        switch destination {
+        case .practice:
+            startPracticeDictation()
+        case .external(let context):
+            startExternalDictation(context: context)
+        }
+    }
+
+    private func toggleDictationFromWorkbench() {
+        if controller.state == .recording {
+            controller.finishRecording()
+            return
+        }
+        guard let context = captureExternalContext() else {
+            startPracticeDictation()
+            return
+        }
+        startExternalDictation(context: context)
+    }
+
+    private func startPracticeDictation() {
+        openWorkbench(section: .settings, subpage: 4)
+        checkupPracticeArmed = true
+        checkupShortcutArmed = false
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.checkupWindow.preparePractice()
+            self.controller.startRecording(context: AppContextSnapshot.capture())
+        }
+    }
+
+    private func startExternalDictation(context: AppContextSnapshot) {
+        guard controller.state == .idle
+                || (controller.state == .transcribing && Settings.enableZeroWaitChaining),
+              let target = NSRunningApplication(processIdentifier: context.processIdentifier)
+        else {
+            controller.startRecording(context: context)
+            return
+        }
+        workbenchWindow.hideForDictation()
+        guard target.activate(options: []) else {
+            startPracticeDictation()
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self,
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == context.processIdentifier
+            else {
+                self?.startPracticeDictation()
+                return
+            }
+            self.controller.startRecording(context: context)
+        }
     }
 
     @objc private func undoLastDictation() {
