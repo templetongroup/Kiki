@@ -521,6 +521,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         func visit(_ view: NSView) {
             guard !view.isHidden, view.alphaValue > 0.01 else { return }
             if view !== root,
+               WorkbenchTabTraversal.isRouteKeyView(view),
                view.acceptsFirstResponder,
                (view as? NSControl)?.isEnabled != false {
                 result.append(view)
@@ -603,6 +604,13 @@ enum WorkbenchTabTraversal: Equatable {
         if relevant == [.shift] || relevant == [.shift, .option] { return .reverse }
         return nil
     }
+
+    static func isRouteKeyView(_ view: NSView) -> Bool {
+        // Scroll and clip views may accept first responder even though their
+        // document control is the meaningful stop. Register the actual control
+        // so reverse traversal cannot fall into an unfocusable container.
+        view is NSControl || view is NSTextView
+    }
 }
 
 @MainActor
@@ -644,7 +652,7 @@ final class WorkbenchWindow: NSWindow {
     func performRouteTraversal(_ traversal: WorkbenchTabTraversal) -> Bool {
         let available = routeKeyViews.filter(isAvailableRouteKeyView)
         guard !available.isEmpty else { return false }
-        let liveResponder = logicalFirstResponder()
+        let liveResponder = logicalFirstResponder(among: available + sidebarNavigation)
 
         switch traversal {
         case .forward:
@@ -678,6 +686,22 @@ final class WorkbenchWindow: NSWindow {
             }
 
         case .reverse:
+            let sidebarOrigin: NSView? = if let pendingSidebarOrigin {
+                pendingSidebarOrigin
+            } else if let liveResponder,
+                      sidebarNavigation.contains(where: { $0 === liveResponder }) {
+                liveResponder
+            } else {
+                nil
+            }
+            if let sidebarOrigin {
+                pendingSidebarOrigin = nil
+                if focus(available[available.count - 1]) {
+                    reverseBoundaryOrigin = sidebarOrigin
+                    return true
+                }
+            }
+
             pendingSidebarOrigin = nil
             guard let liveResponder,
                   let index = available.firstIndex(where: { $0 === liveResponder }) else {
@@ -695,14 +719,21 @@ final class WorkbenchWindow: NSWindow {
         return false
     }
 
-    private func logicalFirstResponder() -> NSView? {
-        guard let responder = firstResponder as? NSView else { return nil }
-        if let fieldEditor = responder as? NSTextView,
+    private func logicalFirstResponder(among registeredViews: [NSView]) -> NSView? {
+        guard var candidate = firstResponder as? NSView else { return nil }
+        if let fieldEditor = candidate as? NSTextView,
            fieldEditor.isFieldEditor,
            let owner = fieldEditor.delegate as? NSView {
-            return owner
+            candidate = owner
         }
-        return responder
+        var current: NSView? = candidate
+        while let view = current {
+            if registeredViews.contains(where: { $0 === view }) {
+                return view
+            }
+            current = view.superview
+        }
+        return candidate
     }
 
     private func isAvailableRouteKeyView(_ view: NSView) -> Bool {
@@ -718,7 +749,16 @@ final class WorkbenchWindow: NSWindow {
 
     private func focus(_ view: NSView) -> Bool {
         guard makeFirstResponder(view) else { return false }
-        view.scrollToVisible(view.bounds)
+        // A control can sit inside its own scroll view, which is itself inside
+        // the Workbench page scroller. Asking only the focused view to scroll
+        // stops at the inner clip view, so carry its converted bounds through
+        // every ancestor and reveal it in each enclosing scroll context.
+        contentView?.layoutSubtreeIfNeeded()
+        var ancestor = view.superview
+        while let current = ancestor {
+            current.scrollToVisible(view.convert(view.bounds, to: current))
+            ancestor = current.superview
+        }
         return true
     }
 

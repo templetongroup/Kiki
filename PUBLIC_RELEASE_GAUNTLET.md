@@ -267,7 +267,34 @@ Every critic record must state:
 
 - What changed: the Workbench now rebuilds a visual-order list of all visible, enabled controls whenever a route changes and handles forward/reverse traversal, sidebar-origin restoration, wrapping, and scroll-to-visible for the complete route. A synthetic diagnostic proves first/next/last/wrap/reverse behavior.
 - Evidence: debug and packaged Kiki 0.6.27 build 60 builds passed; feature and HUD diagnostics passed; clean diff check passed.
-- Verifier result: **Blocked, no candidate defect confirmed.** The same critic verified the implementation and packaged diagnostics, but the Mac was locked and exposed no observable Workbench window. The critic did not unlock the Mac or change TCC permissions, so physical route/size evidence remains outstanding.
+- Verifier result: **Fail.** After the Mac was unlocked and duplicate Kiki processes were removed, Home and Dictation passed the full matrix. Settings/Checkup and Personalization passed forward traversal, but both reverse variants became trapped in the practice text area and table at every size.
 - Failed approach: recorded in Round 4; this round uses a materially different full-route traversal strategy.
-- Next action: publish and update only after the Mac is unlocked and the same critic physically traverses every visible enabled control on the named routes and window sizes.
+- Next action: normalize composite child responders back to their registered route control and exclude focusable scroll/clip containers from the route sequence, then rerun the same complete matrix.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 6 — Composite responder normalization
+
+- What changed: route discovery now registers actual controls and text views rather than focusable scroll/clip containers; live child and field-editor responders normalize to the nearest registered route control before traversal continues.
+- Evidence: debug and Developer ID-signed packaged builds passed feature/HUD diagnostics and strict signing. The same critic physically verified both reverse sequences at all three sizes and with both Shift variants.
+- Verifier result: **Fail** on a new gap. Composite reverse traversal is fixed, but at the true 900×650 Settings minimum the practice text area received focus while remaining completely below the outer Checkup viewport.
+- Failed approach: Round 5's full sequence did not account for AppKit composite-control responder identity; this round changes both route discovery and live responder normalization.
+- Next action: propagate scroll-to-visible through nested scroll ancestors, then rerun minimum-size Checkup visibility and the bounded regressions.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 7 — Nested focus visibility
+
+- What changed: after focus moves, the focused control's bounds are converted and revealed through every ancestor so an inner text/table scroll view cannot prevent the outer Workbench page from scrolling it onscreen.
+- Evidence: debug and signed packaged diagnostics passed. Physical 900×650 Checkup verification proved the practice field scrolls fully onscreen and preserves both corrected reverse variants.
+- Verifier result: **Fail** on a new gap. Reverse traversal starting from Dictation or Personalization's active sidebar item escaped through earlier sidebar items instead of entering the route's last control; Home minimum also exposed an inconsistent scrollbar stop.
+- Failed approach: a single `scrollToVisible` call stopped at the focused control's nearest clip view and did not reveal it in the outer page.
+- Next action: make reverse traversal from a sidebar origin enter the route's last visible enabled control, mirror the full forward loop, and keep any visible scrollbar stop consistent in both directions.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 8 — Symmetric reverse route entry
+
+- What changed: reverse traversal from an active or pending sidebar origin now enters the route's last visible enabled control and preserves that exact origin for wrapping; diagnostics prove reverse entry and continued reverse order.
+- Evidence: debug and Developer ID-signed packaged builds passed feature/HUD diagnostics and strict signing. The same critic physically verified Home, Dictation, Settings/Checkup, and Personalization at minimum/default/large sizes with plain and Option-modified forward/reverse traversal.
+- Verifier result: **Pass**. Reverse traversal enters the last page control, follows exact reverse visual order, keeps focus visible, and wraps to the exact originating sidebar item. Home's non-task scroll indicator is symmetrically omitted. Checkup's practice field remains fully visible at 900×650.
+- Failed approach: prior manual traversal was complete only after focus had entered a page; its sidebar entry rule existed for forward traversal but not reverse traversal.
+- Next action: freeze, publish, update the installed app through Sparkle, and give the exact public installed artifact to a new fresh integration critic.
 - Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.

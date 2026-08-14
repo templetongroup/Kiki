@@ -1117,6 +1117,16 @@ enum FeatureDiagnostics {
               WorkbenchTabTraversal.direction(for: [.command]) == nil else {
             throw failure("Workbench must honor standard and all-controls Tab traversal")
         }
+        let compositeScroll = NSScrollView()
+        let compositeText = NSTextView()
+        let compositeTable = NSTableView()
+        let compositeScroller = NSScroller()
+        guard !WorkbenchTabTraversal.isRouteKeyView(compositeScroll),
+              WorkbenchTabTraversal.isRouteKeyView(compositeText),
+              WorkbenchTabTraversal.isRouteKeyView(compositeTable),
+              WorkbenchTabTraversal.isRouteKeyView(compositeScroller) else {
+            throw failure("Workbench route traversal must register document controls, not composite containers")
+        }
         let traversalWindow = WorkbenchWindow(
             contentRect: NSRect(x: 0, y: 0, width: 500, height: 300),
             styleMask: [.titled],
@@ -1152,6 +1162,13 @@ enum FeatureDiagnostics {
               traversalWindow.performRouteTraversal(.reverse),
               traversalWindow.firstResponder === traversalSidebar else {
             throw failure("Workbench route-aware key loop must traverse, wrap, and restore its sidebar origin")
+        }
+        traversalWindow.setPendingSidebarOrigin(traversalSidebar, isMouseNavigation: true)
+        guard traversalWindow.performRouteTraversal(.reverse),
+              traversalWindow.firstResponder === traversalThird,
+              traversalWindow.performRouteTraversal(.reverse),
+              traversalWindow.firstResponder === traversalSecond else {
+            throw failure("Workbench reverse traversal must enter the route from its sidebar origin")
         }
         let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
         var methodCount: UInt32 = 0
