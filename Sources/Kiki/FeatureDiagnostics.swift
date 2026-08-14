@@ -173,8 +173,25 @@ enum FeatureDiagnostics {
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.shortcut-help"
               ) as? NSTextField,
-              shortcutHelp.stringValue.contains(Settings.dictationShortcut.displayString) else {
+              shortcutHelp.stringValue
+                == "In any text field: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))" else {
             throw failure("Home readiness must reflect incomplete live checks")
+        }
+
+        let dictationView = GuidedWorkbenchDictationView()
+        dictationView.update(state: .idle, canUndo: false, canRetry: false)
+        guard let configuredShortcut = findView(
+                  in: dictationView,
+                  identifier: "kiki.workbench.dictation.configured-shortcut"
+              ) as? NSTextField,
+              configuredShortcut.stringValue
+                == "Configured shortcut: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))",
+              let handsFreeShortcut = findView(
+                  in: dictationView,
+                  identifier: "kiki.workbench.dictation.hands-free-shortcut"
+              ) as? NSTextField,
+              handsFreeShortcut.stringValue == DictationShortcutGuidance.handsFreeInstruction else {
+            throw failure("Dictation surface must distinguish configured and hands-free shortcuts")
         }
         guard let homeDictationButton = findView(
             in: compactHomeView,
@@ -695,10 +712,20 @@ enum FeatureDiagnostics {
     }
 
     private static func checkDictationMenuCopy() throws {
-        guard DictationMenuCopy.start == "Start Dictation into Current App (⌃⌥D)",
-              DictationMenuCopy.stop == "Stop, Transcribe, and Insert (⌃⌥D)",
-              DictationMenuCopy.idleStatus.contains("inserts into the current app"),
-              DictationMenuCopy.recordingStatus.contains("Click again to stop and insert") else {
+        let holdInstruction = ActivationMode.hold.configuredInstruction(for: .rightOption)
+        let toggleInstruction = ActivationMode.toggle.configuredInstruction(for: .rightOption)
+        guard holdInstruction == "Hold Right ⌥ to dictate; release to stop and insert.",
+              toggleInstruction == "Press Right ⌥ to start; press it again to stop and insert.",
+              ActivationMode.hold.shortcutTestInstruction(for: .rightOption)
+                == "Hold Right ⌥ briefly, then release.",
+              ActivationMode.toggle.shortcutTestInstruction(for: .rightOption)
+                == "Press Right ⌥ once.",
+              DictationShortcutGuidance.handsFreeInstruction
+                == "Hands-free toggle: press ⌃⌥D to start; press it again to stop and insert.",
+              DictationMenuCopy.start == "Start Hands-Free Dictation (⌃⌥D)",
+              DictationMenuCopy.stop == "Stop Hands-Free Dictation & Insert (⌃⌥D)",
+              DictationMenuCopy.idleStatus.contains("Configured shortcut:"),
+              DictationMenuCopy.recordingStatus.contains("hands-free action below") else {
             throw failure("self-explanatory dictation menu copy")
         }
     }
@@ -1173,8 +1200,10 @@ enum FeatureDiagnostics {
         guard didRequestShortcutTest else {
             throw failure("Kiki Checkup shortcut recovery must be actionable from its unresolved row")
         }
-        checkup.armShortcutTest(displayString: Settings.dictationShortcut.displayString)
-        guard shortcutGuidance.stringValue.contains("Press \(Settings.dictationShortcut.displayString) now"),
+        checkup.armShortcutTest()
+        guard shortcutGuidance.stringValue.contains(
+                  Settings.activationMode.shortcutTestInstruction(for: Settings.dictationShortcut)
+              ),
               inlineShortcutAction.isHidden else {
             throw failure("Kiki Checkup shortcut test must explain the next physical step")
         }

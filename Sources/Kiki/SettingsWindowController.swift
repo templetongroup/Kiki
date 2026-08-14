@@ -399,7 +399,7 @@ final class SettingsWindowController: NSWindowController {
         return page(with: [
             SettingsCard(
                 title: "Activation",
-                subtitle: "Hold one key or use a toggle for longer thoughts.",
+                subtitle: "Choose how your configured shortcut behaves. ⌃⌥D is always available as a separate hands-free start/stop toggle.",
                 views: [shortcutRow, behaviorRow, messageLabel]
             ),
             SettingsCard(
@@ -590,6 +590,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
+        messageLabel.stringValue = Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut)
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
         automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
             || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
@@ -690,7 +691,7 @@ final class SettingsWindowController: NSWindowController {
         Settings.dictationShortcut = shortcut
         stopCapture()
         refresh()
-        messageLabel.stringValue = "Shortcut updated."
+        messageLabel.stringValue = "Shortcut updated. \(Settings.activationMode.configuredInstruction(for: shortcut))"
         onSettingsChange?(shortcut, Settings.activationMode)
     }
 
@@ -707,6 +708,8 @@ final class SettingsWindowController: NSWindowController {
     @objc private func resetShortcut() { save(.rightOption) }
     @objc private func modeChanged() {
         Settings.activationMode = ActivationMode.allCases[modePopup.indexOfSelectedItem]
+        refresh()
+        messageLabel.stringValue = "Behavior updated. \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
         onSettingsChange?(Settings.dictationShortcut, Settings.activationMode)
     }
     @objc private func speechProfileChanged() {

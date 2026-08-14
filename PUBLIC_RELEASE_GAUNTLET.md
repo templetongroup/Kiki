@@ -217,3 +217,30 @@ Every critic record must state:
 - Failed approach: no new failed implementation; the earlier guide simply described the superseded default-build behavior.
 - Next action: run the verifier against the final notarized build 58 ZIP and prove an older installed Kiki completes the public Sparkle update.
 - Remaining budget: no explicit token budget; Piece 1 evidence rerun and final integration remain.
+
+## Complete candidate, Round 1 — Notarized public artifact and updater path
+
+- What changed: built Kiki 0.6.25 build 58 from source commit `8ab9fb98b3946cc155d923023d733a250c5801b3`, signed it with Developer ID, notarized and stapled it, published the exact ZIP as GitHub release `v0.6.25`, and published its signed Sparkle entry on `main`.
+- Evidence: the final ZIP reopened successfully through the release verifier; strict nested signing, notarization ticket, Gatekeeper, arm64, fixed feed/key, feature diagnostics, HUD diagnostics, and deterministic post-processing passed. The local and freshly downloaded public ZIPs shared SHA-256 `d5de9fb46d20970bc2d931e6893ef00acbd70cce3204936766e952523efac0e6`. The public appcast reported 0.6.25 build 58 with the exact archive length and Sparkle signature.
+- Verifier result: **Pass** for artifact and publication integrity. The installed Kiki 0.6.24 build 57 discovered 0.6.25 through its own Check for Updates flow, downloaded it, displayed Ready to Install, installed and relaunched as 0.6.25 build 58. The installed bundle passed strict signing, stapler validation, and Gatekeeper; its executable matched the public ZIP.
+- Failed approach: optional Sparkle delta generation was unavailable because older archives contain signed extended attributes on `mlx.metallib`; the signed full-archive update path was retained and completed successfully.
+- Next action: obtain the fresh final integration critic's whole-product verdict against `/Applications/Kiki.app` and close only if it passes.
+- Remaining budget: no explicit token budget; fresh final installed-artifact integration verdict and evidence record remain.
+
+## Final integration, Round 1 — Installed Kiki 0.6.25
+
+- What changed: no product change before the verdict; a fresh integration critic reviewed the exact public `/Applications/Kiki.app` installed through Sparkle from 0.6.24.
+- Evidence: version/build, Developer ID, hardened runtime, notarization, staple, Gatekeeper, public tag/feed/SHA, all primary Workbench routes, visible keyboard focus, native menus, menu-bar lifecycle, and packaged diagnostics were inspected.
+- Verifier result: **Fail**. Home described the configured `Fn` shortcut as press-twice even though this Mac used Hold to Dictate, while Dictation foregrounded the separate hardcoded `⌃⌥D` toggle without identifying it as a second hands-free path.
+- Failed approach: independent shortcut strings described different activation paths without a shared behavior-aware source of truth.
+- Next action: derive Home, Dictation, Settings, Checkup, and menu-bar guidance from the configured shortcut and activation mode; explicitly label `⌃⌥D` as hands-free; rerun the same critic.
+- Remaining budget: no explicit token budget; fix verification, replacement publication/update, and fresh final installed-artifact critic remain.
+
+## Final integration, Round 2 — Unified shortcut guidance candidate
+
+- What changed: added one behavior-aware shortcut guidance source for Hold to Dictate, Press to Toggle, shortcut testing, recording stop hints, and the separate hands-free action. Home, Dictation, Settings, Checkup, and the status menu now use it.
+- Evidence: debug and packaged release builds passed; feature and HUD diagnostics passed; deterministic post-processing averaged 3.30 ms. Native Accessibility inspection of the real 0.6.26 build 59 candidate showed `Hold Fn to dictate; release to stop and insert` on Home, Dictation, and Settings, plus a separately labeled `⌃⌥D` hands-free toggle. The default-size Dictation render was unclipped and visually coherent.
+- Verifier result: **Pass**. The same critic verified packaged 0.6.26 build 59 in persisted hold mode and isolated non-persistent toggle mode across Home, Dictation, Settings, unresolved and armed Checkup states, and the status menu. Compact 900×760 and default 1240×840 layouts, visible keyboard focus, native navigation, status-menu controls, window resizing, and packaged diagnostics also passed.
+- Failed approach: recorded in Round 1; no repeat yet.
+- Next action: publish the frozen candidate, update installed 0.6.25 through Sparkle, then give the exact installed public artifact to a new fresh integration critic.
+- Remaining budget: no explicit token budget; replacement publication/update and fresh final installed-artifact critic remain.

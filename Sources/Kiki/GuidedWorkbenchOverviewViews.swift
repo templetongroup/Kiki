@@ -10,7 +10,7 @@ final class GuidedWorkbenchHomeView: NSView {
     var onOpenModels: (() -> Void)?
     private weak var heroArtworkView: KikiDecorativeImageView?
     private let homeTitleLabel = kikiLabel("Finish Kiki setup.", size: 31, weight: .bold)
-    private let shortcutHelpLabel = kikiLabel("Click a text field in any app. Press the dictation shortcut to start, then press it again to stop and insert.", size: 11.5, color: KikiPalette.secondaryText)
+    private let shortcutHelpLabel = kikiLabel("", size: 11.5, color: KikiPalette.secondaryText)
     private let readinessDetailLabel = kikiLabel("Each action opens the exact place needed to complete or review that check.", size: 12, color: KikiPalette.secondaryText)
     private let microphoneReadinessRow = GuidedWorkbenchReadinessRow(title: "Microphone", identifier: "microphone")
     private let accessibilityReadinessRow = GuidedWorkbenchReadinessRow(title: "Accessibility", identifier: "accessibility")
@@ -57,7 +57,7 @@ final class GuidedWorkbenchHomeView: NSView {
 
     func update(snapshot: KikiCheckupSnapshot) {
         homeTitleLabel.stringValue = snapshot.isReady ? "Kiki is ready." : "Finish Kiki setup."
-        shortcutHelpLabel.stringValue = "In any text field, press \(Settings.dictationShortcut.displayString) to start. Press it again to stop and insert."
+        shortcutHelpLabel.stringValue = "In any text field: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
         readinessDetailLabel.stringValue = snapshot.isReady
             ? "All setup checks are complete."
             : "Complete each unfinished check with the available action."
@@ -314,6 +314,8 @@ final class GuidedWorkbenchDictationView: NSView {
     var onPrivateSession: (() -> Void)?
 
     private let stateLabel = kikiLabel("READY", size: 10, weight: .bold, color: KikiPalette.accentText)
+    private let configuredShortcutLabel = kikiLabel("", size: 14, weight: .semibold, color: KikiPalette.khaki)
+    private let handsFreeShortcutLabel = kikiLabel(DictationShortcutGuidance.handsFreeInstruction, size: 12.5, color: KikiPalette.secondaryText)
     private lazy var toggleButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(toggle))
     private lazy var undoButton = KikiActionButton("Undo Last Dictation", kind: .hardware, target: self, action: #selector(undo))
     private lazy var retryButton = KikiActionButton("Retry Last Dictation", kind: .hardware, target: self, action: #selector(retry))
@@ -327,6 +329,8 @@ final class GuidedWorkbenchDictationView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func update(state: DictationState, canUndo: Bool, canRetry: Bool) {
+        configuredShortcutLabel.stringValue = "Configured shortcut: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
+        handsFreeShortcutLabel.stringValue = DictationShortcutGuidance.handsFreeInstruction
         undoButton.isEnabled = canUndo
         retryButton.isEnabled = canRetry
         privateButton.title = PrivateSessionController.shared.isActive ? "End Private Session" : "Start Private Session"
@@ -361,13 +365,16 @@ final class GuidedWorkbenchDictationView: NSView {
         let title = kikiLabel("Speak. Review. Insert.", size: 31, weight: .bold)
         let detail = kikiLabel("Use your shortcut in any text field. Kiki listens locally, shows live feedback, then inserts the finished text.", size: 14, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 0
-        let shortcut = kikiLabel("⌃ ⌥ D", size: 15, weight: .semibold, color: KikiPalette.khaki)
-        let heading = NSStackView(views: [eyebrow, title, detail, shortcut, toggleButton])
+        configuredShortcutLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.dictation.configured-shortcut")
+        configuredShortcutLabel.maximumNumberOfLines = 0
+        handsFreeShortcutLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.dictation.hands-free-shortcut")
+        handsFreeShortcutLabel.maximumNumberOfLines = 0
+        let heading = NSStackView(views: [eyebrow, title, detail, configuredShortcutLabel, handsFreeShortcutLabel, toggleButton])
         heading.orientation = .vertical
         heading.alignment = .leading
         heading.spacing = 8
         heading.setCustomSpacing(16, after: detail)
-        heading.setCustomSpacing(18, after: shortcut)
+        heading.setCustomSpacing(18, after: handsFreeShortcutLabel)
         let hero = KikiCardView()
         install(heading, in: hero)
 

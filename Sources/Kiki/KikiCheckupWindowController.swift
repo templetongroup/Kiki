@@ -162,11 +162,11 @@ final class KikiCheckupWindowController: NSWindowController {
         updateInputLevel(0)
     }
 
-    func armShortcutTest(displayString: String) {
+    func armShortcutTest() {
         shortcutRow.update(
             passed: false,
             detail: "Waiting",
-            guidance: "Press \(displayString) now. Kiki will mark this check complete.",
+            guidance: "\(Settings.activationMode.shortcutTestInstruction(for: Settings.dictationShortcut)) Kiki will mark this check complete.",
             showsAction: false
         )
     }
@@ -227,7 +227,7 @@ final class KikiCheckupWindowController: NSWindowController {
             detail: snapshot.shortcutVerified ? "Verified" : "Needs a quick test",
             guidance: snapshot.shortcutVerified
                 ? nil
-                : "Click Test shortcut, then press \(Settings.dictationShortcut.displayString). Kiki will confirm it works.",
+                : "Click Test shortcut. \(Settings.activationMode.shortcutTestInstruction(for: Settings.dictationShortcut)) Kiki will confirm it works.",
             showsAction: !snapshot.shortcutVerified
         )
         firstDictationRow.update(

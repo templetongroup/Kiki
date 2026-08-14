@@ -3,11 +3,17 @@ import AVFoundation
 import UniformTypeIdentifiers
 
 enum DictationMenuCopy {
-    static let start = "Start Dictation into Current App (⌃⌥D)"
-    static let stop = "Stop, Transcribe, and Insert (⌃⌥D)"
-    static let idleStatus = "Records locally, then inserts into the current app"
-    static let recordingStatus = "Recording… Click again to stop and insert"
-    static let privateRecordingStatus = "Recording privately… Click again to stop and insert"
+    static let start = "Start Hands-Free Dictation (⌃⌥D)"
+    static let stop = "Stop Hands-Free Dictation & Insert (⌃⌥D)"
+    static var idleStatus: String {
+        "Configured shortcut: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
+    }
+    static var recordingStatus: String {
+        "Recording locally… \(Settings.activationMode.recordingStopInstruction(for: Settings.dictationShortcut)) to stop and insert, or use the hands-free action below."
+    }
+    static var privateRecordingStatus: String {
+        "Recording privately… \(Settings.activationMode.recordingStopInstruction(for: Settings.dictationShortcut)) to stop and insert, or use the hands-free action below."
+    }
 }
 
 @MainActor
@@ -102,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.onTestShortcut = { [weak self, weak window] in
             guard let self else { return }
             self.checkupShortcutArmed = true
-            window?.armShortcutTest(displayString: Settings.dictationShortcut.displayString)
+            window?.armShortcutTest()
         }
         window.onBeginPractice = { [weak self] in
             self?.togglePracticeDictation()
@@ -409,7 +415,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .transcribing:
             stateMenuItem.title = "Transcribing…"
             toggleMenuItem.title = Settings.enableZeroWaitChaining
-                ? "Start Another Dictation (⌃⌥D)"
+                ? "Start Another Hands-Free Dictation (⌃⌥D)"
                 : "Transcribing…"
             toggleMenuItem.isEnabled = Settings.enableZeroWaitChaining
         }

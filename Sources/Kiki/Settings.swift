@@ -202,6 +202,38 @@ enum ActivationMode: String, CaseIterable {
     case hold, toggle
 
     var title: String { self == .hold ? "Hold to Dictate" : "Press to Toggle" }
+
+    func configuredInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Hold \(shortcut.displayString) to dictate; release to stop and insert."
+        case .toggle:
+            "Press \(shortcut.displayString) to start; press it again to stop and insert."
+        }
+    }
+
+    func shortcutTestInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Hold \(shortcut.displayString) briefly, then release."
+        case .toggle:
+            "Press \(shortcut.displayString) once."
+        }
+    }
+
+    func recordingStopInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Release \(shortcut.displayString)"
+        case .toggle:
+            "Press \(shortcut.displayString) again"
+        }
+    }
+}
+
+enum DictationShortcutGuidance {
+    static let handsFreeKeys = "⌃⌥D"
+    static let handsFreeInstruction = "Hands-free toggle: press ⌃⌥D to start; press it again to stop and insert."
 }
 
 enum ListeningDisplayMode: String, CaseIterable {
