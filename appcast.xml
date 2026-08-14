@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.27</title>
+            <pubDate>Fri, 14 Aug 2026 19:57:13 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.27</link>
+            <sparkle:version>60</sparkle:version>
+            <sparkle:shortVersionString>0.6.27</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.27
+
+- Fixes keyboard focus getting trapped in the Workbench sidebar or on the first page action.
+- Makes every visible page control reachable in a predictable order with Tab or macOS all-controls navigation, including reverse movement and scrolling focused controls into view.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.27/Kiki-0.6.27-macOS.zip" length="53802866" type="application/octet-stream" sparkle:edSignature="MpAdGYdEcXXgelEGGkm10WDCeFrs/LQNdSqta/7sCXWSOBG1uS9EPWG+YCoxB1vnGDbNRkLK3S/RFr0CPuxmCA=="/>
+        </item>
+        <item>
             <title>0.6.26</title>
             <pubDate>Fri, 14 Aug 2026 16:41:05 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.26</link>
@@ -69,22 +84,6 @@
 - Updates Voice Studio guidance and recording limits for the balanced sample.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.23/Kiki-0.6.23-macOS.zip" length="53764123" type="application/octet-stream" sparkle:edSignature="Aiv8ioUEen/CEj4wj6ws87k88GxqHp8EOUDEz+L57AI+WYrU3iIKeGYJoqGE/5a0CpfsOD5Sb8UojGZLtJMgAA=="/>
-        </item>
-        <item>
-            <title>0.6.22</title>
-            <pubDate>Thu, 13 Aug 2026 12:35:33 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.22</link>
-            <sparkle:version>55</sparkle:version>
-            <sparkle:shortVersionString>0.6.22</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.22
-
-- Fixes Voice Studio generating words from the enrollment recording instead of the text in Create Audio.
-- Replaces long voice enrollment with one short, transcript-matched sample for faster, reliable generation.
-- Clearly asks for a new short sample and blocks generation when an older recording could produce incorrect speech.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.22/Kiki-0.6.22-macOS.zip" length="53763507" type="application/octet-stream" sparkle:edSignature="73l4pqgH0q7JLe33nQ/+pagKY0QiuoqZ8O+7bj2hMu4uQejFsnRoB5d78v1W09hejuzO1Q8//pOplX88OvImCw=="/>
         </item>
     </channel>
 </rss>
