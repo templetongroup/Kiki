@@ -13,6 +13,7 @@ enum DictationMenuCopy {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
+    private let activationPolicyCoordinator = ActivationPolicyCoordinator()
     private let controller = DictationController()
     private let hotkeys = HotkeyManager()
     private let updateController = UpdateController()
@@ -186,10 +187,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceController.apply()
+        ApplicationMenu.setSettingsTarget(self)
         updateController.onUpdateAvailable = { [weak self] available in
             self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }
         setupStatusItem()
+        activationPolicyCoordinator.start()
         requestPermissions()
 
         controller.onStateChange = { [weak self] state in
@@ -271,6 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        activationPolicyCoordinator.stop()
         controller.prepareForTermination()
     }
 
@@ -531,6 +535,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openWorkbench(section: GuidedWorkbenchSection, subpage: Int = 0) {
         _ = captureExternalContext()
         refreshCheckup(restartInputMonitor: false)
+        activationPolicyCoordinator.prepareToPresentManagementWindow(workbenchWindow.window)
         workbenchWindow.show(section: section, subpage: subpage)
         if section == .settings, subpage == 4 {
             refreshCheckup(restartInputMonitor: true)

@@ -19,6 +19,9 @@ final class FileTranscriptionWindowController: NSWindowController {
         detail: "Drop a recording above or choose an audio file. Kiki processes it locally with the selected model."
     )
     private var sourceURL: URL?
+    private var transcriptionTask: Task<Void, Never>?
+    private var activeRequestID: UUID?
+    private var requestGate = FileTranscriptionRequestGate()
 
     init() {
         let window = NSWindow(
@@ -157,6 +160,14 @@ final class FileTranscriptionWindowController: NSWindowController {
     }
 
     @objc private func chooseFile() {
+        if let transcriptionTask, let activeRequestID {
+            guard requestGate.requestCancellation(for: activeRequestID) else { return }
+            transcriptionTask.cancel()
+            statusLabel.stringValue = "Cancelling local transcription…"
+            chooseButton.title = "Cancelling…"
+            chooseButton.isEnabled = false
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.audio]
         panel.allowsMultipleSelection = false
@@ -167,21 +178,35 @@ final class FileTranscriptionWindowController: NSWindowController {
     }
 
     private func startTranscription(_ url: URL) {
-        guard let onTranscribe else { return }
+        guard let onTranscribe else {
+            statusLabel.stringValue = "File transcription is unavailable."
+            return
+        }
+        guard let requestID = requestGate.begin() else {
+            statusLabel.stringValue = requestGate.isCancelling
+                ? "Wait for cancellation to finish before choosing another file."
+                : "Finish the current transcription before choosing another file."
+            return
+        }
+        activeRequestID = requestID
         statusLabel.stringValue = "Transcribing \(url.lastPathComponent)…"
         sourceURL = url
         dropView.isHidden = true
-        chooseButton.title = "Choose Another File"
+        dropView.isInputEnabled = false
+        chooseButton.title = "Cancel Transcription"
+        chooseButton.isEnabled = true
         progressIndicator.startAnimation(nil)
         copyButton.isEnabled = false
         exportFormatPopup.isEnabled = false
         exportButton.isEnabled = false
         textView.string = ""
         outputEmptyState.isHidden = false
-        Task { [weak self] in
+        transcriptionTask = Task { [weak self] in
             do {
                 let text = try await onTranscribe(url)
+                try Task.checkCancellation()
                 guard let self else { return }
+                guard self.finishRequest(requestID) == .accepted else { return }
                 self.textView.string = text
                 self.outputEmptyState.isHidden = !text.isEmpty
                 self.statusLabel.stringValue = text.isEmpty
@@ -190,14 +215,48 @@ final class FileTranscriptionWindowController: NSWindowController {
                 self.copyButton.isEnabled = !text.isEmpty
                 self.exportFormatPopup.isEnabled = !text.isEmpty
                 self.exportButton.isEnabled = !text.isEmpty
-                self.progressIndicator.stopAnimation(nil)
+                self.finishTranscriptionUI(showDropTarget: false)
+            } catch is CancellationError {
+                guard let self else { return }
+                guard self.finishRequest(requestID) != .stale else { return }
+                self.sourceURL = nil
+                self.textView.string = ""
+                self.outputEmptyState.isHidden = false
+                self.statusLabel.stringValue = "Transcription cancelled. Choose a file when you’re ready."
+                self.finishTranscriptionUI(showDropTarget: true)
             } catch {
                 guard let self else { return }
+                let completion = self.finishRequest(requestID)
+                guard completion != .stale else { return }
+                if completion == .cancelled {
+                    self.sourceURL = nil
+                    self.textView.string = ""
+                    self.outputEmptyState.isHidden = false
+                    self.statusLabel.stringValue = "Transcription cancelled. Choose a file when you’re ready."
+                    self.finishTranscriptionUI(showDropTarget: true)
+                    return
+                }
                 self.statusLabel.stringValue = "Could not transcribe: \(error.localizedDescription)"
                 self.outputEmptyState.isHidden = false
-                self.progressIndicator.stopAnimation(nil)
+                self.finishTranscriptionUI(showDropTarget: false)
             }
         }
+    }
+
+    private func finishRequest(_ requestID: UUID) -> FileTranscriptionCompletion {
+        let completion = requestGate.complete(requestID)
+        guard completion != .stale else { return completion }
+        activeRequestID = nil
+        transcriptionTask = nil
+        return completion
+    }
+
+    private func finishTranscriptionUI(showDropTarget: Bool) {
+        progressIndicator.stopAnimation(nil)
+        dropView.isInputEnabled = true
+        dropView.isHidden = !showDropTarget
+        chooseButton.title = showDropTarget ? "Choose Audio File" : "Transcribe Another File"
+        chooseButton.isEnabled = true
     }
 
     @objc private func copyText() {
@@ -297,6 +356,12 @@ enum FileTranscriptExportFormat: String, CaseIterable {
 final class FileDropView: NSView {
     var onFile: ((URL) -> Void)?
     private let label = NSTextField(labelWithString: "Drop an audio file here")
+    var isInputEnabled = true {
+        didSet {
+            label.stringValue = isInputEnabled ? "Drop an audio file here" : "Transcription in progress"
+            alphaValue = isInputEnabled ? 1 : 0.55
+        }
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -326,10 +391,12 @@ final class FileDropView: NSView {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        fileURL(from: sender) == nil ? [] : .copy
+        guard isInputEnabled else { return [] }
+        return fileURL(from: sender) == nil ? [] : .copy
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        guard isInputEnabled else { return false }
         guard let url = fileURL(from: sender) else { return false }
         onFile?(url)
         return true

@@ -344,7 +344,7 @@ final class GuidedWorkbenchDictationView: NSView {
             toggleButton.title = "Try Dictation"
         case .recording:
             stateLabel.stringValue = "LISTENING"
-            toggleButton.title = "Stop, Transcribe & Insert"
+            toggleButton.title = "Stop & Insert"
         case .transcribing:
             stateLabel.stringValue = "TRANSCRIBING"
             toggleButton.title = Settings.enableZeroWaitChaining ? "Try Another Dictation" : "Transcribing…"

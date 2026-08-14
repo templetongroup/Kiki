@@ -80,8 +80,16 @@ final class HotkeyManager {
         } else {
             guard event.type == .keyDown || event.type == .keyUp else { return }
             let relevant: NSEvent.ModifierFlags = [.command, .option, .control, .shift, .function]
-            guard event.modifierFlags.intersection(relevant) == shortcut.modifiers.intersection(relevant) else { return }
-            isDown = event.type == .keyDown
+            if event.type == .keyDown {
+                guard event.modifierFlags.intersection(relevant) == shortcut.modifiers.intersection(relevant) else {
+                    return
+                }
+                isDown = true
+            } else {
+                // A user can release the modifier before releasing the letter.
+                // The matching key-up still ends the hold and rearms the shortcut.
+                isDown = false
+            }
         }
 
         if isDown && !triggerDown {
@@ -94,4 +102,10 @@ final class HotkeyManager {
             if activationMode == .hold { DispatchQueue.main.async { self.onHoldEnd() } }
         }
     }
+
+    func processEventForDiagnostics(_ event: NSEvent) {
+        handleTriggerEvent(event)
+    }
+
+    var diagnosticTriggerDown: Bool { triggerDown }
 }

@@ -172,7 +172,7 @@ final class SettingsWindowController: NSWindowController {
         let icon = KikiCircularPortraitView()
 
         let title = kikiLabel("Kiki", size: 21, weight: .bold)
-        let subtitle = kikiLabel("VOICE INTELLIGENCE", size: 9.5, weight: .semibold, color: KikiPalette.tertiaryText)
+        let subtitle = kikiLabel("VOICE INTELLIGENCE", size: 10.5, weight: .semibold, color: KikiPalette.tertiaryText)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
         let versionLabel = kikiLabel("Version \(version) · Build \(build)", size: 10.5, weight: .medium, color: KikiPalette.secondaryText)
@@ -795,7 +795,7 @@ private final class ModelCardView: KikiCardView {
     private let downloadProgress = NSProgressIndicator()
     private let button = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
     private let dial = KikiHardwareDialView()
-    private let activeLabel = kikiLabel("ACTIVE", size: 9, weight: .semibold, color: KikiPalette.accentText)
+    private let activeLabel = kikiLabel("ACTIVE", size: 10.5, weight: .semibold, color: KikiPalette.accentText)
     private let meter = KikiAnalogMeterView()
 
     init(model: TranscriptionModelID) {
@@ -813,7 +813,7 @@ private final class ModelCardView: KikiCardView {
         let detailText = model == .parakeetEnglish
             ? model.detail.replacingOccurrences(of: " About 500 MB.", with: "")
             : model.detail
-        let detail = kikiLabel(detailText, size: 9.75, color: KikiPalette.secondaryText)
+        let detail = kikiLabel(detailText, size: 11, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 2
         statusLabel.font = .systemFont(ofSize: 11, weight: .regular)
         downloadProgress.style = .bar

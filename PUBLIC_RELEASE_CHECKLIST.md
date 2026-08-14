@@ -4,6 +4,7 @@ Feature scope is frozen until every required check below passes against the same
 
 ## Source gate
 
+- [ ] `KIKI_BUILD_NUMBER` is explicit and greater than the newest build in the public Sparkle appcast.
 - [ ] `git diff --check` is clean and the intended release commit is recorded.
 - [ ] Debug and release builds succeed without new warnings.
 - [ ] `Kiki --self-test-features` passes from the source build.
@@ -16,6 +17,7 @@ Feature scope is frozen until every required check below passes against the same
 - [ ] The packaged executable passes `--self-test-features`.
 - [ ] `codesign --verify --deep --strict` succeeds with the intended Developer ID identity.
 - [ ] Gatekeeper assessment and notarization-ticket validation succeed.
+- [ ] Re-open the final post-staple ZIP and run `scripts/verify-release-artifact.sh` against that exact archive.
 - [ ] The SHA-256 of the tested ZIP is recorded.
 
 ## Installed-app gate

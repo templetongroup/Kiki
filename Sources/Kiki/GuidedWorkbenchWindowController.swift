@@ -119,7 +119,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             width: min(1_240, max(1_020, visibleSize.width * 0.86)),
             height: min(840, max(720, visibleSize.height * 0.90))
         )
-        let window = NSWindow(
+        let window = WorkbenchWindow(
             contentRect: NSRect(origin: .zero, size: initialSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -256,10 +256,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
         let portrait = KikiCircularPortraitView()
         let brandTitle = kikiLabel("Kiki", size: 19, weight: .bold)
-        let brandDetail = kikiLabel("VOICE INTELLIGENCE", size: 8.5, weight: .semibold, color: KikiPalette.tertiaryText)
+        let brandDetail = kikiLabel("VOICE INTELLIGENCE", size: 10, weight: .semibold, color: KikiPalette.tertiaryText)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-        let releaseDetail = kikiLabel("RELEASE \(version) · BUILD \(build)", size: 8, weight: .medium, color: KikiPalette.khaki)
+        let releaseDetail = kikiLabel("RELEASE \(version) · BUILD \(build)", size: 10, weight: .medium, color: KikiPalette.khaki)
         releaseDetail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.release")
         let brandCopy = NSStackView(views: [brandTitle, brandDetail, releaseDetail])
         brandCopy.orientation = .vertical
@@ -270,7 +270,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         brand.alignment = .centerY
         brand.spacing = 11
 
-        let workflowLabel = kikiLabel("CHOOSE A WORKFLOW", size: 9, weight: .bold, color: KikiPalette.accentText)
+        let workflowLabel = kikiLabel("CHOOSE A WORKFLOW", size: 10, weight: .bold, color: KikiPalette.accentText)
         let navigation = NSStackView()
         navigation.orientation = .vertical
         navigation.alignment = .leading
@@ -279,7 +279,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         var previousGroup: String?
         for section in GuidedWorkbenchSection.allCases {
             if previousGroup != section.group {
-                let group = kikiLabel(section.group.uppercased(), size: 8.5, weight: .bold, color: KikiPalette.tertiaryText)
+                let group = kikiLabel(section.group.uppercased(), size: 10, weight: .bold, color: KikiPalette.tertiaryText)
                 group.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.group.\(section.group.lowercased())")
                 navigation.addArrangedSubview(group)
                 navigation.setCustomSpacing(7, after: group)
@@ -344,7 +344,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         contextCopy.orientation = .horizontal
         contextCopy.alignment = .centerY
         contextCopy.spacing = 10
-        let localLabel = kikiLabel("FULLY LOCAL", size: 9, weight: .bold, color: KikiPalette.tertiaryText)
+        let localLabel = kikiLabel("FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.tertiaryText)
         let status = NSStackView(views: [readinessLabel, localLabel])
         status.orientation = .horizontal
         status.alignment = .centerY
@@ -478,6 +478,59 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             currentWrapper = scroll
         }
         contentHost.layoutSubtreeIfNeeded()
+        updateRouteKeyViewBoundary(for: surface.view)
+    }
+
+    private func updateRouteKeyViewBoundary(for surfaceView: NSView) {
+        // Automatic recalculation and explicit full-loop reconstruction both
+        // retained a stale route boundary in the live app. Bypass that cached
+        // boundary only for the two crossings that route replacement affects.
+        let routeFirstView: NSView? = if route.section == .home {
+            view(
+                in: surfaceView,
+                identifier: "kiki.workbench.home.dictation"
+            )
+        } else if !subnavigation.isHidden,
+                  subnavigation.acceptsFirstResponder {
+            subnavigation
+        } else {
+            firstValidKeyView(in: surfaceView)
+        }
+        (window as? WorkbenchWindow)?.setRouteKeyViewBoundary(
+            sidebarNavigation: GuidedWorkbenchSection.allCases.compactMap { navButtons[$0] },
+            routeFirst: routeFirstView
+        )
+    }
+
+    private func view(in root: NSView, identifier: String) -> NSView? {
+        if root.identifier?.rawValue == identifier {
+            return root
+        }
+        for child in root.subviews {
+            if let match = view(in: child, identifier: identifier) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    private func firstValidKeyView(in root: NSView) -> NSView? {
+        func visit(_ view: NSView) -> NSView? {
+            guard !view.isHidden, view.alphaValue > 0.01 else { return nil }
+            if view !== root,
+               view.acceptsFirstResponder,
+               (view as? NSControl)?.isEnabled != false {
+                return view
+            }
+            for child in view.subviews {
+                if let match = visit(child) {
+                    return match
+                }
+            }
+            return nil
+        }
+
+        return visit(root)
     }
 
     private func applyWindowPolicy(for section: GuidedWorkbenchSection) {
@@ -516,16 +569,88 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
     @objc private func navigate(_ sender: WorkbenchNavigationButton) {
         guard GuidedWorkbenchSection.allCases.indices.contains(sender.tag) else { return }
-        if NSApp.currentEvent?.type.isMouseEvent == true {
-            window?.makeFirstResponder(nil)
-        }
-        select(GuidedWorkbenchRoute(section: GuidedWorkbenchSection.allCases[sender.tag]))
+        let destination = GuidedWorkbenchSection.allCases[sender.tag]
+        let currentEvent = NSApp.currentEvent
+        let isMouseNavigation = currentEvent?.window === window
+            && (currentEvent?.type == .leftMouseDown || currentEvent?.type == .leftMouseUp)
+        (window as? WorkbenchWindow)?.setPendingSidebarOrigin(
+            sender,
+            isMouseNavigation: isMouseNavigation
+        )
+        select(GuidedWorkbenchRoute(section: destination))
     }
 
     @objc private func subnavigationChanged() {
         select(GuidedWorkbenchRoute(section: route.section, subpage: subnavigation.selectedSegment))
     }
 
+}
+
+@MainActor
+private final class WorkbenchWindow: NSWindow {
+    private var sidebarNavigation: [NSView] = []
+    private weak var routeBoundaryFirst: NSView?
+    private weak var pendingSidebarOrigin: NSView?
+    private weak var reverseBoundaryOrigin: NSView?
+
+    func setRouteKeyViewBoundary(sidebarNavigation: [NSView], routeFirst: NSView?) {
+        self.sidebarNavigation = sidebarNavigation
+        routeBoundaryFirst = routeFirst
+        reverseBoundaryOrigin = nil
+    }
+
+    func setPendingSidebarOrigin(_ sender: NSView, isMouseNavigation: Bool) {
+        let liveOrigin = firstResponder as? NSView
+        let origin: NSView
+        if isMouseNavigation {
+            makeFirstResponder(sender)
+            origin = sender
+        } else if let liveOrigin,
+                  sidebarNavigation.contains(where: { $0 === liveOrigin }) {
+            origin = liveOrigin
+        } else {
+            origin = sender
+        }
+        pendingSidebarOrigin = origin
+        reverseBoundaryOrigin = nil
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        // Resolve the route crossing from the live responder at keyDown time;
+        // route-navigation timing proved intermittent in the real event stream.
+        if event.type == .leftMouseDown {
+            pendingSidebarOrigin = nil
+            reverseBoundaryOrigin = nil
+        }
+
+        if event.type == .keyDown, event.keyCode == 48 {
+            let modifiers = event.modifierFlags.intersection([.shift, .control, .option, .command])
+            if modifiers != [.shift] {
+                reverseBoundaryOrigin = nil
+            }
+            if modifiers.isEmpty {
+                let pendingOrigin = pendingSidebarOrigin
+                pendingSidebarOrigin = nil
+                let liveOrigin = firstResponder as? NSView
+                if let origin = pendingOrigin ?? liveOrigin,
+                   sidebarNavigation.contains(where: { $0 === origin }),
+                   let routeBoundaryFirst,
+                   routeBoundaryFirst.window === self,
+                   makeFirstResponder(routeBoundaryFirst) {
+                    reverseBoundaryOrigin = origin
+                    return
+                }
+            }
+            if modifiers == [.shift],
+               let reverseBoundaryOrigin,
+               reverseBoundaryOrigin.window === self,
+               makeFirstResponder(reverseBoundaryOrigin) {
+                self.reverseBoundaryOrigin = nil
+                return
+            }
+        }
+        super.sendEvent(event)
+    }
 }
 
 @MainActor

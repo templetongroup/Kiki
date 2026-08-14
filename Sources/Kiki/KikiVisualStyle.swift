@@ -844,6 +844,8 @@ final class KikiInfoButton: NSButton {
     private let infoTitle: String
     private let infoDetail: String
     private var infoPopover: NSPopover?
+    private let keyboardFocusLayer = CAShapeLayer()
+    private var showsKeyboardFocus = false
 
     init(title: String, detail: String) {
         infoTitle = title
@@ -859,6 +861,14 @@ final class KikiInfoButton: NSButton {
         target = self
         action = #selector(showInfo)
         setAccessibilityLabel("More about \(title)")
+        setAccessibilityHelp(detail)
+        wantsLayer = true
+        keyboardFocusLayer.fillColor = NSColor.clear.cgColor
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.lineWidth = 1.5
+        keyboardFocusLayer.isHidden = true
+        keyboardFocusLayer.name = "kiki.info-button.keyboard-focus"
+        layer?.addSublayer(keyboardFocusLayer)
         widthAnchor.constraint(equalToConstant: 22).isActive = true
         heightAnchor.constraint(equalToConstant: 22).isActive = true
     }
@@ -867,11 +877,40 @@ final class KikiInfoButton: NSButton {
 
     override var mouseDownCanMoveWindow: Bool { false }
 
+    override var acceptsFirstResponder: Bool { isEnabled }
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        showsKeyboardFocus = accepted && NSApp.currentEvent?.type == .keyDown
+        updateKeyboardFocus()
+        return accepted
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        showsKeyboardFocus = false
+        updateKeyboardFocus()
+        return resigned
+    }
+
+    override func layout() {
+        super.layout()
+        keyboardFocusLayer.frame = bounds
+        keyboardFocusLayer.path = CGPath(ellipseIn: bounds.insetBy(dx: 1.5, dy: 1.5), transform: nil)
+        updateKeyboardFocus()
+    }
+
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         contentTintColor = KikiPalette.secondaryText
+        updateKeyboardFocus()
+    }
+
+    private func updateKeyboardFocus() {
+        keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
+        keyboardFocusLayer.isHidden = !showsKeyboardFocus || window?.firstResponder !== self || !isEnabled
     }
 
     @objc private func showInfo() {

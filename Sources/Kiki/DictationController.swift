@@ -9,6 +9,38 @@ enum DictationState: Equatable {
     case transcribing
 }
 
+struct MeetingCapturePrivacy {
+    private(set) var isActive = false
+    private(set) var wasPrivate = false
+
+    mutating func begin(privateSessionActive: Bool) {
+        if !isActive {
+            wasPrivate = privateSessionActive
+        } else if privateSessionActive {
+            wasPrivate = true
+        }
+        isActive = true
+    }
+
+    mutating func privateSessionDidChange(isActive: Bool) {
+        guard self.isActive, isActive else { return }
+        wasPrivate = true
+    }
+
+    mutating func end() {
+        isActive = false
+        wasPrivate = false
+    }
+
+    func persistHistoryIfAllowed(_ persist: () -> Void) {
+        guard PrivateSessionPolicy.resolved(
+            privateSessionActive: wasPrivate,
+            privateContext: false
+        ).historyEnabled else { return }
+        persist()
+    }
+}
+
 /// Owns the record → transcribe → insert pipeline. Recording remains a tiny,
 /// latency-sensitive path. Finished recordings become ordered jobs so another
 /// recording can begin while the previous job is transcribing.
@@ -19,8 +51,12 @@ final class DictationController {
     var onSuccessfulInsertion: ((String, AppContextSnapshot) -> Void)?
     var onLastDictationActionsChange: ((Bool, Bool) -> Void)?
 
+    private var transientMessageID = UUID()
     private(set) var state: DictationState = .loadingModel {
-        didSet { onStateChange?(state) }
+        didSet {
+            transientMessageID = UUID()
+            onStateChange?(state)
+        }
     }
     private(set) var modelPreparationStatus = ModelPreparationStatus.loading(
         model: Settings.transcriptionModel
@@ -67,7 +103,7 @@ final class DictationController {
     private var nextSequence = 0
     private var lastInsertion: LastInsertion?
     private var lastInsertionIsPresent = false
-    private var meetingCaptureActive = false
+    private var meetingCapturePrivacy = MeetingCapturePrivacy()
 
     var activeModelName: String? {
         Settings.transcriptionModel.displayName
@@ -208,8 +244,10 @@ final class DictationController {
     }
 
     func markCurrentRecordingPrivate() {
-        guard state == .recording, let recordingContext else { return }
-        self.recordingContext = recordingContext.markingPrivateSessionActive()
+        meetingCapturePrivacy.privateSessionDidChange(isActive: true)
+        if state == .recording, let recordingContext {
+            self.recordingContext = recordingContext.markingPrivateSessionActive()
+        }
     }
 
     func retryLastDictation() {
@@ -291,7 +329,13 @@ final class DictationController {
     }
 
     func setMeetingCaptureActive(_ active: Bool) {
-        meetingCaptureActive = active
+        if active {
+            meetingCapturePrivacy.begin(
+                privateSessionActive: PrivateSessionController.shared.isActive
+            )
+        } else {
+            meetingCapturePrivacy.end()
+        }
     }
 
     func makeMeetingLiveTranscription(
@@ -313,9 +357,12 @@ final class DictationController {
             throw KikiError("Finish current dictations before processing the meeting.")
         }
         state = .transcribing
-        let privateSessionActive = PrivateSessionController.shared.isActive
+        meetingCapturePrivacy.privateSessionDidChange(
+            isActive: PrivateSessionController.shared.isActive
+        )
+        let capturePrivacy = meetingCapturePrivacy
         defer {
-            meetingCaptureActive = false
+            meetingCapturePrivacy.end()
             state = .idle
             hud.hide()
         }
@@ -338,10 +385,7 @@ final class DictationController {
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
-        if PrivateSessionPolicy.resolved(
-            privateSessionActive: privateSessionActive,
-            privateContext: false
-        ).historyEnabled {
+        capturePrivacy.persistHistoryIfAllowed {
             TranscriptionHistoryStore.shared.add(
                 text: transcript.plainText,
                 duration: duration,
@@ -409,16 +453,16 @@ final class DictationController {
     }
 
     func startRecording(context preferredContext: AppContextSnapshot? = nil) {
-        guard !meetingCaptureActive else {
+        guard !meetingCapturePrivacy.isActive else {
             showTransientMessage("Meeting Mode is recording")
             return
         }
         switch state {
         case .noModel:
-            showTransientMessage("No model installed — see menu")
+            hud.show(modelPreparationStatus.compactTitle)
             return
         case .loadingModel:
-            showTransientMessage("Loading model…")
+            hud.showModelPreparation(modelPreparationStatus)
             return
         case .recording:
             return
@@ -483,7 +527,7 @@ final class DictationController {
 
         guard duration >= 0.3 else {
             livePreviewCleanup.cancel()
-            updateStateAfterProcessing()
+            settleAfterRecordingEnds()
             return
         }
 
@@ -513,12 +557,29 @@ final class DictationController {
         systemAudioSilencer.restore()
         recordingContext = nil
         lastLiveTranscript = nil
-        if processingJob || !pendingJobs.isEmpty {
+        settleAfterRecordingEnds()
+    }
+
+    static func stateAfterRecordingEnds(
+        processingJob: Bool,
+        pendingJobCount: Int
+    ) -> DictationState {
+        processingJob || pendingJobCount > 0 ? .transcribing : .idle
+    }
+
+    private func settleAfterRecordingEnds() {
+        switch Self.stateAfterRecordingEnds(
+            processingJob: processingJob,
+            pendingJobCount: pendingJobs.count
+        ) {
+        case .transcribing:
             state = .transcribing
             showTranscribingPresentation()
-        } else {
+        case .idle:
             state = .idle
             hud.hide()
+        case .noModel, .loadingModel, .recording:
+            assertionFailure("Post-recording state must be idle or transcribing")
         }
     }
 
@@ -706,10 +767,29 @@ final class DictationController {
     }
 
     private func showTransientMessage(_ message: String) {
+        transientMessageID = UUID()
+        let currentMessageID = transientMessageID
         hud.show(message)
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            guard let self, self.state != .recording else { return }
-            self.updateStateAfterProcessing()
+            guard let self,
+                  self.transientMessageID == currentMessageID,
+                  self.state != .recording else { return }
+            self.resolveTransientPresentationAfterDelay()
+        }
+    }
+
+    func resolveTransientPresentationAfterDelay() {
+        switch state {
+        case .noModel:
+            hud.show(modelPreparationStatus.compactTitle)
+        case .loadingModel:
+            hud.showModelPreparation(modelPreparationStatus)
+        case .idle:
+            hud.hide()
+        case .recording:
+            showListeningPresentation()
+        case .transcribing:
+            showTranscribingPresentation()
         }
     }
 

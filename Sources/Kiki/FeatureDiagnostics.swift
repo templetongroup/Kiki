@@ -14,7 +14,11 @@ enum FeatureDiagnostics {
         try checkDictationMenuCopy()
         try checkKikiCheckup()
         try checkUndoAndRetry()
+        try checkDictationTransientRecovery()
+        try checkShortRecordingRecovery()
+        try checkShortcutReleaseRecovery()
         try checkPrivateSession()
+        try checkMeetingCapturePrivacy()
         try checkSupportBundle()
         try checkPawprints()
         try checkPhraseBoundaries()
@@ -770,6 +774,80 @@ enum FeatureDiagnostics {
         }
     }
 
+    private static func checkDictationTransientRecovery() throws {
+        let controller = DictationController()
+        guard controller.state == .loadingModel else {
+            throw failure("dictation model preparation initial state")
+        }
+        controller.startRecording()
+        controller.resolveTransientPresentationAfterDelay()
+        guard controller.state == .loadingModel,
+              controller.modelPreparationStatus == .loading(model: Settings.transcriptionModel) else {
+            throw failure("temporary dictation message must preserve model preparation state")
+        }
+    }
+
+    private static func checkShortRecordingRecovery() throws {
+        guard DictationController.stateAfterRecordingEnds(
+            processingJob: false,
+            pendingJobCount: 0
+        ) == .idle else {
+            throw failure("short dictation must return to idle")
+        }
+        guard DictationController.stateAfterRecordingEnds(
+            processingJob: true,
+            pendingJobCount: 0
+        ) == .transcribing,
+        DictationController.stateAfterRecordingEnds(
+            processingJob: false,
+            pendingJobCount: 1
+        ) == .transcribing else {
+            throw failure("short zero-wait dictation must resume earlier transcription")
+        }
+    }
+
+    private static func checkShortcutReleaseRecovery() throws {
+        let manager = HotkeyManager()
+        manager.dictationShortcut = DictationShortcut(
+            keyCode: 2,
+            modifiersRawValue: NSEvent.ModifierFlags.control.rawValue
+        )
+        manager.activationMode = .hold
+        guard let keyDown = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.control],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "d",
+            charactersIgnoringModifiers: "d",
+            isARepeat: false,
+            keyCode: 2
+        ), let keyUpAfterModifierRelease = NSEvent.keyEvent(
+            with: .keyUp,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0.1,
+            windowNumber: 0,
+            context: nil,
+            characters: "d",
+            charactersIgnoringModifiers: "d",
+            isARepeat: false,
+            keyCode: 2
+        ) else {
+            throw failure("shortcut event fixtures")
+        }
+        manager.processEventForDiagnostics(keyDown)
+        guard manager.diagnosticTriggerDown else {
+            throw failure("modified shortcut press")
+        }
+        manager.processEventForDiagnostics(keyUpAfterModifierRelease)
+        guard !manager.diagnosticTriggerDown else {
+            throw failure("modified shortcut must recover when its modifier is released first")
+        }
+    }
+
     private static func checkPrivateSession() throws {
         let normal = PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: false)
         let session = PrivateSessionPolicy.resolved(privateSessionActive: true, privateContext: false)
@@ -786,6 +864,43 @@ enum FeatureDiagnostics {
               ),
               privateApp == session else {
             throw failure("Private Session policy")
+        }
+    }
+
+    private static func checkMeetingCapturePrivacy() throws {
+        let originalHistory = ["existing meeting"]
+
+        var startedPrivate = MeetingCapturePrivacy()
+        startedPrivate.begin(privateSessionActive: true)
+        startedPrivate.privateSessionDidChange(isActive: false)
+        var history = originalHistory
+        startedPrivate.persistHistoryIfAllowed {
+            history.append("must not persist")
+        }
+        guard history == originalHistory else {
+            throw failure("meeting started in Private Session must not enter history")
+        }
+
+        var becamePrivate = MeetingCapturePrivacy()
+        becamePrivate.begin(privateSessionActive: false)
+        becamePrivate.privateSessionDidChange(isActive: true)
+        becamePrivate.privateSessionDidChange(isActive: false)
+        history = originalHistory
+        becamePrivate.persistHistoryIfAllowed {
+            history.append("must not persist")
+        }
+        guard history == originalHistory else {
+            throw failure("meeting made private while recording must not enter history")
+        }
+
+        becamePrivate.end()
+        becamePrivate.begin(privateSessionActive: false)
+        history = originalHistory
+        becamePrivate.persistHistoryIfAllowed {
+            history.append("normal meeting")
+        }
+        guard history.count == originalHistory.count + 1 else {
+            throw failure("normal meeting history persistence")
         }
     }
 

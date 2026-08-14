@@ -42,11 +42,13 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
 
    ```bash
    KIKI_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-   KIKI_BUILD_NUMBER="1" \
-   ./scripts/release.sh 0.1.0
+   KIKI_BUILD_NUMBER="58" \
+   ./scripts/release.sh 0.6.25
    ```
 
-   The output is `build/Kiki-0.1.0-macOS.zip`. The release script uses the synced `kiki-notary` profile by default and verifies it before building. It refuses to create a public archive if the Developer ID identity or notarization profile is unavailable, so an unnotarized ZIP cannot be published accidentally. Set `KIKI_NOTARY_PROFILE` only when using a differently named profile.
+   The output is `build/Kiki-0.6.25-macOS.zip`. The release script uses the synced `kiki-notary` profile by default and verifies it before building. It refuses to create a public archive if the Developer ID identity or notarization profile is unavailable, so an unnotarized ZIP cannot be published accidentally. Set `KIKI_NOTARY_PROFILE` only when using a differently named profile.
+
+   `KIKI_BUILD_NUMBER` is required and must be greater than the newest build number already published in `appcast.xml`. The example uses 58 only as an illustration; always choose the next available build number for the release you are creating.
 
 4. Upload the ZIP to a GitHub Release. Before publishing, test the exact downloaded archive on another Mac or a clean user account.
 
@@ -60,4 +62,4 @@ Apps downloaded outside the Mac App Store should be signed with an Apple-issued 
 | `KIKI_NOTARY_KEYCHAIN` | Optional file-based Keychain containing that profile | Synced/default Keychain |
 | `KIKI_BUNDLE_ID` | App bundle identifier | `com.tonyricciardi.kiki` |
 | `KIKI_VERSION` | User-visible version | `0.1.0` |
-| `KIKI_BUILD_NUMBER` | Monotonically increasing build number | `1` |
+| `KIKI_BUILD_NUMBER` | Monotonically increasing build number for Sparkle updates | Required for public releases |
