@@ -1109,6 +1109,50 @@ enum FeatureDiagnostics {
     }
 
     private static func checkWindowInteractions() throws {
+        guard WorkbenchTabTraversal.direction(for: []) == .forward,
+              WorkbenchTabTraversal.direction(for: [.option]) == .forward,
+              WorkbenchTabTraversal.direction(for: [.shift]) == .reverse,
+              WorkbenchTabTraversal.direction(for: [.shift, .option]) == .reverse,
+              WorkbenchTabTraversal.direction(for: [.control]) == nil,
+              WorkbenchTabTraversal.direction(for: [.command]) == nil else {
+            throw failure("Workbench must honor standard and all-controls Tab traversal")
+        }
+        let traversalWindow = WorkbenchWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 300),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        let traversalRoot = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
+        let traversalSidebar = KikiActionButton("Home", kind: .hardware, target: nil, action: nil)
+        let traversalFirst = KikiActionButton("First", kind: .primary, target: nil, action: nil)
+        let traversalSecond = KikiActionButton("Second", kind: .hardware, target: nil, action: nil)
+        let traversalThird = KikiActionButton("Third", kind: .hardware, target: nil, action: nil)
+        [traversalSidebar, traversalFirst, traversalSecond, traversalThird].enumerated().forEach { index, view in
+            view.frame = NSRect(x: 20 + CGFloat(index) * 110, y: 120, width: 100, height: 40)
+            traversalRoot.addSubview(view)
+        }
+        traversalWindow.contentView = traversalRoot
+        traversalWindow.setRouteKeyViewBoundary(
+            sidebarNavigation: [traversalSidebar],
+            routeKeyViews: [traversalFirst, traversalSecond, traversalThird],
+            defaultSidebarOrigin: traversalSidebar
+        )
+        traversalWindow.setPendingSidebarOrigin(traversalSidebar, isMouseNavigation: true)
+        guard traversalWindow.performRouteTraversal(.forward),
+              traversalWindow.firstResponder === traversalFirst,
+              traversalWindow.performRouteTraversal(.forward),
+              traversalWindow.firstResponder === traversalSecond,
+              traversalWindow.performRouteTraversal(.forward),
+              traversalWindow.firstResponder === traversalThird,
+              traversalWindow.performRouteTraversal(.forward),
+              traversalWindow.firstResponder === traversalSidebar,
+              traversalWindow.performRouteTraversal(.forward),
+              traversalWindow.firstResponder === traversalFirst,
+              traversalWindow.performRouteTraversal(.reverse),
+              traversalWindow.firstResponder === traversalSidebar else {
+            throw failure("Workbench route-aware key loop must traverse, wrap, and restore its sidebar origin")
+        }
         let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
         var methodCount: UInt32 = 0
         let methods = class_copyMethodList(KikiNavButton.self, &methodCount)

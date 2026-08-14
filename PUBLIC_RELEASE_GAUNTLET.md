@@ -244,3 +244,30 @@ Every critic record must state:
 - Failed approach: recorded in Round 1; no repeat yet.
 - Next action: publish the frozen candidate, update installed 0.6.25 through Sparkle, then give the exact installed public artifact to a new fresh integration critic.
 - Remaining budget: no explicit token budget; replacement publication/update and fresh final installed-artifact critic remain.
+
+## Final integration, Round 3 — Installed public Kiki 0.6.26
+
+- What changed: published the Round 2 source as Developer ID-signed, notarized Kiki 0.6.26 build 59; independently matched the public ZIP and live appcast; updated installed 0.6.25 through Sparkle.
+- Evidence: SHA-256 `231504dd7e59ce601e3bfe30ea7000f9f08d9a1204d8fba994b19d51a3bbbf8a` matched local and public ZIPs; the installed app passed strict signing, staple, Gatekeeper, executable comparison, feature/HUD diagnostics, and performance checks. A new fresh integration critic inspected the exact installed public artifact.
+- Verifier result: **Fail**. On this Mac, all-controls traversal uses Option-Tab. Kiki's custom Workbench boundary handled plain Tab/Shift-Tab only, so Option-Tab traversed the sidebar and became trapped on Settings; Personalization similarly remained trapped on Learning.
+- Failed approach: the explicit boundary solved standard Tab traversal but filtered out the Option modifier, excluding macOS's alternate all-controls traversal gesture.
+- Next action: recognize Option-Tab and Option-Shift-Tab as forward/reverse traversal at the same route boundary, then rerun the same critic.
+- Remaining budget: no explicit token budget; keyboard fix verification, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 4 — All-controls traversal candidate
+
+- What changed: the Workbench route boundary now treats Tab and Option-Tab as forward traversal and Shift-Tab and Option-Shift-Tab as reverse traversal; Control/Command combinations remain untouched. Focus-modifier diagnostics cover all six cases.
+- Evidence: debug and packaged 0.6.27 build 60 builds passed; feature and HUD diagnostics passed; clean diff check passed.
+- Verifier result: **Fail**. The same critic proved both sidebar-to-page and page-to-sidebar crossings with plain and Option-modified Tab, but 12 subsequent forward Tab events remained trapped on Home's Try Dictation action and never reached the other visible actions.
+- Failed approach: boundary-only event interception repaired the crossing but left AppKit's stale internal key loop in control inside each dynamically replaced route.
+- Next action: replace the boundary-only repair with one explicit live sequence of every visible, enabled route control, including forward/reverse movement, wrapping to the exact sidebar origin, and scrolling the focused control into view.
+- Remaining budget: no explicit token budget; full route-loop verification, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 5 — Complete route-aware key loop
+
+- What changed: the Workbench now rebuilds a visual-order list of all visible, enabled controls whenever a route changes and handles forward/reverse traversal, sidebar-origin restoration, wrapping, and scroll-to-visible for the complete route. A synthetic diagnostic proves first/next/last/wrap/reverse behavior.
+- Evidence: debug and packaged Kiki 0.6.27 build 60 builds passed; feature and HUD diagnostics passed; clean diff check passed.
+- Verifier result: **Blocked, no candidate defect confirmed.** The same critic verified the implementation and packaged diagnostics, but the Mac was locked and exposed no observable Workbench window. The critic did not unlock the Mac or change TCC permissions, so physical route/size evidence remains outstanding.
+- Failed approach: recorded in Round 4; this round uses a materially different full-route traversal strategy.
+- Next action: publish and update only after the Mac is unlocked and the same critic physically traverses every visible enabled control on the named routes and window sizes.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.

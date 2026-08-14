@@ -482,23 +482,25 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     }
 
     private func updateRouteKeyViewBoundary(for surfaceView: NSView) {
-        // Automatic recalculation and explicit full-loop reconstruction both
-        // retained a stale route boundary in the live app. Bypass that cached
-        // boundary only for the two crossings that route replacement affects.
-        let routeFirstView: NSView? = if route.section == .home {
-            view(
-                in: surfaceView,
-                identifier: "kiki.workbench.home.dictation"
-            )
-        } else if !subnavigation.isHidden,
-                  subnavigation.acceptsFirstResponder {
-            subnavigation
-        } else {
-            firstValidKeyView(in: surfaceView)
+        // AppKit keeps stale key-loop links when a route replaces the complete
+        // content subtree. Keep an explicit, live visual-order sequence instead
+        // of asking that cached loop to reconnect itself.
+        var routeKeyViews = validKeyViews(in: surfaceView)
+        if route.section == .home,
+           let primary = view(in: surfaceView, identifier: "kiki.workbench.home.dictation"),
+           let index = routeKeyViews.firstIndex(where: { $0 === primary }) {
+            routeKeyViews.remove(at: index)
+            routeKeyViews.insert(primary, at: 0)
+        }
+        if !subnavigation.isHidden,
+           subnavigation.acceptsFirstResponder,
+           !routeKeyViews.contains(where: { $0 === subnavigation }) {
+            routeKeyViews.insert(subnavigation, at: 0)
         }
         (window as? WorkbenchWindow)?.setRouteKeyViewBoundary(
             sidebarNavigation: GuidedWorkbenchSection.allCases.compactMap { navButtons[$0] },
-            routeFirst: routeFirstView
+            routeKeyViews: routeKeyViews,
+            defaultSidebarOrigin: navButtons[route.section]
         )
     }
 
@@ -514,23 +516,28 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         return nil
     }
 
-    private func firstValidKeyView(in root: NSView) -> NSView? {
-        func visit(_ view: NSView) -> NSView? {
-            guard !view.isHidden, view.alphaValue > 0.01 else { return nil }
+    private func validKeyViews(in root: NSView) -> [NSView] {
+        var result: [NSView] = []
+        func visit(_ view: NSView) {
+            guard !view.isHidden, view.alphaValue > 0.01 else { return }
             if view !== root,
                view.acceptsFirstResponder,
                (view as? NSControl)?.isEnabled != false {
-                return view
+                result.append(view)
             }
             for child in view.subviews {
-                if let match = visit(child) {
-                    return match
-                }
+                visit(child)
             }
-            return nil
         }
-
-        return visit(root)
+        visit(root)
+        return result.sorted { lhs, rhs in
+            let left = lhs.convert(lhs.bounds, to: nil)
+            let right = rhs.convert(rhs.bounds, to: nil)
+            if abs(left.maxY - right.maxY) > 6 {
+                return left.maxY > right.maxY
+            }
+            return left.minX < right.minX
+        }
     }
 
     private func applyWindowPolicy(for section: GuidedWorkbenchSection) {
@@ -586,16 +593,34 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
 }
 
+enum WorkbenchTabTraversal: Equatable {
+    case forward
+    case reverse
+
+    static func direction(for modifiers: NSEvent.ModifierFlags) -> WorkbenchTabTraversal? {
+        let relevant = modifiers.intersection([.shift, .control, .option, .command])
+        if relevant.isEmpty || relevant == [.option] { return .forward }
+        if relevant == [.shift] || relevant == [.shift, .option] { return .reverse }
+        return nil
+    }
+}
+
 @MainActor
-private final class WorkbenchWindow: NSWindow {
+final class WorkbenchWindow: NSWindow {
     private var sidebarNavigation: [NSView] = []
-    private weak var routeBoundaryFirst: NSView?
+    private var routeKeyViews: [NSView] = []
+    private weak var defaultSidebarOrigin: NSView?
     private weak var pendingSidebarOrigin: NSView?
     private weak var reverseBoundaryOrigin: NSView?
 
-    func setRouteKeyViewBoundary(sidebarNavigation: [NSView], routeFirst: NSView?) {
+    func setRouteKeyViewBoundary(
+        sidebarNavigation: [NSView],
+        routeKeyViews: [NSView],
+        defaultSidebarOrigin: NSView?
+    ) {
         self.sidebarNavigation = sidebarNavigation
-        routeBoundaryFirst = routeFirst
+        self.routeKeyViews = routeKeyViews
+        self.defaultSidebarOrigin = defaultSidebarOrigin
         reverseBoundaryOrigin = nil
     }
 
@@ -615,38 +640,102 @@ private final class WorkbenchWindow: NSWindow {
         reverseBoundaryOrigin = nil
     }
 
+    @discardableResult
+    func performRouteTraversal(_ traversal: WorkbenchTabTraversal) -> Bool {
+        let available = routeKeyViews.filter(isAvailableRouteKeyView)
+        guard !available.isEmpty else { return false }
+        let liveResponder = logicalFirstResponder()
+
+        switch traversal {
+        case .forward:
+            let sidebarOrigin: NSView? = if let pendingSidebarOrigin {
+                pendingSidebarOrigin
+            } else if let liveResponder,
+                      sidebarNavigation.contains(where: { $0 === liveResponder }) {
+                liveResponder
+            } else {
+                nil
+            }
+            if let sidebarOrigin {
+                pendingSidebarOrigin = nil
+                if focus(available[0]) {
+                    reverseBoundaryOrigin = sidebarOrigin
+                    return true
+                }
+            }
+
+            guard let liveResponder,
+                  let index = available.firstIndex(where: { $0 === liveResponder }) else {
+                return false
+            }
+            if available.indices.contains(index + 1) {
+                return focus(available[index + 1])
+            }
+            if let origin = reverseBoundaryOrigin ?? defaultSidebarOrigin,
+               focus(origin) {
+                reverseBoundaryOrigin = nil
+                return true
+            }
+
+        case .reverse:
+            pendingSidebarOrigin = nil
+            guard let liveResponder,
+                  let index = available.firstIndex(where: { $0 === liveResponder }) else {
+                return false
+            }
+            if index > 0 {
+                return focus(available[index - 1])
+            }
+            if let origin = reverseBoundaryOrigin ?? defaultSidebarOrigin,
+               focus(origin) {
+                reverseBoundaryOrigin = nil
+                return true
+            }
+        }
+        return false
+    }
+
+    private func logicalFirstResponder() -> NSView? {
+        guard let responder = firstResponder as? NSView else { return nil }
+        if let fieldEditor = responder as? NSTextView,
+           fieldEditor.isFieldEditor,
+           let owner = fieldEditor.delegate as? NSView {
+            return owner
+        }
+        return responder
+    }
+
+    private func isAvailableRouteKeyView(_ view: NSView) -> Bool {
+        guard view.window === self,
+              (view as? NSControl)?.isEnabled != false else { return false }
+        var candidate: NSView? = view
+        while let current = candidate {
+            if current.isHidden || current.alphaValue <= 0.01 { return false }
+            candidate = current.superview
+        }
+        return true
+    }
+
+    private func focus(_ view: NSView) -> Bool {
+        guard makeFirstResponder(view) else { return false }
+        view.scrollToVisible(view.bounds)
+        return true
+    }
+
     override func sendEvent(_ event: NSEvent) {
-        // Resolve the route crossing from the live responder at keyDown time;
-        // route-navigation timing proved intermittent in the real event stream.
         if event.type == .leftMouseDown {
             pendingSidebarOrigin = nil
             reverseBoundaryOrigin = nil
         }
 
         if event.type == .keyDown, event.keyCode == 48 {
-            let modifiers = event.modifierFlags.intersection([.shift, .control, .option, .command])
-            if modifiers != [.shift] {
-                reverseBoundaryOrigin = nil
-            }
-            if modifiers.isEmpty {
-                let pendingOrigin = pendingSidebarOrigin
-                pendingSidebarOrigin = nil
-                let liveOrigin = firstResponder as? NSView
-                if let origin = pendingOrigin ?? liveOrigin,
-                   sidebarNavigation.contains(where: { $0 === origin }),
-                   let routeBoundaryFirst,
-                   routeBoundaryFirst.window === self,
-                   makeFirstResponder(routeBoundaryFirst) {
-                    reverseBoundaryOrigin = origin
-                    return
-                }
-            }
-            if modifiers == [.shift],
-               let reverseBoundaryOrigin,
-               reverseBoundaryOrigin.window === self,
-               makeFirstResponder(reverseBoundaryOrigin) {
-                self.reverseBoundaryOrigin = nil
+            let traversal = WorkbenchTabTraversal.direction(for: event.modifierFlags)
+            if let traversal,
+               performRouteTraversal(traversal) {
                 return
+            }
+            if traversal == nil {
+                reverseBoundaryOrigin = nil
             }
         }
         super.sendEvent(event)
