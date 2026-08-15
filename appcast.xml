@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.28</title>
+            <pubDate>Fri, 14 Aug 2026 20:26:42 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.28</link>
+            <sparkle:version>61</sparkle:version>
+            <sparkle:shortVersionString>0.6.28</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.28
+
+- Restores Kiki normally when it is reopened after using Hide Kiki.
+- Preserves the complete keyboard-navigation fixes from 0.6.27.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.28/Kiki-0.6.28-macOS.zip" length="53802011" type="application/octet-stream" sparkle:edSignature="CW3SIA/ngZ+vNVOUsyea/eciTqCfamtqBFdgX2uRFqab0/vMu2nwVmmCHRMn4tR17zI8bUG/cVQbJss5FYEHDQ=="/>
+        </item>
+        <item>
             <title>0.6.27</title>
             <pubDate>Fri, 14 Aug 2026 19:57:13 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.27</link>
@@ -68,22 +83,6 @@
 - Makes continuous generation faster while preserving sectioning for unusually long scripts.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.24/Kiki-0.6.24-macOS.zip" length="53771693" type="application/octet-stream" sparkle:edSignature="Ze6tI81wniwzTe8tymN5zx8QG2a5LUu9FY56b5t1Bi9EPE4OffyV6RjjyjHUyAB2uR/UxKHMPTIuscmjrlRRAg=="/>
-        </item>
-        <item>
-            <title>0.6.23</title>
-            <pubDate>Thu, 13 Aug 2026 13:14:09 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.23</link>
-            <sparkle:version>56</sparkle:version>
-            <sparkle:shortVersionString>0.6.23</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.23
-
-- Expands voice enrollment to three concise sentences covering natural, energetic, and thoughtful delivery.
-- Keeps the sample to about 10–15 seconds so generation stays fast and avoids enrollment-script leakage.
-- Updates Voice Studio guidance and recording limits for the balanced sample.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.23/Kiki-0.6.23-macOS.zip" length="53764123" type="application/octet-stream" sparkle:edSignature="Aiv8ioUEen/CEj4wj6ws87k88GxqHp8EOUDEz+L57AI+WYrU3iIKeGYJoqGE/5a0CpfsOD5Sb8UojGZLtJMgAA=="/>
         </item>
     </channel>
 </rss>
