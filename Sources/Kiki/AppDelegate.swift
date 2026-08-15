@@ -421,6 +421,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows _: Bool
+    ) -> Bool {
+        // Kiki remains running after Hide because its menu-bar service and
+        // shortcuts stay active. A normal Finder, Launchpad, Dock, or `open`
+        // activation must therefore unhide that same process and restore its
+        // management surface instead of leaving the user stranded.
+        sender.unhide(nil)
+        if let window = workbenchWindow.window, window.isVisible {
+            activationPolicyCoordinator.prepareToPresentManagementWindow(window)
+            window.makeKeyAndOrderFront(nil)
+            sender.activate(ignoringOtherApps: true)
+        } else {
+            openWorkbench(section: .home)
+        }
+        return true
+    }
+
     @objc private func toggleDictation() {
         controller.toggleRecording()
     }

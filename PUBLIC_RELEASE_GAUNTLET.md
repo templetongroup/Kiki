@@ -298,3 +298,21 @@ Every critic record must state:
 - Failed approach: prior manual traversal was complete only after focus had entered a page; its sidebar entry rule existed for forward traversal but not reverse traversal.
 - Next action: freeze, publish, update the installed app through Sparkle, and give the exact public installed artifact to a new fresh integration critic.
 - Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 9 — Installed public Kiki 0.6.27
+
+- What changed: published the Round 8 source as Developer ID-signed, notarized Kiki 0.6.27 build 60; pushed the live Sparkle feed; updated installed 0.6.26 through Kiki's own updater; matched the installed executable byte-for-byte to the public ZIP.
+- Evidence: public/local ZIP SHA-256 `0e122c658afaee29562bf34222a5fa5876df596fcab2993a2b94981a89d9687e`; installed strict signing, staple, Gatekeeper, feature/HUD diagnostics, and performance passed. A brand-new critic inspected the exact installed public artifact.
+- Verifier result: **Fail**. Native Hide Kiki hid the running menu-bar app and Workbench, but Finder/Launchpad-style reopening and normal activation left the same process hidden with no restored Workbench.
+- Failed approach: adding the standard native Hide menu without an application-reopen handler preserved menu conventions but did not account for Kiki remaining alive as a menu-bar/accessory service.
+- Next action: unhide the existing process and restore its current Workbench on application reopen, then rerun the same critic's exact installed lifecycle verifier on a replacement candidate.
+- Remaining budget: no explicit token budget; same-critic candidate verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 10 — Hide/reopen recovery candidate
+
+- What changed: application reopen now unhides the existing Kiki process, restores the already-visible Workbench without changing its route, or opens Home if no management window exists.
+- Evidence: debug and Developer ID-signed packaged Kiki 0.6.28 build 61 builds passed; feature/HUD diagnostics and strict signing passed.
+- Verifier result: **Pass**. Three consecutive native Hide cycles left one hidden process with zero visible windows; reopening the same bundle through LaunchServices reused that exact PID, unhid it, restored the Workbench and status item, and preserved native menus and shortcut copy.
+- Failed approach: recorded in Round 9; no repeat yet.
+- Next action: publish the replacement, update installed 0.6.27 through Sparkle, then give exact installed public 0.6.28 to a new fresh integration critic. The locked-display Close/global-shortcut boundary remains for that final unlocked review.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
