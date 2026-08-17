@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.31</title>
+            <pubDate>Mon, 17 Aug 2026 19:21:48 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.31</link>
+            <sparkle:version>64</sparkle:version>
+            <sparkle:shortVersionString>0.6.31</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.31
+
+- Pulls Home setup checks into one compact, left-aligned group.
+- Keeps labels, statuses, and actions close together at every window size.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.31/Kiki-0.6.31-macOS.zip" length="53806231" type="application/octet-stream" sparkle:edSignature="itJREsnwgwuVLSedwPG97vwhBBRLOGI8Lu4VF+NwRto9MyEThEosU5DM9vd5A/FCRxjVQewSoQqJPu9mPsJ5Bg=="/>
+        </item>
+        <item>
             <title>0.6.30</title>
             <pubDate>Mon, 17 Aug 2026 10:58:51 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.30</link>
@@ -64,21 +79,6 @@
 - Makes every visible page control reachable in a predictable order with Tab or macOS all-controls navigation, including reverse movement and scrolling focused controls into view.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.27/Kiki-0.6.27-macOS.zip" length="53802866" type="application/octet-stream" sparkle:edSignature="MpAdGYdEcXXgelEGGkm10WDCeFrs/LQNdSqta/7sCXWSOBG1uS9EPWG+YCoxB1vnGDbNRkLK3S/RFr0CPuxmCA=="/>
-        </item>
-        <item>
-            <title>0.6.26</title>
-            <pubDate>Fri, 14 Aug 2026 16:41:05 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.26</link>
-            <sparkle:version>59</sparkle:version>
-            <sparkle:shortVersionString>0.6.26</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.26
-
-- Makes shortcut instructions match the selected Hold to Dictate or Press to Toggle behavior everywhere in Kiki.
-- Clearly identifies ⌃⌥D as the separate hands-free start/stop shortcut.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.26/Kiki-0.6.26-macOS.zip" length="53789054" type="application/octet-stream" sparkle:edSignature="j7x7FzLOr/4aOmhfj4vD9O+bimJidme23O4j1+ApwOLwt/M7R+DdBhSDYf50kEdB9kFeR2yS/nbK5dxbS9FCCA=="/>
         </item>
     </channel>
 </rss>
