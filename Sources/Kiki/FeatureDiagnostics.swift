@@ -144,9 +144,9 @@ enum FeatureDiagnostics {
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.readiness-card"
               ),
-              abs(compactReadinessCard.frame.height - 280) <= 1 else {
+              abs(compactReadinessCard.frame.height - 264) <= 1 else {
             throw failure(
-                "Home content must fit its single setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
+                "Home content must fit its single setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds) fitting=\(compactHomeView.fittingSize)"
             )
         }
         let wideHomeView = GuidedWorkbenchHomeView()
@@ -164,11 +164,10 @@ enum FeatureDiagnostics {
                   in: wideHomeView,
                   identifier: "kiki.workbench.home.readiness-list"
               ),
-              abs(wideReadinessCard.frame.height - 226) <= 1,
-              abs(wideReadinessList.frame.width - 500) <= 1,
-              wideReadinessCopy.frame.maxX < wideReadinessList.frame.minX,
-              wideReadinessList.frame.minX - wideReadinessCopy.frame.maxX <= 29 else {
-            throw failure("Wide Home setup checks must use a compact two-column layout")
+              abs(wideReadinessCard.frame.height - 264) <= 1,
+              abs(wideReadinessList.frame.width - 376) <= 1,
+              abs(wideReadinessCopy.frame.minX - wideReadinessList.frame.minX) <= 1 else {
+            throw failure("Home setup checks must keep the heading and compact row grid aligned")
         }
         let homeActionIDs = [
             "kiki.workbench.home.dictation",
@@ -269,7 +268,18 @@ enum FeatureDiagnostics {
         let readinessValues = readinessValueIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? NSTextField
         }
+        let readinessTitleIDs = [
+            "kiki.workbench.home.readiness.microphone.title",
+            "kiki.workbench.home.readiness.accessibility.title",
+            "kiki.workbench.home.readiness.model.title",
+            "kiki.workbench.home.readiness.shortcut.title",
+            "kiki.workbench.home.readiness.first-dictation.title",
+        ]
+        let readinessTitles = readinessTitleIDs.compactMap {
+            findView(in: compactHomeView, identifier: $0) as? NSTextField
+        }
         let readinessValueMinX = readinessValues.map(\.frame.minX)
+        let readinessTitleMaxX = readinessTitles.map(\.frame.maxX)
         let readinessRows = [
             "kiki.workbench.home.readiness.microphone",
             "kiki.workbench.home.readiness.accessibility",
@@ -285,9 +295,13 @@ enum FeatureDiagnostics {
               actionWidths.allSatisfy({ abs($0 - 104) <= 1 }),
               actionHeights.allSatisfy({ abs($0 - 30) <= 1 }),
               readinessValues.count == readinessValueIDs.count,
+              readinessTitles.count == readinessTitleIDs.count,
               let minimumValueX = readinessValueMinX.min(),
               let maximumValueX = readinessValueMinX.max(),
               maximumValueX - minimumValueX <= 1,
+              zip(readinessValueMinX, readinessTitleMaxX).allSatisfy({ valueX, titleX in
+                  valueX - titleX <= 9
+              }),
               readinessRows.count == 5,
               readinessRowHeights.allSatisfy({ abs($0 - 32) <= 1 }) else {
             throw failure("Home readiness actions must share one aligned column x=\(actionMinX) widths=\(actionWidths) heights=\(actionHeights)")
