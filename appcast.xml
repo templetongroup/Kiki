@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.29</title>
+            <pubDate>Sun, 16 Aug 2026 23:01:59 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.29</link>
+            <sparkle:version>62</sparkle:version>
+            <sparkle:shortVersionString>0.6.29</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.29
+
+- Makes every Workbench sidebar destination reachable with standard Up and Down arrow keys.
+- Preserves full page-control traversal and reliable reopening after Hide Kiki.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.29/Kiki-0.6.29-macOS.zip" length="53803619" type="application/octet-stream" sparkle:edSignature="bdEH+aAQj8/+2lD/HpZ0xGW6Bhq8GMmlIGn/ukjIx4uD9Oe3avEb5N+KpBEBeg0Z74zn1AvIigIQEZlASVDrDw=="/>
+        </item>
+        <item>
             <title>0.6.28</title>
             <pubDate>Fri, 14 Aug 2026 20:26:42 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.28</link>
@@ -67,22 +82,6 @@
 - Adds standard macOS menus, keyboard focus improvements, and more reliable menu-bar/window behavior.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.25/Kiki-0.6.25-macOS.zip" length="53786136" type="application/octet-stream" sparkle:edSignature="2I0nbcVfbqEVT+EzFNiIptocKk8McVGi9mN8l/x/vmGaM2WxTgOGBUAc+58tJlXm2UuP2Rzzn+Jy/bq49SYhAA=="/>
-        </item>
-        <item>
-            <title>0.6.24</title>
-            <pubDate>Thu, 13 Aug 2026 17:11:33 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.24</link>
-            <sparkle:version>57</sparkle:version>
-            <sparkle:shortVersionString>0.6.24</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.24
-
-- Keeps normal-length Voice Studio scripts in one continuous generation instead of stitching together multiple acoustic takes.
-- Prevents abrupt changes in loudness, room tone, and delivery during ordinary generated audio.
-- Makes continuous generation faster while preserving sectioning for unusually long scripts.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.24/Kiki-0.6.24-macOS.zip" length="53771693" type="application/octet-stream" sparkle:edSignature="Ze6tI81wniwzTe8tymN5zx8QG2a5LUu9FY56b5t1Bi9EPE4OffyV6RjjyjHUyAB2uR/UxKHMPTIuscmjrlRRAg=="/>
         </item>
     </channel>
 </rss>
