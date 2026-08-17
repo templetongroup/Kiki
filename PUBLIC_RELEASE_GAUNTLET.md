@@ -334,3 +334,12 @@ Every critic record must state:
 - Failed approach: recorded in Round 11; no repeat yet.
 - Next action: publish, update installed 0.6.28 through Sparkle, and give the exact installed public 0.6.29 artifact to another new fresh integration critic.
 - Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and another new fresh installed-artifact critic remain.
+
+## Final integration, Round 13 — Installed public Kiki 0.6.29
+
+- What changed: published the Round 12 source as Developer ID-signed, notarized Kiki 0.6.29 build 62; pushed the live Sparkle feed; updated installed 0.6.28 through Kiki's own updater; matched the installed executable byte-for-byte to the public ZIP.
+- Evidence: public/local ZIP SHA-256 `2a359399134f6e86dd045e4903da86b9eada7d71372379ba4cb2b7f1456ddb43`; installed strict signing, staple, Gatekeeper, feature/HUD diagnostics, and performance passed. A brand-new critic independently inspected the exact installed public artifact across distribution identity, native lifecycle, every route at minimum/default/large sizes, keyboard traversal, shortcut/cancel recovery, Checkup, local file transcription, private-meeting latching, model truth, updater state, and Voice Studio safeguards.
+- Verifier result: **Pass**. No release-blocking defect was confirmed. Overlapping file-task protection remained an explicitly untested boundary because another simultaneous action contaminated that live race; installed diagnostics still cover its production gate.
+- Failed approach: none in this final round; prior failed approaches are preserved in Rounds 1–12.
+- Next action: release goal complete. Keep overlapping-file stress as a focused post-release test in an exclusive process/account.
+- Remaining budget: no explicit token budget; no required release work remains.
