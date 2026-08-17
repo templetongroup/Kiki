@@ -20,6 +20,9 @@ final class GuidedWorkbenchHomeView: NSView {
     private lazy var startDictationButton = KikiActionButton("Try Dictation", kind: .primary, target: self, action: #selector(startDictation))
     private var wideHeroConstraints: [NSLayoutConstraint] = []
     private var compactHeroConstraint: NSLayoutConstraint?
+    private var readinessWideConstraints: [NSLayoutConstraint] = []
+    private var readinessCompactConstraints: [NSLayoutConstraint] = []
+    private var readinessHeightConstraint: NSLayoutConstraint?
     private var usesCompactHero: Bool?
 
     init() {
@@ -46,13 +49,13 @@ final class GuidedWorkbenchHomeView: NSView {
         // Switch constraints from the proposed width, before AppKit resolves the
         // current wide layout back into the window's minimum fitting width.
         if !wideHeroConstraints.isEmpty {
-            updateHeroLayout(compact: newSize.width < 900)
+            updateHeroLayout(compact: newSize.width < 940)
         }
         super.setFrameSize(newSize)
     }
 
     func prepareForAvailableWidth(_ width: CGFloat) {
-        updateHeroLayout(compact: width < 900)
+        updateHeroLayout(compact: width < 940)
     }
 
     func update(snapshot: KikiCheckupSnapshot) {
@@ -93,7 +96,7 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     override func layout() {
-        updateHeroLayout(compact: bounds.width < 900)
+        updateHeroLayout(compact: bounds.width < 940)
         super.layout()
     }
 
@@ -193,7 +196,6 @@ final class GuidedWorkbenchHomeView: NSView {
             hero.widthAnchor.constraint(equalTo: stack.widthAnchor),
             hero.heightAnchor.constraint(equalToConstant: 235),
             readiness.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            readiness.heightAnchor.constraint(equalToConstant: 320),
         ])
     }
 
@@ -202,10 +204,16 @@ final class GuidedWorkbenchHomeView: NSView {
             usesCompactHero = compact
             if compact {
                 NSLayoutConstraint.deactivate(wideHeroConstraints)
+                NSLayoutConstraint.deactivate(readinessWideConstraints)
                 compactHeroConstraint?.isActive = true
+                NSLayoutConstraint.activate(readinessCompactConstraints)
+                readinessHeightConstraint?.constant = 280
             } else {
                 compactHeroConstraint?.isActive = false
+                NSLayoutConstraint.deactivate(readinessCompactConstraints)
                 NSLayoutConstraint.activate(wideHeroConstraints)
+                NSLayoutConstraint.activate(readinessWideConstraints)
+                readinessHeightConstraint?.constant = 226
             }
             heroArtworkView?.isHidden = compact
         }
@@ -222,34 +230,52 @@ final class GuidedWorkbenchHomeView: NSView {
             shortcutReadinessRow,
             firstDictationReadinessRow,
         ]
-        let divider = separator()
-        let stack = NSStackView(views: [title, readinessDetailLabel, divider] + rows)
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        divider.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        rows.forEach { $0.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
-        install(stack, in: card)
+        readinessDetailLabel.maximumNumberOfLines = 0
+
+        let copy = NSStackView(views: [title, readinessDetailLabel])
+        copy.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.readiness-copy")
+        copy.orientation = .vertical
+        copy.alignment = .leading
+        copy.spacing = 5
+
+        let list = NSStackView(views: rows)
+        list.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.readiness-list")
+        list.orientation = .vertical
+        list.alignment = .leading
+        list.spacing = 4
+        rows.forEach { $0.widthAnchor.constraint(equalTo: list.widthAnchor).isActive = true }
+
+        copy.translatesAutoresizingMaskIntoConstraints = false
+        list.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(copy)
+        card.addSubview(list)
+
+        let wideListWidth = list.widthAnchor.constraint(equalToConstant: 500)
+        wideListWidth.priority = NSLayoutConstraint.Priority(249)
+        readinessWideConstraints = [
+            copy.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
+            copy.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
+            copy.widthAnchor.constraint(equalToConstant: 220),
+            list.leadingAnchor.constraint(equalTo: copy.trailingAnchor, constant: 28),
+            list.trailingAnchor.constraint(lessThanOrEqualTo: card.trailingAnchor, constant: -18),
+            wideListWidth,
+            list.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
+            list.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
+        ]
+        readinessCompactConstraints = [
+            copy.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
+            copy.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
+            copy.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
+            list.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
+            list.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
+            list.topAnchor.constraint(equalTo: copy.bottomAnchor, constant: 14),
+            list.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
+        ]
+        NSLayoutConstraint.activate(readinessWideConstraints)
+        let height = card.heightAnchor.constraint(equalToConstant: 226)
+        height.isActive = true
+        readinessHeightConstraint = height
         return card
-    }
-
-    private func separator() -> NSView {
-        let view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = KikiPalette.stroke.cgColor
-        view.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        return view
-    }
-
-    private func install(_ stack: NSStackView, in card: NSView) {
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
-            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
-            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
-        ])
     }
 
     @objc private func startDictation() { onStartDictation?() }
@@ -282,16 +308,26 @@ private final class GuidedWorkbenchReadinessRow: NSStackView {
         addArrangedSubview(titleLabel)
         addArrangedSubview(NSView())
         addArrangedSubview(valueLabel)
-        addArrangedSubview(actionButton)
+        let actionContainer = NSView()
+        actionButton.translatesAutoresizingMaskIntoConstraints = false
+        actionContainer.addSubview(actionButton)
+        addArrangedSubview(actionContainer)
         orientation = .horizontal
         alignment = .centerY
         spacing = 8
         dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
         dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
         titleLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 132).isActive = true
-        actionButton.widthAnchor.constraint(equalToConstant: 104).isActive = true
-        actionButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
-        heightAnchor.constraint(equalToConstant: 34).isActive = true
+        valueLabel.widthAnchor.constraint(equalToConstant: 108).isActive = true
+        actionContainer.widthAnchor.constraint(equalToConstant: 104).isActive = true
+        actionContainer.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        NSLayoutConstraint.activate([
+            actionButton.leadingAnchor.constraint(equalTo: actionContainer.leadingAnchor),
+            actionButton.trailingAnchor.constraint(equalTo: actionContainer.trailingAnchor),
+            actionButton.topAnchor.constraint(equalTo: actionContainer.topAnchor),
+            actionButton.bottomAnchor.constraint(equalTo: actionContainer.bottomAnchor),
+        ])
+        heightAnchor.constraint(equalToConstant: 32).isActive = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

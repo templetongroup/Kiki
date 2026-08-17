@@ -578,7 +578,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .home:
             return GuidedWorkbenchSurface(
                 view: workbenchHomeView,
-                sizing: .scroll(NSSize(width: 900, height: 720))
+                sizing: .scroll(NSSize(width: 900, height: 600))
             )
         case .dictation:
             if route.subpage == 0 {

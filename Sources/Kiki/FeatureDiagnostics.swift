@@ -140,13 +140,35 @@ enum FeatureDiagnostics {
         guard let compactHomeContent = compactHomeController.window?.contentView,
               compactHomeContent.bounds.width <= 900.5,
               compactHomeView.bounds.width <= 665,
-              findView(
+              let compactReadinessCard = findView(
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.readiness-card"
-              ) != nil else {
+              ),
+              abs(compactReadinessCard.frame.height - 280) <= 1 else {
             throw failure(
                 "Home content must fit its single setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds)"
             )
+        }
+        let wideHomeView = GuidedWorkbenchHomeView()
+        wideHomeView.frame = NSRect(x: 0, y: 0, width: 1_000, height: 600)
+        wideHomeView.layoutSubtreeIfNeeded()
+        guard let wideReadinessCard = findView(
+                  in: wideHomeView,
+                  identifier: "kiki.workbench.home.readiness-card"
+              ),
+              let wideReadinessCopy = findView(
+                  in: wideHomeView,
+                  identifier: "kiki.workbench.home.readiness-copy"
+              ),
+              let wideReadinessList = findView(
+                  in: wideHomeView,
+                  identifier: "kiki.workbench.home.readiness-list"
+              ),
+              abs(wideReadinessCard.frame.height - 226) <= 1,
+              abs(wideReadinessList.frame.width - 500) <= 1,
+              wideReadinessCopy.frame.maxX < wideReadinessList.frame.minX,
+              wideReadinessList.frame.minX - wideReadinessCopy.frame.maxX <= 29 else {
+            throw failure("Wide Home setup checks must use a compact two-column layout")
         }
         let homeActionIDs = [
             "kiki.workbench.home.dictation",
@@ -237,12 +259,37 @@ enum FeatureDiagnostics {
         let actionMinX = readinessActions.map(\.frame.minX)
         let actionWidths = readinessActions.map(\.frame.width)
         let actionHeights = readinessActions.map(\.frame.height)
+        let readinessValueIDs = [
+            "kiki.workbench.home.readiness.microphone.value",
+            "kiki.workbench.home.readiness.accessibility.value",
+            "kiki.workbench.home.readiness.model.value",
+            "kiki.workbench.home.readiness.shortcut.value",
+            "kiki.workbench.home.readiness.first-dictation.value",
+        ]
+        let readinessValues = readinessValueIDs.compactMap {
+            findView(in: compactHomeView, identifier: $0) as? NSTextField
+        }
+        let readinessValueMinX = readinessValues.map(\.frame.minX)
+        let readinessRows = [
+            "kiki.workbench.home.readiness.microphone",
+            "kiki.workbench.home.readiness.accessibility",
+            "kiki.workbench.home.readiness.model",
+            "kiki.workbench.home.readiness.shortcut",
+            "kiki.workbench.home.readiness.first-dictation",
+        ].compactMap { findView(in: compactHomeView, identifier: $0) }
+        let readinessRowHeights = readinessRows.map(\.frame.height)
         guard readinessActions.count == readinessActionIDs.count,
               let minimumActionX = actionMinX.min(),
               let maximumActionX = actionMinX.max(),
               maximumActionX - minimumActionX <= 1,
               actionWidths.allSatisfy({ abs($0 - 104) <= 1 }),
-              actionHeights.allSatisfy({ abs($0 - 30) <= 1 }) else {
+              actionHeights.allSatisfy({ abs($0 - 30) <= 1 }),
+              readinessValues.count == readinessValueIDs.count,
+              let minimumValueX = readinessValueMinX.min(),
+              let maximumValueX = readinessValueMinX.max(),
+              maximumValueX - minimumValueX <= 1,
+              readinessRows.count == 5,
+              readinessRowHeights.allSatisfy({ abs($0 - 32) <= 1 }) else {
             throw failure("Home readiness actions must share one aligned column x=\(actionMinX) widths=\(actionWidths) heights=\(actionHeights)")
         }
         guard let firstDictationAction = findView(
