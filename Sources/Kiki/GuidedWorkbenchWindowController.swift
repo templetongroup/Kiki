@@ -719,6 +719,21 @@ final class WorkbenchWindow: NSWindow {
         return false
     }
 
+    @discardableResult
+    func performSidebarNavigation(_ offset: Int) -> Bool {
+        guard abs(offset) == 1,
+              let liveResponder = logicalFirstResponder(among: sidebarNavigation),
+              let index = sidebarNavigation.firstIndex(where: { $0 === liveResponder }) else {
+            return false
+        }
+        let destinationIndex = min(max(0, index + offset), sidebarNavigation.count - 1)
+        guard destinationIndex != index else { return true }
+        let destination = sidebarNavigation[destinationIndex]
+        guard focus(destination) else { return false }
+        (destination as? NSButton)?.performClick(nil)
+        return true
+    }
+
     private func logicalFirstResponder(among registeredViews: [NSView]) -> NSView? {
         guard var candidate = firstResponder as? NSView else { return nil }
         if let fieldEditor = candidate as? NSTextView,
@@ -777,6 +792,12 @@ final class WorkbenchWindow: NSWindow {
             if traversal == nil {
                 reverseBoundaryOrigin = nil
             }
+        }
+        if event.type == .keyDown,
+           (event.keyCode == 125 || event.keyCode == 126),
+           event.modifierFlags.intersection([.control, .option, .command]).isEmpty,
+           performSidebarNavigation(event.keyCode == 125 ? 1 : -1) {
+            return
         }
         super.sendEvent(event)
     }

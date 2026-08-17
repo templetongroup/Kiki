@@ -1135,16 +1135,18 @@ enum FeatureDiagnostics {
         )
         let traversalRoot = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 300))
         let traversalSidebar = KikiActionButton("Home", kind: .hardware, target: nil, action: nil)
+        let traversalSidebarSecond = KikiActionButton("Dictation", kind: .hardware, target: nil, action: nil)
+        let traversalSidebarThird = KikiActionButton("Meetings", kind: .hardware, target: nil, action: nil)
         let traversalFirst = KikiActionButton("First", kind: .primary, target: nil, action: nil)
         let traversalSecond = KikiActionButton("Second", kind: .hardware, target: nil, action: nil)
         let traversalThird = KikiActionButton("Third", kind: .hardware, target: nil, action: nil)
-        [traversalSidebar, traversalFirst, traversalSecond, traversalThird].enumerated().forEach { index, view in
+        [traversalSidebar, traversalSidebarSecond, traversalSidebarThird, traversalFirst, traversalSecond, traversalThird].enumerated().forEach { index, view in
             view.frame = NSRect(x: 20 + CGFloat(index) * 110, y: 120, width: 100, height: 40)
             traversalRoot.addSubview(view)
         }
         traversalWindow.contentView = traversalRoot
         traversalWindow.setRouteKeyViewBoundary(
-            sidebarNavigation: [traversalSidebar],
+            sidebarNavigation: [traversalSidebar, traversalSidebarSecond, traversalSidebarThird],
             routeKeyViews: [traversalFirst, traversalSecond, traversalThird],
             defaultSidebarOrigin: traversalSidebar
         )
@@ -1169,6 +1171,15 @@ enum FeatureDiagnostics {
               traversalWindow.performRouteTraversal(.reverse),
               traversalWindow.firstResponder === traversalSecond else {
             throw failure("Workbench reverse traversal must enter the route from its sidebar origin")
+        }
+        traversalWindow.makeFirstResponder(traversalSidebar)
+        guard traversalWindow.performSidebarNavigation(1),
+              traversalWindow.firstResponder === traversalSidebarSecond,
+              traversalWindow.performSidebarNavigation(1),
+              traversalWindow.firstResponder === traversalSidebarThird,
+              traversalWindow.performSidebarNavigation(-1),
+              traversalWindow.firstResponder === traversalSidebarSecond else {
+            throw failure("Workbench sidebar must support standard arrow-key navigation")
         }
         let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
         var methodCount: UInt32 = 0

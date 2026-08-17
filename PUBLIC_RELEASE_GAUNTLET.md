@@ -316,3 +316,21 @@ Every critic record must state:
 - Failed approach: recorded in Round 9; no repeat yet.
 - Next action: publish the replacement, update installed 0.6.27 through Sparkle, then give exact installed public 0.6.28 to a new fresh integration critic. The locked-display Close/global-shortcut boundary remains for that final unlocked review.
 - Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and a new fresh installed-artifact critic remain.
+
+## Final integration, Round 11 — Installed public Kiki 0.6.28
+
+- What changed: published the Round 10 source as Developer ID-signed, notarized Kiki 0.6.28 build 61; pushed the live Sparkle feed; updated installed 0.6.27 through Kiki's own updater; matched the installed executable byte-for-byte to the public ZIP.
+- Evidence: public/local ZIP SHA-256 `a526b6a07fe5d832770bf1872b381e920fed0057d79a23be8c0c167040c02dc9`; installed strict signing, staple, Gatekeeper, feature/HUD diagnostics, and performance passed. A brand-new critic inspected the exact installed public artifact.
+- Verifier result: **Fail**. Page actions and Home were keyboard reachable, but the sidebar behaved as a dead-end focus stop: Tab stayed within the active route and arrow keys did not move to Dictation, Meetings, Voice Studio, Library, Personalization, Models, or Settings.
+- Failed approach: treating the sidebar as one Tab stop was appropriate, but no list-style arrow-key behavior was implemented for its destinations.
+- Next action: add standard Up/Down sidebar navigation that moves focus and selection through every destination, then rerun the same fresh critic.
+- Remaining budget: no explicit token budget; same-critic candidate verdict, replacement publication/update, and another new fresh installed-artifact critic remain.
+
+## Final integration, Round 12 — Keyboard-operable sidebar candidate
+
+- What changed: when a sidebar destination has focus, Up/Down now moves to the adjacent destination, keeps it visible, and activates that route; boundary destinations stop rather than wrapping unexpectedly. Diagnostics cover forward and reverse sidebar movement.
+- Evidence: debug and Developer ID-signed packaged builds passed feature/HUD diagnostics and strict signing. The same critic physically verified all eight sidebar destinations, page focus round-trips, visible focus, and route activation at route-constrained minimum, default 1240×840, and large 1600×1000 sizes.
+- Verifier result: **Pass**. The sidebar is one coherent Tab stop; Up/Down traverses and activates all eight routes with hard boundaries; Space/Return works; page traversal, Hide/reopen, close/accessory/status lifecycle, native menus, and shortcut copy remain correct.
+- Failed approach: recorded in Round 11; no repeat yet.
+- Next action: publish, update installed 0.6.28 through Sparkle, and give the exact installed public 0.6.29 artifact to another new fresh integration critic.
+- Remaining budget: no explicit token budget; same-critic verdict, replacement publication/update, and another new fresh installed-artifact critic remain.
