@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.30</title>
+            <pubDate>Mon, 17 Aug 2026 10:58:51 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.30</link>
+            <sparkle:version>63</sparkle:version>
+            <sparkle:shortVersionString>0.6.30</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.30
+
+- Tightens the Home setup-check layout into a compact, responsive group.
+- Keeps check statuses and actions aligned at every supported window size.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.30/Kiki-0.6.30-macOS.zip" length="53806659" type="application/octet-stream" sparkle:edSignature="BGtbt3Q/g4vHBurvNvfDKpftJ/QEcuqtGUZQTQNGgq1K6XQiJyeXK+SAaYpCKvvUIBZuJz/9r7WGu3lqsJbwBw=="/>
+        </item>
+        <item>
             <title>0.6.29</title>
             <pubDate>Sun, 16 Aug 2026 23:01:59 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.29</link>
@@ -64,24 +79,6 @@
 - Clearly identifies ⌃⌥D as the separate hands-free start/stop shortcut.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.26/Kiki-0.6.26-macOS.zip" length="53789054" type="application/octet-stream" sparkle:edSignature="j7x7FzLOr/4aOmhfj4vD9O+bimJidme23O4j1+ApwOLwt/M7R+DdBhSDYf50kEdB9kFeR2yS/nbK5dxbS9FCCA=="/>
-        </item>
-        <item>
-            <title>0.6.25</title>
-            <pubDate>Fri, 14 Aug 2026 14:43:12 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.25</link>
-            <sparkle:version>58</sparkle:version>
-            <sparkle:shortVersionString>0.6.25</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.25
-
-- Fixes short or cancelled dictations getting stuck in a listening state.
-- Keeps model download, loading, and recovery messages accurate throughout dictation.
-- Prevents overlapping file transcriptions and stale results from replacing the current recording.
-- Keeps Meeting Mode private for the full capture when Private Session was active at any point.
-- Adds standard macOS menus, keyboard focus improvements, and more reliable menu-bar/window behavior.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.25/Kiki-0.6.25-macOS.zip" length="53786136" type="application/octet-stream" sparkle:edSignature="2I0nbcVfbqEVT+EzFNiIptocKk8McVGi9mN8l/x/vmGaM2WxTgOGBUAc+58tJlXm2UuP2Rzzn+Jy/bq49SYhAA=="/>
         </item>
     </channel>
 </rss>
