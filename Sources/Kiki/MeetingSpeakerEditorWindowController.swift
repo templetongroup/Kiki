@@ -129,9 +129,7 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
         tableView.addTableColumn(speaker)
         tableView.addTableColumn(words)
         tableView.headerView = NSTableHeaderView()
-        tableView.rowHeight = 34
-        tableView.usesAlternatingRowBackgroundColors = true
-        tableView.allowsMultipleSelection = true
+        configureKikiTable(tableView, allowsMultipleSelection: true)
         tableView.dataSource = self
         tableView.delegate = self
     }
@@ -147,13 +145,17 @@ final class MeetingSpeakerEditorWindowController: NSWindowController, NSTableVie
         case "speaker": value = segment.speaker
         default: value = segment.text
         }
-        let label = NSTextField(labelWithString: value)
-        label.font = identifier.rawValue == "time"
-            ? .monospacedDigitSystemFont(ofSize: 11.5, weight: .medium)
-            : .systemFont(ofSize: 12.5, weight: identifier.rawValue == "speaker" ? .semibold : .regular)
-        label.textColor = identifier.rawValue == "speaker" ? KikiPalette.accentText : KikiPalette.primaryText
-        label.lineBreakMode = .byTruncatingTail
-        return label
+        return kikiTableCell(
+            value,
+            font: identifier.rawValue == "time"
+                ? .monospacedDigitSystemFont(ofSize: 11.5, weight: .medium)
+                : .systemFont(ofSize: 12.5, weight: identifier.rawValue == "speaker" ? .semibold : .regular),
+            color: identifier.rawValue == "speaker" ? KikiPalette.accentText : KikiPalette.primaryText
+        )
+    }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        KikiTableRowView()
     }
 
     private func refreshSpeakers(selecting name: String? = nil) {

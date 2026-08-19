@@ -1452,7 +1452,7 @@ enum FeatureDiagnostics {
               !meetingCopy.isEnabled,
               abs(meetingExport.frame.width - meetingCopy.frame.width) < 0.5,
               abs(meetingExport.frame.height - meetingCopy.frame.height) < 0.5,
-              abs(meetingExport.frame.height - 42) < 0.5,
+              abs(meetingExport.frame.height - KikiMetrics.primaryControlHeight) < 0.5,
               identifySpeakers.contentTintColor?.isEqual(
                   KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true else {
@@ -1491,9 +1491,13 @@ enum FeatureDiagnostics {
                 in: personalizationContent,
                 identifier: "kiki.personalization.replacement"
               ) as? NSTextField,
+              let suggestionScope = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.suggestion-scope"
+              ) as? NSPopUpButton,
               abs(approveSuggestion.frame.height - saveSuggestion.frame.height) < 0.5,
               abs(approveSuggestion.frame.height - removeSuggestion.frame.height) < 0.5,
-              abs(approveSuggestion.frame.height - 42) < 0.5,
+              abs(approveSuggestion.frame.height - KikiMetrics.primaryControlHeight) < 0.5,
               findView(
                 in: personalizationContent,
                 identifier: "kiki.personalization.suggestions.surface"
@@ -1555,6 +1559,7 @@ enum FeatureDiagnostics {
             Notification(name: NSTableView.selectionDidChangeNotification, object: suggestionsTable)
         )
         guard replacementField.stringValue == "Lim",
+              suggestionScope.indexOfSelectedItem == 1,
               approveSuggestion.isEnabled,
               removeSuggestion.isEnabled,
               !saveSuggestion.isEnabled else {
@@ -1628,10 +1633,10 @@ enum FeatureDiagnostics {
               findView(in: historyContent, identifier: "kiki.history.table.surface") is KikiDataSurfaceView,
               let historyTable = findView(in: historyContent, identifier: "kiki.history.table") as? NSTableView,
               historyTable.columnAutoresizingStyle == .lastColumnOnlyAutoresizingStyle,
-              abs(historyTable.rowHeight - 34) < 0.5,
+              abs(historyTable.rowHeight - KikiMetrics.tableRowHeight) < 0.5,
               abs(historyCopy.frame.width - historyDelete.frame.width) < 0.5,
               abs(historyCopy.frame.height - historyDelete.frame.height) < 0.5,
-              abs(historyCopy.frame.height - 42) < 0.5,
+              abs(historyCopy.frame.height - KikiMetrics.primaryControlHeight) < 0.5,
               !historyCopy.isEnabled,
               !historyDelete.isEnabled else {
             let copyFrame = (history.window?.contentView.flatMap {
@@ -1761,7 +1766,7 @@ enum FeatureDiagnostics {
               !depthLayerNames.contains("kiki.card.radial-depth"),
               !depthLayerNames.contains("kiki.card.texture"),
               hardwareButton.intrinsicContentSize.height < 40,
-              abs((hardwareButton.font?.pointSize ?? 0) - 11.5) < 0.1,
+              abs((hardwareButton.font?.pointSize ?? 0) - 12) < 0.1,
               hardwareButton.layer?.borderWidth == 1,
               hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true,
               disabledHardwareButton.contentTintColor?.isEqual(
@@ -1812,7 +1817,7 @@ enum FeatureDiagnostics {
         row.layoutSubtreeIfNeeded()
         guard row.arrangedSubviews.count == count,
               let first = row.arrangedSubviews.first else { return false }
-        return abs(first.bounds.height - 42) < 1
+        return abs(first.bounds.height - KikiMetrics.primaryControlHeight) < 1
             && row.arrangedSubviews.allSatisfy {
                 abs($0.bounds.width - first.bounds.width) < 1
                     && abs($0.bounds.height - first.bounds.height) < 1

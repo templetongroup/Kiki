@@ -199,7 +199,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         footer.alignment = .centerY
         footer.spacing = 8
         [exportButton, copyButton].forEach {
-            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
             $0.widthAnchor.constraint(equalToConstant: 92).isActive = true
         }
 

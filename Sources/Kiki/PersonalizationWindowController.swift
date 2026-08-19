@@ -273,6 +273,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         suggestionReplacementField.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.replacement")
         suggestionReplacementField.placeholderString = "Enter the exact text Kiki should use"
         suggestionScopePopup.addItems(withTitles: ["Everywhere", "This app only"])
+        suggestionScopePopup.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.suggestion-scope")
         suggestionScopePopup.controlSize = .large
         suggestionScopePopup.font = .systemFont(ofSize: 12, weight: .medium)
         suggestionHeardLabel.maximumNumberOfLines = 2
@@ -295,13 +296,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private func configure(_ table: NSTableView, columns: [(String, String, CGFloat)]) {
         table.dataSource = self
         table.delegate = self
-        table.usesAlternatingRowBackgroundColors = false
-        table.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.20)
-        table.gridColor = KikiPalette.stroke
-        table.gridStyleMask = [.solidHorizontalGridLineMask]
-        table.intercellSpacing = NSSize(width: 0, height: 0)
-        table.rowHeight = 32
-        table.allowsMultipleSelection = false
+        configureKikiTable(table)
         table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         for (identifier, title, width) in columns {
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(identifier))
@@ -360,7 +355,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         actions.alignment = .centerY
         actions.spacing = 8
         [approveSuggestionButton, saveSuggestionButton, removeSuggestionButton].forEach {
-            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
         }
         approveSuggestionButton.widthAnchor.constraint(equalToConstant: 170).isActive = true
         saveSuggestionButton.widthAnchor.constraint(equalTo: approveSuggestionButton.widthAnchor).isActive = true
@@ -461,7 +456,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             buttonRow.identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).actions")
         }
         buttons.forEach {
-            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
         }
         if let firstButton = buttons.first {
             firstButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
@@ -674,7 +669,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         editingSuggestionID = suggestion.id
         suggestionHeardLabel.stringValue = "Kiki heard “\(suggestion.heard)”. Edit the correction, then save it or approve the rule."
         suggestionReplacementField.stringValue = suggestion.replacement
-        suggestionScopePopup.selectItem(at: 0)
+        suggestionScopePopup.selectItem(at: suggestion.bundleIdentifier == nil ? 0 : 1)
     }
 
     private func trimmed(_ value: String) -> String {
@@ -728,11 +723,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             value = identifier == "primary" ? item.primaryText : identifier == "alternate" ? item.alternateText : "\(Int(item.similarity * 100))%"
         } else { return nil }
 
-        let cell = NSTextField(labelWithString: value)
-        cell.textColor = KikiPalette.primaryText
-        cell.lineBreakMode = .byTruncatingTail
-        cell.toolTip = value
-        return cell
+        return kikiTableCell(value)
     }
 
     @objc private func approveSelectedSuggestion() {

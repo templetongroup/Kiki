@@ -1,6 +1,24 @@
 import AppKit
 import QuartzCore
 
+enum KikiMetrics {
+    // Beautiful UI reference: compact desktop controls, 8 pt rhythm, 35 pt data rows.
+    // Kiki keeps a slightly larger native hit target while matching that density.
+    static let space1: CGFloat = 4
+    static let space2: CGFloat = 8
+    static let space3: CGFloat = 12
+    static let space4: CGFloat = 16
+    static let space5: CGFloat = 24
+    static let space6: CGFloat = 32
+    static let controlRadius: CGFloat = 8
+    static let surfaceRadius: CGFloat = 10
+    static let primaryControlHeight: CGFloat = 40
+    static let compactControlHeight: CGFloat = 34
+    static let navigationRowHeight: CGFloat = 40
+    static let tableRowHeight: CGFloat = 36
+    static let tableHorizontalInset: CGFloat = 10
+}
+
 enum KikiPalette {
     private static func adaptive(dark: NSColor, light _: NSColor) -> NSColor {
         // Kiki ships one Studio Hardware appearance. Returning the dark token
@@ -9,18 +27,18 @@ enum KikiPalette {
         dark
     }
 
-    // Studio Hardware geometry and material treatment stay unchanged. The neutral
-    // ramp comes directly from Templeton Slate; sage remains Kiki's highlight.
+    // Beautiful UI uses a quiet, near-neutral dark ramp. Kiki keeps sage as its
+    // brand signal while adopting the reference's clearer surface separation.
     static let canvas = adaptive(
-        dark: NSColor(red: 0.212, green: 0.235, blue: 0.271, alpha: 1), // #363c45
+        dark: NSColor(red: 0.100, green: 0.104, blue: 0.116, alpha: 1), // #1a1b1e
         light: NSColor(red: 0.957, green: 0.945, blue: 0.918, alpha: 1) // #f4f1ea
     )
     static let sidebar = adaptive(
-        dark: NSColor(red: 0.180, green: 0.204, blue: 0.235, alpha: 1), // #2e343c
+        dark: NSColor(red: 0.082, green: 0.086, blue: 0.096, alpha: 1), // #151618
         light: NSColor(red: 0.914, green: 0.898, blue: 0.859, alpha: 1) // #e9e5db
     )
     static let surface = adaptive(
-        dark: NSColor(red: 0.192, green: 0.216, blue: 0.251, alpha: 1), // #313740
+        dark: NSColor(red: 0.122, green: 0.127, blue: 0.141, alpha: 1), // #1f2024
         light: NSColor(red: 0.925, green: 0.910, blue: 0.875, alpha: 1) // #ece8df
     )
     static let cardTopTint = adaptive(
@@ -36,27 +54,27 @@ enum KikiPalette {
         light: NSColor.white.withAlphaComponent(0.20)
     )
     static let elevatedSurface = adaptive(
-        dark: NSColor(red: 0.251, green: 0.278, blue: 0.318, alpha: 1), // #404751
+        dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1), // #282a2e
         light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
     )
     static let stroke = adaptive(
-        dark: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1), // #454c56
+        dark: NSColor(red: 0.190, green: 0.198, blue: 0.218, alpha: 1), // #303238
         light: NSColor(red: 0.839, green: 0.816, blue: 0.761, alpha: 1) // #d6d0c2
     )
     static let strongStroke = adaptive(
-        dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 0.48),
+        dark: NSColor(red: 0.239, green: 0.249, blue: 0.274, alpha: 1),
         light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 0.38)
     )
     static let primaryText = adaptive(
-        dark: NSColor(red: 0.906, green: 0.871, blue: 0.784, alpha: 1), // #e7dec8
+        dark: NSColor(red: 0.949, green: 0.953, blue: 0.961, alpha: 1), // #f2f3f5
         light: NSColor(red: 0.204, green: 0.196, blue: 0.173, alpha: 1) // #34322c
     )
     static let secondaryText = adaptive(
-        dark: NSColor(red: 0.702, green: 0.667, blue: 0.588, alpha: 1), // #b3aa96
+        dark: NSColor(red: 0.694, green: 0.710, blue: 0.741, alpha: 1), // #b1b5bd
         light: NSColor(red: 0.420, green: 0.404, blue: 0.341, alpha: 1) // #6b6757
     )
     static let tertiaryText = adaptive(
-        dark: NSColor(red: 0.690, green: 0.655, blue: 0.573, alpha: 1), // #b0a792
+        dark: NSColor(red: 0.506, green: 0.525, blue: 0.561, alpha: 1), // #81868f
         light: NSColor(red: 0.408, green: 0.384, blue: 0.325, alpha: 1) // #686253
     )
     static let accent = adaptive(
@@ -72,25 +90,29 @@ enum KikiPalette {
         light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 1) // #4e5b48
     )
     static let selectionSurface = adaptive(
-        dark: NSColor(red: 0.251, green: 0.278, blue: 0.318, alpha: 1), // #404751
+        dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1),
         light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
+    )
+    static let selectionTint = adaptive(
+        dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 0.10),
+        light: NSColor(red: 0.306, green: 0.357, blue: 0.282, alpha: 0.10)
     )
     static let khaki = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
         light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
     )
-    static let hardwareControl = NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1) // #2a2f37
-    static let hardwareControlText = NSColor(red: 0.906, green: 0.871, blue: 0.784, alpha: 1) // #e7dec8
+    static let hardwareControl = NSColor(red: 0.114, green: 0.118, blue: 0.129, alpha: 1)
+    static let hardwareControlText = NSColor(red: 0.949, green: 0.953, blue: 0.961, alpha: 1)
     static let hardwareButtonSurface = adaptive(
-        dark: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1),
+        dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1),
         light: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1)
     )
     static let hardwareButtonBorder = adaptive(
-        dark: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1),
+        dark: NSColor(red: 0.239, green: 0.249, blue: 0.274, alpha: 1),
         light: NSColor(red: 0.271, green: 0.298, blue: 0.337, alpha: 1)
     )
     static let meterTrack = adaptive(
-        dark: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1),
+        dark: NSColor(red: 0.114, green: 0.118, blue: 0.129, alpha: 1),
         light: NSColor(red: 0.839, green: 0.816, blue: 0.761, alpha: 1)
     )
     static let meterAccent = adaptive(
@@ -253,8 +275,8 @@ class KikiCardView: NSView {
     var selected = false { didSet { updateStyle() } }
     var usesSelectionFill = true { didSet { updateStyle() } }
     var usesSelectionBorder = true { didSet { updateStyle() } }
-    var cardCornerRadius: CGFloat = 8 { didSet { updateStyle() } }
-    var usesHardwareDepth = true { didSet { updateStyle() } }
+    var cardCornerRadius: CGFloat = KikiMetrics.surfaceRadius { didSet { updateStyle() } }
+    var usesHardwareDepth = false { didSet { updateStyle() } }
     private let verticalDepth = CAGradientLayer()
     private let innerBorder = CAShapeLayer()
 
@@ -319,8 +341,8 @@ class KikiCardView: NSView {
             layer?.borderColor = (selected && usesSelectionBorder ? KikiPalette.strongStroke : KikiPalette.stroke).cgColor
             layer?.shadowColor = NSColor.black.cgColor
             let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            layer?.shadowOpacity = isDark ? (selected ? 0.24 : 0.18) : (selected ? 0.12 : 0.08)
-            layer?.shadowRadius = selected ? 8 : 4
+            layer?.shadowOpacity = usesHardwareDepth ? (isDark ? 0.16 : 0.08) : 0
+            layer?.shadowRadius = usesHardwareDepth ? 4 : 0
             layer?.shadowOffset = CGSize(width: 0, height: -1)
         }
     }
@@ -349,7 +371,7 @@ final class KikiNavButton: NSButton {
         symbolView.imageScaling = .scaleProportionallyDown
         symbolView.setContentHuggingPriority(.required, for: .horizontal)
         titleLabel.stringValue = title
-        titleLabel.font = .systemFont(ofSize: 13.5, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
         titleLabel.lineBreakMode = .byTruncatingTail
         chevronView.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
         chevronView.imageScaling = .scaleProportionallyDown
@@ -363,9 +385,9 @@ final class KikiNavButton: NSButton {
         addSubview(contentStack)
 
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = KikiMetrics.controlRadius
         layer?.cornerCurve = .continuous
-        heightAnchor.constraint(equalToConstant: 42).isActive = true
+        heightAnchor.constraint(equalToConstant: KikiMetrics.navigationRowHeight).isActive = true
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
             contentStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
@@ -386,7 +408,7 @@ final class KikiNavButton: NSButton {
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: ceil(contentStack.fittingSize.width) + 28, height: 42)
+        NSSize(width: ceil(contentStack.fittingSize.width) + 28, height: KikiMetrics.navigationRowHeight)
     }
 
     override var mouseDownCanMoveWindow: Bool { false }
@@ -417,7 +439,7 @@ final class KikiNavButton: NSButton {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
-                ? KikiPalette.selectionSurface.withAlphaComponent(0.72).cgColor
+                ? KikiPalette.selectionSurface.cgColor
                 : NSColor.clear.cgColor
             let keyboardFocused = showsKeyboardFocus && window?.firstResponder === self
             layer?.borderWidth = isSelectedPage || keyboardFocused ? 1 : 0
@@ -428,7 +450,7 @@ final class KikiNavButton: NSButton {
             symbolView.contentTintColor = color
             titleLabel.textColor = color
             chevronView.contentTintColor = color
-            chevronView.isHidden = !isSelectedPage
+            chevronView.isHidden = true
         }
     }
 }
@@ -495,12 +517,12 @@ final class KikiActionButton: NSButton {
         setButtonType(.momentaryPushIn)
         isBordered = false
         focusRingType = .none
-        font = .systemFont(ofSize: kind == .hardware ? 11.5 : 13, weight: kind == .hardware ? .regular : .semibold)
+        font = .systemFont(ofSize: kind == .hardware ? 12 : 12.5, weight: kind == .hardware ? .medium : .semibold)
         lineBreakMode = .byTruncatingTail
         cell?.wraps = false
         setContentCompressionResistancePriority(.required, for: .vertical)
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = KikiMetrics.controlRadius
         layer?.cornerCurve = .continuous
         keyboardFocusLayer.fillColor = NSColor.clear.cgColor
         keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
@@ -509,7 +531,7 @@ final class KikiActionButton: NSButton {
         keyboardFocusLayer.name = "kiki.button.keyboard-focus"
         layer?.addSublayer(keyboardFocusLayer)
         alignment = .center
-        heightAnchor.constraint(greaterThanOrEqualToConstant: kind == .hardware ? 32 : 42).isActive = true
+        heightAnchor.constraint(greaterThanOrEqualToConstant: kind == .hardware ? KikiMetrics.compactControlHeight : KikiMetrics.primaryControlHeight).isActive = true
         updateStyle()
     }
 
@@ -527,9 +549,9 @@ final class KikiActionButton: NSButton {
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
         if kind == .hardware {
-            return NSSize(width: ceil(base.width) + 24, height: max(32, ceil(base.height) + 12))
+            return NSSize(width: ceil(base.width) + 24, height: max(KikiMetrics.compactControlHeight, ceil(base.height) + 12))
         }
-        return NSSize(width: ceil(base.width) + 40, height: max(42, ceil(base.height) + 18))
+        return NSSize(width: ceil(base.width) + 32, height: max(KikiMetrics.primaryControlHeight, ceil(base.height) + 16))
     }
 
     override var mouseDownCanMoveWindow: Bool { false }
@@ -612,10 +634,7 @@ final class KikiActionButton: NSButton {
                 layer?.backgroundColor = KikiPalette.hardwareButtonSurface.cgColor
                 layer?.borderWidth = 1
                 layer?.borderColor = KikiPalette.hardwareButtonBorder.cgColor
-                layer?.shadowColor = NSColor.black.cgColor
-                layer?.shadowOpacity = 0.28
-                layer?.shadowRadius = 2
-                layer?.shadowOffset = CGSize(width: 0, height: -1)
+                layer?.shadowOpacity = 0
                 applyTitleColor(KikiPalette.hardwareControlText)
             case .quiet:
                 layer?.backgroundColor = NSColor.clear.cgColor
@@ -653,7 +672,7 @@ final class KikiScrollView: NSScrollView {
         automaticallyAdjustsContentInsets = false
         contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         wantsLayer = true
-        layer?.cornerRadius = 6
+        layer?.cornerRadius = KikiMetrics.controlRadius
         layer?.cornerCurve = .continuous
         layer?.borderWidth = 1
         updateStyle()
@@ -684,7 +703,7 @@ final class KikiInsetPanelView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.cornerRadius = 12
+        layer?.cornerRadius = KikiMetrics.surfaceRadius
         layer?.cornerCurve = .continuous
         layer?.borderWidth = 1
         layer?.masksToBounds = true
@@ -706,7 +725,7 @@ final class KikiInsetPanelView: NSView {
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
-            layer?.borderColor = KikiPalette.strongStroke.cgColor
+            layer?.borderColor = KikiPalette.stroke.cgColor
         }
     }
 }
@@ -1011,10 +1030,11 @@ final class KikiDataSurfaceView: KikiCardView {
             emptyState.identifier = NSUserInterfaceItemIdentifier("\(tableIdentifier).empty")
         }
         usesHardwareDepth = false
-        cardCornerRadius = 7
+        cardCornerRadius = KikiMetrics.surfaceRadius
 
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
+        scrollView.fillsBackground = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         emptyState.translatesAutoresizingMaskIntoConstraints = false
         addSubview(scrollView)
@@ -1041,14 +1061,65 @@ final class KikiTableRowView: NSTableRowView {
 
     override func drawSelection(in dirtyRect: NSRect) {
         guard selectionHighlightStyle != .none else { return }
-        let selectionRect = bounds.insetBy(dx: 1, dy: 1)
-        KikiPalette.selectionSurface.setFill()
-        NSBezierPath(roundedRect: selectionRect, xRadius: 4, yRadius: 4).fill()
-        KikiPalette.strongStroke.withAlphaComponent(0.72).setStroke()
-        let border = NSBezierPath(roundedRect: selectionRect.insetBy(dx: 0.5, dy: 0.5), xRadius: 3.5, yRadius: 3.5)
+        let selectionRect = bounds.insetBy(dx: 2, dy: 2)
+        KikiPalette.selectionTint.setFill()
+        NSBezierPath(roundedRect: selectionRect, xRadius: 6, yRadius: 6).fill()
+        KikiPalette.accentText.withAlphaComponent(0.72).setStroke()
+        let border = NSBezierPath(roundedRect: selectionRect.insetBy(dx: 0.5, dy: 0.5), xRadius: 5.5, yRadius: 5.5)
         border.lineWidth = 1
         border.stroke()
     }
+}
+
+@MainActor
+final class KikiTableCellView: NSTableCellView {
+    private let valueLabel = NSTextField(labelWithString: "")
+
+    init(
+        text: String,
+        font: NSFont = .systemFont(ofSize: 13),
+        color: NSColor = KikiPalette.primaryText
+    ) {
+        super.init(frame: .zero)
+        valueLabel.stringValue = text
+        valueLabel.font = font
+        valueLabel.textColor = color
+        valueLabel.lineBreakMode = .byTruncatingTail
+        valueLabel.maximumNumberOfLines = 1
+        valueLabel.toolTip = text
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(valueLabel)
+        textField = valueLabel
+        NSLayoutConstraint.activate([
+            valueLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: KikiMetrics.tableHorizontalInset),
+            valueLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -KikiMetrics.tableHorizontalInset),
+            valueLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+func kikiTableCell(
+    _ text: String,
+    font: NSFont = .systemFont(ofSize: 13),
+    color: NSColor = KikiPalette.primaryText
+) -> KikiTableCellView {
+    KikiTableCellView(text: text, font: font, color: color)
+}
+
+@MainActor
+func configureKikiTable(_ table: NSTableView, allowsMultipleSelection: Bool = false) {
+    table.style = .plain
+    table.usesAlternatingRowBackgroundColors = false
+    table.backgroundColor = .clear
+    table.gridColor = KikiPalette.stroke
+    table.gridStyleMask = [.solidHorizontalGridLineMask]
+    table.intercellSpacing = .zero
+    table.rowHeight = KikiMetrics.tableRowHeight
+    table.allowsMultipleSelection = allowsMultipleSelection
+    table.selectionHighlightStyle = .regular
 }
 
 @MainActor
@@ -1117,6 +1188,19 @@ func kikiFieldGroup(
     detail: String? = nil,
     control: NSView
 ) -> NSStackView {
+    if let field = control as? NSTextField, field.isEditable {
+        field.isBezeled = true
+        field.bezelStyle = .roundedBezel
+        field.drawsBackground = true
+        field.backgroundColor = KikiPalette.hardwareControl
+        field.textColor = KikiPalette.primaryText
+        field.font = .systemFont(ofSize: 12.5)
+        field.heightAnchor.constraint(greaterThanOrEqualToConstant: KikiMetrics.compactControlHeight).isActive = true
+    } else if let popup = control as? NSPopUpButton {
+        popup.controlSize = .large
+        popup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        popup.heightAnchor.constraint(greaterThanOrEqualToConstant: KikiMetrics.compactControlHeight).isActive = true
+    }
     let titleLabel = kikiLabel(title, size: 11.5, weight: .semibold)
     let views: [NSView]
     if let detail {

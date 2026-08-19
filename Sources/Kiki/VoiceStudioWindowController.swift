@@ -128,7 +128,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         artwork.imageAlignment = .alignTopRight
         artwork.translatesAutoresizingMaskIntoConstraints = false
         let eyebrow = kikiLabel("VOICE STUDIO · FULLY LOCAL", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Record, shape, and create", size: 30, weight: .bold)
+        let title = kikiLabel("Record, shape, and create", size: 27, weight: .bold)
         let subtitle = kikiLabel("Professional voice recording with local intelligence. Everything stays on this Mac.", size: 13, color: KikiPalette.secondaryText)
         let headerText = NSStackView(views: [eyebrow, title, subtitle])
         headerText.identifier = NSUserInterfaceItemIdentifier("kiki.voice.studio-hero-copy")
@@ -142,11 +142,11 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         header.addSubview(artwork)
         header.addSubview(headerText)
         NSLayoutConstraint.activate([
-            artwork.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -35),
-            artwork.topAnchor.constraint(equalTo: header.topAnchor, constant: 2),
-            artwork.widthAnchor.constraint(equalToConstant: 615),
-            artwork.heightAnchor.constraint(equalToConstant: 228),
-            headerText.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 28),
+            artwork.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -24),
+            artwork.topAnchor.constraint(equalTo: header.topAnchor),
+            artwork.widthAnchor.constraint(equalToConstant: 430),
+            artwork.heightAnchor.constraint(equalToConstant: 158),
+            headerText.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 24),
             headerText.centerYAnchor.constraint(equalTo: header.centerYAnchor),
             subtitle.widthAnchor.constraint(equalToConstant: 310),
         ])
@@ -162,19 +162,19 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let root = NSStackView(views: [header, columns])
         root.orientation = .vertical
         root.alignment = .leading
-        root.spacing = 16
+        root.spacing = KikiMetrics.space3
         root.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(root)
 
         NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 30),
-            root.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -30),
-            root.topAnchor.constraint(equalTo: content.topAnchor, constant: 46),
-            root.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -26),
+            root.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: KikiMetrics.space5),
+            root.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -KikiMetrics.space5),
+            root.topAnchor.constraint(equalTo: content.topAnchor, constant: KikiMetrics.space6),
+            root.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -KikiMetrics.space5),
             header.widthAnchor.constraint(equalTo: root.widthAnchor),
-            header.heightAnchor.constraint(equalToConstant: 230),
+            header.heightAnchor.constraint(equalToConstant: 160),
             columns.widthAnchor.constraint(equalTo: root.widthAnchor),
-            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -246),
+            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -172),
             leftCard.widthAnchor.constraint(equalToConstant: 450),
             rightCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
             rightCard.heightAnchor.constraint(equalTo: columns.heightAnchor),

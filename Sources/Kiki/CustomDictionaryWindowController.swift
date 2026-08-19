@@ -67,9 +67,7 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
         tableView.headerView = NSTableHeaderView()
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.allowsMultipleSelection = false
-        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.62)
-        tableView.usesAlternatingRowBackgroundColors = true
+        configureKikiTable(tableView)
         let surface = KikiDataSurfaceView(
             table: tableView,
             emptySymbol: "text.book.closed",
@@ -182,9 +180,10 @@ final class CustomDictionaryWindowController: NSWindowController, NSTableViewDat
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let entry = CustomDictionaryStore.shared.entries[row]
         let text = tableColumn?.identifier.rawValue == "heard" ? entry.spoken : entry.replacement
-        let field = NSTextField(labelWithString: text)
-        field.textColor = KikiPalette.primaryText
-        field.lineBreakMode = .byTruncatingTail
-        return field
+        return kikiTableCell(text)
+    }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        KikiTableRowView()
     }
 }

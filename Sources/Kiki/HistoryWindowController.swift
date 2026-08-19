@@ -99,12 +99,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.headerView = NSTableHeaderView()
         tableView.allowsMultipleSelection = false
         tableView.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
-        tableView.rowHeight = 34
-        tableView.intercellSpacing = NSSize(width: 0, height: 0)
-        tableView.gridStyleMask = [.solidHorizontalGridLineMask]
-        tableView.gridColor = KikiPalette.stroke.withAlphaComponent(0.7)
-        tableView.backgroundColor = KikiPalette.canvas.withAlphaComponent(0.35)
-        tableView.usesAlternatingRowBackgroundColors = false
+        configureKikiTable(tableView)
         let historySurface = KikiDataSurfaceView(
             table: tableView,
             emptySymbol: "clock.arrow.circlepath",
@@ -132,7 +127,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         detailActions.alignment = .centerY
         detailActions.spacing = 8
         [copyButton, deleteButton].forEach {
-            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+            $0.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
             $0.widthAnchor.constraint(equalToConstant: 80).isActive = true
         }
         let detailHeader = NSStackView(views: [detailEyebrow, detailActions])
@@ -300,10 +295,9 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         case "context": text = record.context ?? record.source.rawValue.capitalized
         default: text = record.text.replacingOccurrences(of: "\n", with: " ")
         }
-        let field = NSTextField(labelWithString: text)
-        field.textColor = KikiPalette.primaryText
-        field.font = .systemFont(ofSize: 13, weight: tableColumn?.identifier.rawValue == "context" ? .medium : .regular)
-        field.lineBreakMode = .byTruncatingTail
-        return field
+        return kikiTableCell(
+            text,
+            font: .systemFont(ofSize: 13, weight: tableColumn?.identifier.rawValue == "context" ? .medium : .regular)
+        )
     }
 }

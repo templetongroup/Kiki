@@ -824,7 +824,7 @@ private final class WorkbenchNavigationButton: NSButton {
         setAccessibilityLabel(section.title)
         setAccessibilityHelp(section.subtitle)
         wantsLayer = true
-        layer?.cornerRadius = 7
+        layer?.cornerRadius = KikiMetrics.controlRadius
         layer?.cornerCurve = .continuous
         keyboardFocusLayer.fillColor = NSColor.clear.cgColor
         keyboardFocusLayer.strokeColor = KikiPalette.accentText.cgColor
@@ -853,7 +853,7 @@ private final class WorkbenchNavigationButton: NSButton {
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 54),
+            heightAnchor.constraint(equalToConstant: 48),
             row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             row.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -905,7 +905,7 @@ private final class WorkbenchNavigationButton: NSButton {
 
     private func updateStyle() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = isSelectedPage ? KikiPalette.selectionSurface.withAlphaComponent(0.74).cgColor : NSColor.clear.cgColor
+            layer?.backgroundColor = isSelectedPage ? KikiPalette.selectionSurface.cgColor : NSColor.clear.cgColor
             layer?.borderWidth = 0
             layer?.borderColor = NSColor.clear.cgColor
             let primary = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
@@ -914,7 +914,7 @@ private final class WorkbenchNavigationButton: NSButton {
             subtitleLabel.textColor = isSelectedPage ? KikiPalette.secondaryText : KikiPalette.tertiaryText
             symbolView.contentTintColor = accent
             chevronView.contentTintColor = accent
-            chevronView.isHidden = !isSelectedPage
+            chevronView.isHidden = true
         }
     }
 }
