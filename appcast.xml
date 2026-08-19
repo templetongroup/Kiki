@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.32</title>
+            <pubDate>Wed, 19 Aug 2026 19:03:20 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.32</link>
+            <sparkle:version>65</sparkle:version>
+            <sparkle:shortVersionString>0.6.32</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.32
+
+- Lets you correct a pending learning suggestion before approving it.
+- Adds a clear Remove Suggestion action beside the selected suggestion.
+- Keeps the review controls compact and aligned at every supported window size.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.32/Kiki-0.6.32-macOS.zip" length="53807655" type="application/octet-stream" sparkle:edSignature="0gov5B+hHc47vw2DHEel3pVKNRjaMLmjQT+7EETrO2zxwDWKhhuRf0oMzQEWXtzZBs+qi2EoH2GoZ5uj5sCfCA=="/>
+        </item>
+        <item>
             <title>0.6.31</title>
             <pubDate>Mon, 17 Aug 2026 19:21:48 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.31</link>
@@ -64,21 +80,6 @@
 - Preserves the complete keyboard-navigation fixes from 0.6.27.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.28/Kiki-0.6.28-macOS.zip" length="53802011" type="application/octet-stream" sparkle:edSignature="CW3SIA/ngZ+vNVOUsyea/eciTqCfamtqBFdgX2uRFqab0/vMu2nwVmmCHRMn4tR17zI8bUG/cVQbJss5FYEHDQ=="/>
-        </item>
-        <item>
-            <title>0.6.27</title>
-            <pubDate>Fri, 14 Aug 2026 19:57:13 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.27</link>
-            <sparkle:version>60</sparkle:version>
-            <sparkle:shortVersionString>0.6.27</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.27
-
-- Fixes keyboard focus getting trapped in the Workbench sidebar or on the first page action.
-- Makes every visible page control reachable in a predictable order with Tab or macOS all-controls navigation, including reverse movement and scrolling focused controls into view.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.27/Kiki-0.6.27-macOS.zip" length="53802866" type="application/octet-stream" sparkle:edSignature="MpAdGYdEcXXgelEGGkm10WDCeFrs/LQNdSqta/7sCXWSOBG1uS9EPWG+YCoxB1vnGDbNRkLK3S/RFr0CPuxmCA=="/>
         </item>
     </channel>
 </rss>
