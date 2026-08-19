@@ -414,21 +414,22 @@ enum FeatureDiagnostics {
             embeddedPersonalization.bottomAnchor.constraint(equalTo: narrowPersonalizationHost.bottomAnchor),
         ])
         narrowPersonalizationHost.layoutSubtreeIfNeeded()
-        guard let guidedReview = findView(
+        guard let suggestionEditor = findView(
             in: embeddedPersonalization,
-            identifier: "kiki.personalization.guided-review"
+            identifier: "kiki.personalization.suggestion-editor"
         ) else {
-            throw failure("Personalization guided review surface")
+            throw failure("Personalization suggestion editor surface")
         }
-        let guidedReviewFrame = guidedReview.convert(guidedReview.bounds, to: embeddedPersonalization)
-        guard guidedReviewFrame.width >= embeddedPersonalization.bounds.width - 1,
-              guidedReviewFrame.minX >= -0.5,
-              guidedReviewFrame.maxX <= embeddedPersonalization.bounds.maxX + 0.5,
-              guidedReviewFrame.minY >= -0.5,
-              guidedReviewFrame.maxY <= embeddedPersonalization.bounds.maxY + 0.5,
-              guidedReviewFrame.height >= guidedReview.fittingSize.height - 1 else {
+        let suggestionEditorFrame = suggestionEditor.convert(suggestionEditor.bounds, to: embeddedPersonalization)
+        guard suggestionEditorFrame.width >= 520,
+              suggestionEditorFrame.width <= 560,
+              suggestionEditorFrame.minX >= -0.5,
+              suggestionEditorFrame.maxX <= embeddedPersonalization.bounds.maxX + 0.5,
+              suggestionEditorFrame.minY >= -0.5,
+              suggestionEditorFrame.maxY <= embeddedPersonalization.bounds.maxY + 0.5,
+              suggestionEditorFrame.height >= suggestionEditor.fittingSize.height - 1 else {
             throw failure(
-                "Personalization guided review must stack at narrow widths frame=\(guidedReviewFrame) page=\(embeddedPersonalization.bounds)"
+                "Personalization suggestion editor must remain visible at narrow widths frame=\(suggestionEditorFrame) page=\(embeddedPersonalization.bounds)"
             )
         }
 
@@ -656,13 +657,25 @@ enum FeatureDiagnostics {
     }
 
     private static func checkCorrectionMemory() throws {
-        let store = CorrectionMemoryStore(fileURL: temporaryFile("learning.json"))
+        let fileURL = temporaryFile("learning.json")
+        let store = CorrectionMemoryStore(fileURL: fileURL)
         store.suggest(heard: "Northwimd", replacement: "Northwind", bundleIdentifier: "com.apple.mail")
         guard let suggestion = store.suggestions.first else { throw failure("correction suggestion") }
         store.approve(suggestion, scopeToApp: true)
         guard store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.mail") == "Alex Northwind",
               store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.TextEdit") == "Alex Northwimd"
         else { throw failure("correction scoping") }
+
+        store.suggest(heard: "Lemour", replacement: "Lim", bundleIdentifier: "com.apple.MobileSMS")
+        guard let pending = store.suggestions.first,
+              store.updateSuggestion(id: pending.id, replacement: "Limore")?.replacement == "Limore",
+              CorrectionMemoryStore(fileURL: fileURL).suggestions.first?.replacement == "Limore" else {
+            throw failure("correction suggestion editing persistence")
+        }
+        store.reject(store.suggestions[0])
+        guard CorrectionMemoryStore(fileURL: fileURL).suggestions.isEmpty else {
+            throw failure("correction suggestion removal persistence")
+        }
     }
 
     private static func checkVoiceSnippets() throws {
@@ -1446,7 +1459,13 @@ enum FeatureDiagnostics {
             throw failure("disabled Meeting Hardware button contrast")
         }
 
-        let personalization = PersonalizationWindowController()
+        let personalizationStore = CorrectionMemoryStore(fileURL: temporaryFile("personalization-learning.json"))
+        personalizationStore.suggest(
+            heard: "Lemour",
+            replacement: "Lim",
+            bundleIdentifier: "com.apple.MobileSMS"
+        )
+        let personalization = PersonalizationWindowController(correctionStore: personalizationStore)
         personalization.prepareForDiagnostics(page: 0)
         let guidedStep = KikiGuidedStepView(
             number: 1,
@@ -1460,12 +1479,20 @@ enum FeatureDiagnostics {
                 in: personalizationContent,
                 identifier: "kiki.personalization.approve"
               ) as? KikiActionButton,
-              let ignoreSuggestion = findView(
+              let saveSuggestion = findView(
                 in: personalizationContent,
-                identifier: "kiki.personalization.ignore"
+                identifier: "kiki.personalization.save-suggestion"
               ) as? KikiActionButton,
-              abs(approveSuggestion.frame.width - ignoreSuggestion.frame.width) < 0.5,
-              abs(approveSuggestion.frame.height - ignoreSuggestion.frame.height) < 0.5,
+              let removeSuggestion = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.remove-suggestion"
+              ) as? KikiActionButton,
+              let replacementField = findView(
+                in: personalizationContent,
+                identifier: "kiki.personalization.replacement"
+              ) as? NSTextField,
+              abs(approveSuggestion.frame.height - saveSuggestion.frame.height) < 0.5,
+              abs(approveSuggestion.frame.height - removeSuggestion.frame.height) < 0.5,
               abs(approveSuggestion.frame.height - 42) < 0.5,
               findView(
                 in: personalizationContent,
@@ -1495,7 +1522,9 @@ enum FeatureDiagnostics {
                 identifier: "kiki.guided-step.number"
               ),
               !approveSuggestion.isEnabled,
-              !ignoreSuggestion.isEnabled else {
+              !saveSuggestion.isEnabled,
+              !removeSuggestion.isEnabled,
+              !replacementField.isEnabled else {
             throw failure("Personalization guided review state")
         }
         guard abs(learningLayout.bounds.width - suggestionsSection.bounds.width) < 1,
@@ -1519,6 +1548,33 @@ enum FeatureDiagnostics {
             throw failure(
                 "centered step number badge=\(guidedBadgeCenter) number=\(guidedNumberCenter) heights=\(guidedBadge.bounds.height)/\(guidedNumber.bounds.height)"
             )
+        }
+
+        suggestionsTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        personalization.tableViewSelectionDidChange(
+            Notification(name: NSTableView.selectionDidChangeNotification, object: suggestionsTable)
+        )
+        guard replacementField.stringValue == "Lim",
+              approveSuggestion.isEnabled,
+              removeSuggestion.isEnabled,
+              !saveSuggestion.isEnabled else {
+            throw failure("Personalization selected suggestion state")
+        }
+        replacementField.stringValue = "Limore"
+        personalization.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification, object: replacementField)
+        )
+        guard saveSuggestion.isEnabled else {
+            throw failure("Personalization edited suggestion state")
+        }
+        saveSuggestion.performClick(nil)
+        guard personalizationStore.suggestions.first?.replacement == "Limore",
+              replacementField.stringValue == "Limore" else {
+            throw failure("Personalization suggestion edit persistence")
+        }
+        removeSuggestion.performClick(nil)
+        guard personalizationStore.suggestions.isEmpty else {
+            throw failure("Personalization suggestion removal")
         }
 
         let snippetPersonalization = PersonalizationWindowController()
@@ -1726,9 +1782,10 @@ enum FeatureDiagnostics {
     }
 
     private static func temporaryFile(_ name: String) -> URL {
-        FileManager.default.temporaryDirectory
+        let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("KikiDiagnostics-\(UUID().uuidString)", isDirectory: true)
-            .appendingPathComponent(name)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent(name)
     }
 
     private static func findView(in root: NSView, identifier: String) -> NSView? {

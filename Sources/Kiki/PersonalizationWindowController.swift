@@ -24,22 +24,29 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private let snippetTriggerField = NSTextField()
     private let snippetTemplateField = NSTextField()
     private let privateBundleField = NSTextField()
+    private let suggestionReplacementField = NSTextField()
     private let suggestionCountLabel = kikiLabel("", size: 10.5, color: KikiPalette.secondaryText)
-    private let suggestionSummaryLabel = kikiLabel(
-        "Choose a suggestion to see exactly what Kiki learned.",
+    private let suggestionHeardLabel = kikiLabel(
+        "Select a suggestion above to review it.",
         size: 11.5,
         color: KikiPalette.secondaryText
     )
     private let suggestionScopePopup = NSPopUpButton()
+    private lazy var saveSuggestionButton = KikiActionButton(
+        "Save Edit",
+        kind: .secondary,
+        target: self,
+        action: #selector(saveSelectedSuggestion)
+    )
     private lazy var approveSuggestionButton = KikiActionButton(
         "Approve Rule",
         kind: .primary,
         target: self,
         action: #selector(approveSelectedSuggestion)
     )
-    private lazy var ignoreSuggestionButton = KikiActionButton(
-        "Ignore",
-        kind: .hardware,
+    private lazy var removeSuggestionButton = KikiActionButton(
+        "Remove Suggestion",
+        kind: .danger,
         target: self,
         action: #selector(rejectSuggestion)
     )
@@ -61,10 +68,17 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     private var dataSurfaces: [ObjectIdentifier: KikiDataSurfaceView] = [:]
     private var pages: [NSView] = []
     private var openingContext: AppContextSnapshot?
+    private let correctionStore: CorrectionMemoryStore
+    private var editingSuggestionID: UUID?
     private var editingSnippetID: UUID?
     private var observers: [NSObjectProtocol] = []
 
-    init() {
+    convenience init() {
+        self.init(correctionStore: .shared)
+    }
+
+    init(correctionStore: CorrectionMemoryStore) {
+        self.correctionStore = correctionStore
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1_180, height: 900),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -247,7 +261,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func configureWorkflowControls() {
-        [manualTermField, snippetTriggerField, snippetTemplateField, privateBundleField].forEach {
+        [manualTermField, snippetTriggerField, snippetTemplateField, privateBundleField, suggestionReplacementField].forEach {
             $0.delegate = self
             $0.focusRingType = .default
         }
@@ -255,13 +269,17 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         snippetTriggerField.setAccessibilityLabel("Spoken snippet trigger")
         snippetTemplateField.setAccessibilityLabel("Snippet text to insert")
         privateBundleField.setAccessibilityLabel("Private application bundle identifier")
+        suggestionReplacementField.setAccessibilityLabel("Corrected text")
+        suggestionReplacementField.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.replacement")
+        suggestionReplacementField.placeholderString = "Enter the exact text Kiki should use"
         suggestionScopePopup.addItems(withTitles: ["Everywhere", "This app only"])
         suggestionScopePopup.controlSize = .large
         suggestionScopePopup.font = .systemFont(ofSize: 12, weight: .medium)
-        suggestionSummaryLabel.maximumNumberOfLines = 3
+        suggestionHeardLabel.maximumNumberOfLines = 2
 
         approveSuggestionButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.approve")
-        ignoreSuggestionButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.ignore")
+        saveSuggestionButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.save-suggestion")
+        removeSuggestionButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.remove-suggestion")
         removeCorrectionButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.forget")
         addTermButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.add-term")
         removeTermButton.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.remove-term")
@@ -295,11 +313,13 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func makeLearningPage() -> NSView {
+        let editor = makeSuggestionEditor()
         let suggestions = tableSection(
             title: "Suggestions from recent edits",
-            detail: "Nothing changes until you choose a suggestion and approve it.",
+            detail: "Select one to correct it, approve it, or remove it.",
             countLabel: suggestionCountLabel,
             table: suggestionsTable,
+            below: [editor],
             buttons: []
         )
         suggestions.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.suggestions-section")
@@ -310,84 +330,53 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             buttons: [removeCorrectionButton]
         )
 
-        let selectedStep = KikiGuidedStepView(
-            number: 1,
-            title: "Choose what changed",
-            detail: "Select a suggestion on the left to review the original and corrected text."
-        )
-        let summaryCard = KikiCardView()
-        suggestionSummaryLabel.translatesAutoresizingMaskIntoConstraints = false
-        summaryCard.addSubview(suggestionSummaryLabel)
-        NSLayoutConstraint.activate([
-            suggestionSummaryLabel.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
-            suggestionSummaryLabel.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
-            suggestionSummaryLabel.topAnchor.constraint(equalTo: summaryCard.topAnchor, constant: 12),
-            suggestionSummaryLabel.bottomAnchor.constraint(equalTo: summaryCard.bottomAnchor, constant: -12),
-        ])
-        let scopeStep = KikiGuidedStepView(
-            number: 2,
-            title: "Choose where it applies",
-            detail: "Use the rule everywhere, or limit it to the app where Kiki noticed the edit.",
-            trailing: suggestionScopePopup
-        )
-        let actionRow = NSStackView(views: [approveSuggestionButton, ignoreSuggestionButton])
-        actionRow.orientation = .horizontal
-        actionRow.alignment = .centerY
-        actionRow.spacing = 8
-        [approveSuggestionButton, ignoreSuggestionButton].forEach {
-            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
-            $0.widthAnchor.constraint(equalToConstant: 150).isActive = true
-        }
-        let approveStep = KikiGuidedStepView(
-            number: 3,
-            title: "Approve or ignore",
-            detail: "Approved rules stay editable and local on this Mac.",
-            trailing: actionRow
-        )
-        let privacy = kikiLabel(
-            "PRIVATE BY DESIGN\nOnly the corrected phrase and app identifier are stored here—not the surrounding dictation.",
-            size: 10.5,
-            color: KikiPalette.secondaryText
-        )
-        privacy.maximumNumberOfLines = 4
-        let privacyCard = KikiCardView()
-        privacy.translatesAutoresizingMaskIntoConstraints = false
-        privacyCard.addSubview(privacy)
-        NSLayoutConstraint.activate([
-            privacy.leadingAnchor.constraint(equalTo: privacyCard.leadingAnchor, constant: 14),
-            privacy.trailingAnchor.constraint(equalTo: privacyCard.trailingAnchor, constant: -14),
-            privacy.topAnchor.constraint(equalTo: privacyCard.topAnchor, constant: 12),
-            privacy.bottomAnchor.constraint(equalTo: privacyCard.bottomAnchor, constant: -12),
-        ])
-        let guideEyebrow = kikiLabel("GUIDED REVIEW", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let guideCards: [NSView] = [selectedStep, summaryCard, scopeStep, approveStep, privacyCard]
-        let guide = NSStackView(views: [
-            guideEyebrow,
-            selectedStep,
-            summaryCard,
-            scopeStep,
-            approveStep,
-            privacyCard,
-        ])
-        guide.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.guided-review")
-        guide.orientation = .vertical
-        guide.alignment = .leading
-        guide.spacing = 10
-        guideCards.forEach { $0.widthAnchor.constraint(equalTo: guide.widthAnchor).isActive = true }
-
-        let lower = ResponsivePersonalizationStackView(primary: approved, guide: guide)
-        lower.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-lower")
-
-        let layout = NSStackView(views: [suggestions, lower])
+        let layout = NSStackView(views: [suggestions, approved])
         layout.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.learning-layout")
         layout.orientation = .vertical
         layout.alignment = .width
         layout.spacing = 14
         suggestions.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
-        suggestions.heightAnchor.constraint(greaterThanOrEqualToConstant: 280).isActive = true
-        suggestions.heightAnchor.constraint(lessThanOrEqualToConstant: 360).isActive = true
-        lower.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
+        suggestions.heightAnchor.constraint(greaterThanOrEqualToConstant: 390).isActive = true
+        approved.widthAnchor.constraint(equalTo: layout.widthAnchor).isActive = true
         return layout
+    }
+
+    private func makeSuggestionEditor() -> NSView {
+        let title = kikiLabel("Review selected suggestion", size: 12.5, weight: .semibold)
+        let replacement = kikiFieldGroup("Correct to", control: suggestionReplacementField)
+        let scope = kikiFieldGroup("Apply", control: suggestionScopePopup)
+        suggestionHeardLabel.maximumNumberOfLines = 2
+        suggestionReplacementField.widthAnchor.constraint(equalToConstant: 360).isActive = true
+
+        let fields = NSStackView(views: [replacement, scope])
+        fields.orientation = .horizontal
+        fields.alignment = .bottom
+        fields.distribution = .fill
+        fields.spacing = 14
+        scope.widthAnchor.constraint(equalToConstant: 160).isActive = true
+
+        let actions = NSStackView(views: [approveSuggestionButton, saveSuggestionButton, removeSuggestionButton])
+        actions.orientation = .horizontal
+        actions.alignment = .centerY
+        actions.spacing = 8
+        [approveSuggestionButton, saveSuggestionButton, removeSuggestionButton].forEach {
+            $0.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        }
+        approveSuggestionButton.widthAnchor.constraint(equalToConstant: 170).isActive = true
+        saveSuggestionButton.widthAnchor.constraint(equalTo: approveSuggestionButton.widthAnchor).isActive = true
+        removeSuggestionButton.widthAnchor.constraint(equalTo: approveSuggestionButton.widthAnchor).isActive = true
+
+        let privacy = kikiLabel(
+            "Only the correction and app identifier are stored—not the surrounding dictation.",
+            size: 10.5,
+            color: KikiPalette.secondaryText
+        )
+        let stack = NSStackView(views: [title, suggestionHeardLabel, fields, actions, privacy])
+        stack.identifier = NSUserInterfaceItemIdentifier("kiki.personalization.suggestion-editor")
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        return stack
     }
 
     private func makeVocabularyPage() -> NSView {
@@ -507,6 +496,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         detail: String,
         countLabel: NSTextField? = nil,
         table: NSTableView,
+        below: [NSView] = [],
         buttons: [NSView]
     ) -> NSView {
         let label = kikiLabel(title, size: 15, weight: .semibold)
@@ -523,7 +513,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         let row = NSStackView(views: buttons)
         row.orientation = .horizontal
         row.spacing = 8
-        let views: [NSView] = buttons.isEmpty ? [heading, surface] : [heading, surface, row]
+        let views: [NSView] = [heading, surface] + below + (buttons.isEmpty ? [] : [row])
         let stack = NSStackView(views: views)
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -540,6 +530,7 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
             surface.widthAnchor.constraint(equalTo: stack.widthAnchor),
             surface.heightAnchor.constraint(greaterThanOrEqualToConstant: 128),
         ])
+        below.forEach { $0.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor).isActive = true }
         return view
     }
 
@@ -602,15 +593,25 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func reloadAll() {
+        let selectedSuggestionID = correctionStore.suggestions.indices.contains(suggestionsTable.selectedRow)
+            ? correctionStore.suggestions[suggestionsTable.selectedRow].id
+            : editingSuggestionID
         [suggestionsTable, correctionsTable, vocabularyTable, snippetsTable, privateAppsTable, confidenceTable]
             .forEach { $0.reloadData() }
-        dataSurfaces[ObjectIdentifier(suggestionsTable)]?.isEmpty = CorrectionMemoryStore.shared.suggestions.isEmpty
-        dataSurfaces[ObjectIdentifier(correctionsTable)]?.isEmpty = CorrectionMemoryStore.shared.corrections.isEmpty
+        if let selectedSuggestionID,
+           let row = correctionStore.suggestions.firstIndex(where: { $0.id == selectedSuggestionID }) {
+            suggestionsTable.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        } else {
+            suggestionsTable.deselectAll(nil)
+            beginEditingSelectedSuggestion()
+        }
+        dataSurfaces[ObjectIdentifier(suggestionsTable)]?.isEmpty = correctionStore.suggestions.isEmpty
+        dataSurfaces[ObjectIdentifier(correctionsTable)]?.isEmpty = correctionStore.corrections.isEmpty
         dataSurfaces[ObjectIdentifier(vocabularyTable)]?.isEmpty = ContextVocabularyStore.shared.terms.isEmpty
         dataSurfaces[ObjectIdentifier(snippetsTable)]?.isEmpty = VoiceSnippetStore.shared.snippets.isEmpty
         dataSurfaces[ObjectIdentifier(privateAppsTable)]?.isEmpty = PrivateZoneStore.shared.bundleIdentifiers.isEmpty
         dataSurfaces[ObjectIdentifier(confidenceTable)]?.isEmpty = ConfidenceReviewStore.shared.reviews.isEmpty
-        let suggestionCount = CorrectionMemoryStore.shared.suggestions.count
+        let suggestionCount = correctionStore.suggestions.count
         suggestionCountLabel.stringValue = suggestionCount == 1 ? "1 waiting" : "\(suggestionCount) waiting"
         updateActionAvailability()
     }
@@ -618,6 +619,9 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     func tableViewSelectionDidChange(_ notification: Notification) {
         if let table = notification.object as? NSTableView, table === snippetsTable {
             beginEditingSelectedSnippet()
+        }
+        if let table = notification.object as? NSTableView, table === suggestionsTable {
+            beginEditingSelectedSuggestion()
         }
         updateActionAvailability()
     }
@@ -631,11 +635,18 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     private func updateActionAvailability() {
-        let suggestionSelected = CorrectionMemoryStore.shared.suggestions.indices.contains(suggestionsTable.selectedRow)
-        approveSuggestionButton.isEnabled = suggestionSelected
-        ignoreSuggestionButton.isEnabled = suggestionSelected
+        let suggestionSelected = correctionStore.suggestions.indices.contains(suggestionsTable.selectedRow)
+        let proposedReplacement = trimmed(suggestionReplacementField.stringValue)
+        let suggestion = suggestionSelected ? correctionStore.suggestions[suggestionsTable.selectedRow] : nil
+        let replacementIsValid = suggestion.map {
+            proposedReplacement.count >= 2 && $0.heard.caseInsensitiveCompare(proposedReplacement) != .orderedSame
+        } ?? false
+        approveSuggestionButton.isEnabled = replacementIsValid
+        saveSuggestionButton.isEnabled = replacementIsValid && suggestion?.replacement != proposedReplacement
+        removeSuggestionButton.isEnabled = suggestionSelected
+        suggestionReplacementField.isEnabled = suggestionSelected
         suggestionScopePopup.isEnabled = suggestionSelected
-        removeCorrectionButton.isEnabled = CorrectionMemoryStore.shared.corrections.indices.contains(correctionsTable.selectedRow)
+        removeCorrectionButton.isEnabled = correctionStore.corrections.indices.contains(correctionsTable.selectedRow)
         addTermButton.isEnabled = !trimmed(manualTermField.stringValue).isEmpty
         removeTermButton.isEnabled = ContextVocabularyStore.shared.terms.indices.contains(vocabularyTable.selectedRow)
         saveSnippetButton.isEnabled = !trimmed(snippetTriggerField.stringValue).isEmpty
@@ -648,13 +659,22 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         dismissReviewButton.isEnabled = reviewSelected
         clearReviewsButton.isEnabled = !ConfidenceReviewStore.shared.reviews.isEmpty
 
-        if suggestionSelected {
-            let suggestion = CorrectionMemoryStore.shared.suggestions[suggestionsTable.selectedRow]
-            let scope = suggestion.bundleIdentifier ?? "the app where Kiki noticed it"
-            suggestionSummaryLabel.stringValue = "Kiki heard “\(suggestion.heard)” and you changed it to “\(suggestion.replacement)”. Source: \(scope)."
-        } else {
-            suggestionSummaryLabel.stringValue = "Choose a suggestion to see exactly what Kiki learned."
+    }
+
+    private func beginEditingSelectedSuggestion() {
+        let row = suggestionsTable.selectedRow
+        guard correctionStore.suggestions.indices.contains(row) else {
+            editingSuggestionID = nil
+            suggestionHeardLabel.stringValue = "Select a suggestion above to review it."
+            suggestionReplacementField.stringValue = ""
+            suggestionScopePopup.selectItem(at: 0)
+            return
         }
+        let suggestion = correctionStore.suggestions[row]
+        editingSuggestionID = suggestion.id
+        suggestionHeardLabel.stringValue = "Kiki heard “\(suggestion.heard)”. Edit the correction, then save it or approve the rule."
+        suggestionReplacementField.stringValue = suggestion.replacement
+        suggestionScopePopup.selectItem(at: 0)
     }
 
     private func trimmed(_ value: String) -> String {
@@ -677,8 +697,8 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
-        if tableView === suggestionsTable { return CorrectionMemoryStore.shared.suggestions.count }
-        if tableView === correctionsTable { return CorrectionMemoryStore.shared.corrections.count }
+        if tableView === suggestionsTable { return correctionStore.suggestions.count }
+        if tableView === correctionsTable { return correctionStore.corrections.count }
         if tableView === vocabularyTable { return ContextVocabularyStore.shared.terms.count }
         if tableView === snippetsTable { return VoiceSnippetStore.shared.snippets.count }
         if tableView === privateAppsTable { return PrivateZoneStore.shared.bundleIdentifiers.count }
@@ -690,10 +710,10 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         guard let identifier = tableColumn?.identifier.rawValue else { return nil }
         let value: String
         if tableView === suggestionsTable {
-            let item = CorrectionMemoryStore.shared.suggestions[row]
+            let item = correctionStore.suggestions[row]
             value = identifier == "heard" ? item.heard : identifier == "replacement" ? item.replacement : item.bundleIdentifier ?? "Everywhere"
         } else if tableView === correctionsTable {
-            let item = CorrectionMemoryStore.shared.corrections[row]
+            let item = correctionStore.corrections[row]
             value = identifier == "heard" ? item.heard : identifier == "replacement" ? item.replacement : item.bundleIdentifier ?? "Everywhere"
         } else if tableView === vocabularyTable {
             let item = ContextVocabularyStore.shared.terms[row]
@@ -721,36 +741,55 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
 
     private func approveSuggestion(scopeToApp: Bool) {
         let row = suggestionsTable.selectedRow
-        guard CorrectionMemoryStore.shared.suggestions.indices.contains(row) else {
+        guard correctionStore.suggestions.indices.contains(row) else {
             statusLabel.stringValue = "Choose a suggestion before approving a rule."
             return
         }
-        let suggestion = CorrectionMemoryStore.shared.suggestions[row]
-        CorrectionMemoryStore.shared.approve(CorrectionMemoryStore.shared.suggestions[row], scopeToApp: scopeToApp)
+        let original = correctionStore.suggestions[row]
+        guard let suggestion = correctionStore.updateSuggestion(
+            id: original.id,
+            replacement: suggestionReplacementField.stringValue
+        ) else {
+            statusLabel.stringValue = "Enter a distinct correction with at least two characters."
+            return
+        }
+        correctionStore.approve(suggestion, scopeToApp: scopeToApp)
         statusLabel.stringValue = "Approved “\(suggestion.replacement)” \(scopeToApp ? "for this app" : "everywhere")."
+    }
+    @objc private func saveSelectedSuggestion() {
+        guard let editingSuggestionID,
+              let updated = correctionStore.updateSuggestion(
+                  id: editingSuggestionID,
+                  replacement: suggestionReplacementField.stringValue
+              ) else {
+            statusLabel.stringValue = "Enter a distinct correction with at least two characters."
+            return
+        }
+        statusLabel.stringValue = "Updated suggestion to “\(updated.replacement)”."
     }
     @objc private func rejectSuggestion() {
         let row = suggestionsTable.selectedRow
-        guard CorrectionMemoryStore.shared.suggestions.indices.contains(row) else {
-            statusLabel.stringValue = "Choose a suggestion before ignoring it."
+        guard correctionStore.suggestions.indices.contains(row) else {
+            statusLabel.stringValue = "Choose a suggestion before removing it."
             return
         }
-        CorrectionMemoryStore.shared.reject(CorrectionMemoryStore.shared.suggestions[row])
-        statusLabel.stringValue = "Suggestion ignored."
+        let suggestion = correctionStore.suggestions[row]
+        correctionStore.reject(suggestion)
+        statusLabel.stringValue = "Removed suggestion for “\(suggestion.heard)”."
     }
     @objc private func removeCorrection() {
         let row = correctionsTable.selectedRow
-        guard CorrectionMemoryStore.shared.corrections.indices.contains(row) else {
+        guard correctionStore.corrections.indices.contains(row) else {
             statusLabel.stringValue = "Choose an approved rule to forget."
             return
         }
-        let correction = CorrectionMemoryStore.shared.corrections[row]
+        let correction = correctionStore.corrections[row]
         guard confirmKikiDestructiveAction(
             message: "Forget this approved rule?",
             detail: "Kiki will stop replacing “\(correction.heard)” with “\(correction.replacement)”.",
             confirmTitle: "Forget Rule"
         ) else { return }
-        CorrectionMemoryStore.shared.removeCorrection(id: correction.id)
+        correctionStore.removeCorrection(id: correction.id)
         statusLabel.stringValue = "Approved rule forgotten."
     }
 
@@ -903,50 +942,5 @@ final class PersonalizationWindowController: NSWindowController, NSTableViewData
         ) else { return }
         ConfidenceReviewStore.shared.clear()
         statusLabel.stringValue = "All confidence reviews cleared."
-    }
-}
-
-@MainActor
-private final class ResponsivePersonalizationStackView: NSStackView {
-    private let primaryView: NSView
-    private let guideView: NSView
-    private lazy var guideWidthConstraint = guideView.widthAnchor.constraint(equalToConstant: 360)
-    private lazy var stackedPrimaryWidthConstraint = primaryView.widthAnchor.constraint(equalTo: widthAnchor)
-    private lazy var stackedGuideWidthConstraint = guideView.widthAnchor.constraint(equalTo: widthAnchor)
-    private var usesStackedLayout: Bool?
-
-    init(primary: NSView, guide: NSView) {
-        primaryView = primary
-        guideView = guide
-        super.init(frame: .zero)
-        addArrangedSubview(primary)
-        addArrangedSubview(guide)
-        distribution = .fill
-        spacing = 16
-        primary.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        guide.setContentHuggingPriority(.required, for: .horizontal)
-        updateLayoutMode(stacked: false)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    override func layout() {
-        let shouldStack = bounds.width < 1_080
-        if usesStackedLayout != shouldStack {
-            updateLayoutMode(stacked: shouldStack)
-        }
-        super.layout()
-    }
-
-    private func updateLayoutMode(stacked: Bool) {
-        usesStackedLayout = stacked
-        guideWidthConstraint.isActive = !stacked
-        stackedPrimaryWidthConstraint.isActive = stacked
-        stackedGuideWidthConstraint.isActive = stacked
-        orientation = stacked ? .vertical : .horizontal
-        alignment = stacked ? .leading : .top
-        primaryView.setContentHuggingPriority(stacked ? .defaultHigh : .defaultLow, for: .horizontal)
-        guideView.setContentHuggingPriority(stacked ? .defaultHigh : .required, for: .horizontal)
-        needsLayout = true
     }
 }

@@ -24,7 +24,6 @@ struct LearnedCorrection: Codable, Identifiable, Equatable {
         self.useCount = useCount
     }
 }
-
 struct CorrectionSuggestion: Codable, Identifiable, Equatable {
     let id: UUID
     let heard: String
@@ -131,6 +130,32 @@ final class CorrectionMemoryStore {
         save()
     }
 
+    @discardableResult
+    func updateSuggestion(id: UUID, replacement: String) -> CorrectionSuggestion? {
+        let replacement = replacement.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = suggestions.firstIndex(where: { $0.id == id }),
+              replacement.count >= 2,
+              suggestions[index].heard.caseInsensitiveCompare(replacement) != .orderedSame,
+              !suggestions.contains(where: {
+                  $0.id != id &&
+                  $0.heard.caseInsensitiveCompare(suggestions[index].heard) == .orderedSame &&
+                  $0.replacement.caseInsensitiveCompare(replacement) == .orderedSame
+              })
+        else { return nil }
+
+        let original = suggestions[index]
+        let updated = CorrectionSuggestion(
+            id: original.id,
+            heard: original.heard,
+            replacement: replacement,
+            bundleIdentifier: original.bundleIdentifier,
+            createdAt: original.createdAt
+        )
+        suggestions[index] = updated
+        save()
+        return updated
+    }
+
     func reject(_ suggestion: CorrectionSuggestion) {
         suggestions.removeAll { $0.id == suggestion.id }
         save()
@@ -163,4 +188,3 @@ enum WholePhraseReplacer {
         )
     }
 }
-
