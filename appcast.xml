@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.33</title>
+            <pubDate>Wed, 19 Aug 2026 19:41:59 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.33</link>
+            <sparkle:version>66</sparkle:version>
+            <sparkle:shortVersionString>0.6.33</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.33
+
+- Reworked Kiki's interface around a consistent compact spacing, typography, surface, and control system.
+- Fixed Learning table rows and selection highlights so text stays vertically centered at every window size.
+- Made correction scope default to the app where Kiki observed an app-specific edit.
+- Tightened Voice Studio, navigation, buttons, tables, history, dictionary, and speaker editing for a calmer native Mac layout.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.33/Kiki-0.6.33-macOS.zip" length="53808874" type="application/octet-stream" sparkle:edSignature="/IE47iXCvEaebz+N6ZSEftSKlFF+8br5PFvAGBazb4iCo1g7dNrc2E3NW6LSl6aM8xdsGgZQsC3cuZ1zNaEzDw=="/>
+        </item>
+        <item>
             <title>0.6.32</title>
             <pubDate>Wed, 19 Aug 2026 19:03:20 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.32</link>
@@ -65,21 +82,6 @@
 - Preserves full page-control traversal and reliable reopening after Hide Kiki.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.29/Kiki-0.6.29-macOS.zip" length="53803619" type="application/octet-stream" sparkle:edSignature="bdEH+aAQj8/+2lD/HpZ0xGW6Bhq8GMmlIGn/ukjIx4uD9Oe3avEb5N+KpBEBeg0Z74zn1AvIigIQEZlASVDrDw=="/>
-        </item>
-        <item>
-            <title>0.6.28</title>
-            <pubDate>Fri, 14 Aug 2026 20:26:42 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.28</link>
-            <sparkle:version>61</sparkle:version>
-            <sparkle:shortVersionString>0.6.28</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.28
-
-- Restores Kiki normally when it is reopened after using Hide Kiki.
-- Preserves the complete keyboard-navigation fixes from 0.6.27.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.28/Kiki-0.6.28-macOS.zip" length="53802011" type="application/octet-stream" sparkle:edSignature="CW3SIA/ngZ+vNVOUsyea/eciTqCfamtqBFdgX2uRFqab0/vMu2nwVmmCHRMn4tR17zI8bUG/cVQbJss5FYEHDQ=="/>
         </item>
     </channel>
 </rss>
