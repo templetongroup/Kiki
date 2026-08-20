@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.34</title>
+            <pubDate>Thu, 20 Aug 2026 16:26:06 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.34</link>
+            <sparkle:version>67</sparkle:version>
+            <sparkle:shortVersionString>0.6.34</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.34
+
+- Smoothed long Voice Studio output across generated sections so volume and transitions remain consistent.
+- Added gentle edge cleanup, crossfades, and loudness matching without sending audio off the Mac.
+- Added checksum verification for Whisper and Kiki's local voice models.
+- Kiki now removes and repairs a corrupted model automatically instead of trying to load it or silently accepting it.
+- Clarified whether Voice Studio is verifying, downloading, repairing, or generating.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.34/Kiki-0.6.34-macOS.zip" length="53839664" type="application/octet-stream" sparkle:edSignature="n9341jOz1juWsJyWN2jzTMU0JO0AuXX9fqf6NOxFGA4XD+1dhMr8i7G9Acm1CbzrJ4qJuOxxeoMYmdu0JQCvBw=="/>
+        </item>
+        <item>
             <title>0.6.33</title>
             <pubDate>Wed, 19 Aug 2026 19:41:59 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.33</link>
@@ -67,21 +85,6 @@
 - Keeps check statuses and actions aligned at every supported window size.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.30/Kiki-0.6.30-macOS.zip" length="53806659" type="application/octet-stream" sparkle:edSignature="BGtbt3Q/g4vHBurvNvfDKpftJ/QEcuqtGUZQTQNGgq1K6XQiJyeXK+SAaYpCKvvUIBZuJz/9r7WGu3lqsJbwBw=="/>
-        </item>
-        <item>
-            <title>0.6.29</title>
-            <pubDate>Sun, 16 Aug 2026 23:01:59 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.29</link>
-            <sparkle:version>62</sparkle:version>
-            <sparkle:shortVersionString>0.6.29</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.29
-
-- Makes every Workbench sidebar destination reachable with standard Up and Down arrow keys.
-- Preserves full page-control traversal and reliable reopening after Hide Kiki.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.29/Kiki-0.6.29-macOS.zip" length="53803619" type="application/octet-stream" sparkle:edSignature="bdEH+aAQj8/+2lD/HpZ0xGW6Bhq8GMmlIGn/ukjIx4uD9Oe3avEb5N+KpBEBeg0Z74zn1AvIigIQEZlASVDrDw=="/>
         </item>
     </channel>
 </rss>
