@@ -15,12 +15,22 @@ enum ModelDownloadService {
         _ model: TranscriptionModelID,
         progress: @MainActor @escaping (ModelDownloadProgress) -> Void
     ) async throws {
-        guard let fileName = model.whisperFileName, let url = model.downloadURL else {
+        guard let fileName = model.whisperFileName,
+              let url = model.downloadURL,
+              let expectedSize = model.downloadSize,
+              let expectedSHA256 = model.downloadSHA256 else {
             throw KikiError("This is not a downloadable Whisper model.")
         }
         ModelStore.ensureDirectory()
         let destination = ModelStore.modelsDirectory.appendingPathComponent(fileName)
-        if FileManager.default.fileExists(atPath: destination.path) { return }
+        if await ModelFileIntegrity.validateAsync(
+            destination,
+            expectedSize: expectedSize,
+            expectedSHA256: expectedSHA256
+        ) { return }
+        ModelFileIntegrity.removeMetadata(for: destination)
+        try? FileManager.default.removeItem(at: destination)
+        await progress(.init(completedBytes: 0, totalBytes: expectedSize))
 
         let downloader = TranscriptionModelFileDownloader()
         try await withTaskCancellationHandler {
@@ -31,6 +41,15 @@ enum ModelDownloadService {
             }
         } onCancel: {
             downloader.cancel()
+        }
+        guard await ModelFileIntegrity.validateAsync(
+            destination,
+            expectedSize: expectedSize,
+            expectedSHA256: expectedSHA256
+        ) else {
+            ModelFileIntegrity.removeMetadata(for: destination)
+            try? FileManager.default.removeItem(at: destination)
+            throw KikiError("The downloaded model failed its integrity check. Kiki removed it so you can try again.")
         }
     }
 }

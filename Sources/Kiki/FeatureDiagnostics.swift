@@ -25,6 +25,56 @@ enum FeatureDiagnostics {
         try checkGuidedWorkbench()
         try checkWindowInteractions()
         try checkVoiceStudio()
+        try checkModelFileIntegrity()
+        try checkVoiceSectionJoining()
+    }
+
+    private static func checkVoiceSectionJoining() throws {
+        let first = Array(repeating: Float(0.08), count: 1_000)
+        let second = Array(repeating: Float(0.24), count: 1_000)
+        let joined = VoiceSectionJoiner.joinForDiagnostics([first, second], sampleRate: 1_000)
+        let firstRMS = rms(Array(joined.prefix(700)))
+        let secondRMS = rms(Array(joined.suffix(700)))
+        let loudnessRatio = max(firstRMS, secondRMS) / max(0.000_001, min(firstRMS, secondRMS))
+        let maximumJump = zip(joined, joined.dropFirst()).map { abs($1 - $0) }.max() ?? 0
+        guard loudnessRatio <= 1.25,
+              maximumJump <= 0.04,
+              joined.count < first.count + second.count else {
+            throw failure(
+                "Voice sections must join without loudness jumps ratio=\(loudnessRatio) jump=\(maximumJump) samples=\(joined.count)"
+            )
+        }
+    }
+
+    private static func checkModelFileIntegrity() throws {
+        let url = temporaryFile("same-size-corrupt-model.bin")
+        let expectedSHA256 = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f"
+        try Data("12345678".utf8).write(to: url, options: .atomic)
+        guard ModelFileIntegrity.isValid(
+            url,
+            expectedSize: 8,
+            expectedSHA256: expectedSHA256
+        ) else {
+            throw failure("Model integrity must accept the expected file")
+        }
+        try Data("abcdefgh".utf8).write(to: url, options: .atomic)
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date(timeIntervalSinceNow: 2)],
+            ofItemAtPath: url.path
+        )
+        guard !ModelFileIntegrity.isValid(
+            url,
+            expectedSize: 8,
+            expectedSHA256: expectedSHA256
+        ) else {
+            throw failure("Model integrity must reject same-size corrupted files")
+        }
+        ModelFileIntegrity.removeMetadata(for: url)
+    }
+
+    private static func rms(_ samples: [Float]) -> Float {
+        guard !samples.isEmpty else { return 0 }
+        return sqrt(samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count))
     }
 
     private static func checkDarkOnlyAppearance() throws {

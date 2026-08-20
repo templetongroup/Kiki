@@ -56,7 +56,7 @@ actor LocalVoiceSynthesisEngine {
                 parameters.temperature = 0.75
                 parameters.topP = 0.9
                 parameters.repetitionPenalty = 1.12
-
+                var sectionSamples: [Float] = []
                 var tokens = 0
                 let stream = loadedModel.generateStream(
                     text: chunk,
@@ -77,13 +77,14 @@ actor LocalVoiceSynthesisEngine {
                             ))
                         }
                     case .audio(let audio):
-                        try writer.write(audio.asArray(Float.self))
+                        sectionSamples.append(contentsOf: audio.asArray(Float.self))
                     case .progress:
                         break
                     case .info:
                         break
                     }
                 }
+                try writer.writeSection(sectionSamples)
                 await progress(.init(
                     completedChunks: index + 1,
                     totalChunks: chunks.count,
@@ -182,12 +183,122 @@ actor LocalVoiceSynthesisEngine {
     }
 }
 
+final class VoiceSectionJoiner {
+    private let crossfadeSampleCount: Int
+    private let edgePaddingSampleCount: Int
+    private let rampSampleCount: Int
+    private var targetRMS: Float?
+    private var pendingTail: [Float] = []
+
+    init(sampleRate: Int) {
+        crossfadeSampleCount = max(1, Int(Double(sampleRate) * 0.12))
+        edgePaddingSampleCount = max(1, Int(Double(sampleRate) * 0.025))
+        rampSampleCount = max(1, Int(Double(sampleRate) * 0.005))
+    }
+
+    func consume(_ section: [Float]) -> [Float] {
+        var prepared = trimEdgeSilence(section)
+        guard !prepared.isEmpty else { return [] }
+
+        let sectionRMS = rms(prepared)
+        if let targetRMS, sectionRMS > 0.000_001 {
+            let gain = min(3, max(0.3, targetRMS / sectionRMS))
+            prepared = prepared.map { $0 * gain }
+        } else if sectionRMS > 0.000_001 {
+            targetRMS = sectionRMS
+        }
+        if let peak = prepared.map({ abs($0) }).max(), peak > 0.98 {
+            let limiterGain = 0.98 / peak
+            prepared = prepared.map { $0 * limiterGain }
+        }
+
+        if pendingTail.isEmpty {
+            applyFadeIn(to: &prepared)
+            return holdTail(from: prepared)
+        }
+
+        let overlapCount = min(crossfadeSampleCount, pendingTail.count, prepared.count)
+        var output = Array(pendingTail.dropLast(overlapCount))
+        if overlapCount > 0 {
+            let pendingStart = pendingTail.count - overlapCount
+            output.reserveCapacity(output.count + overlapCount + prepared.count)
+            for index in 0..<overlapCount {
+                let fraction = Float(index + 1) / Float(overlapCount + 1)
+                output.append(
+                    pendingTail[pendingStart + index] * (1 - fraction)
+                        + prepared[index] * fraction
+                )
+            }
+        }
+        output.append(contentsOf: holdTail(from: Array(prepared.dropFirst(overlapCount))))
+        return output
+    }
+
+    func finish() -> [Float] {
+        var output = pendingTail
+        pendingTail = []
+        let fadeCount = min(rampSampleCount, output.count)
+        guard fadeCount > 0 else { return output }
+        for offset in 0..<fadeCount {
+            let index = output.count - fadeCount + offset
+            output[index] *= Float(fadeCount - offset - 1) / Float(fadeCount)
+        }
+        return output
+    }
+
+    static func joinForDiagnostics(_ sections: [[Float]], sampleRate: Int) -> [Float] {
+        let joiner = VoiceSectionJoiner(sampleRate: sampleRate)
+        var output: [Float] = []
+        for section in sections {
+            output.append(contentsOf: joiner.consume(section))
+        }
+        output.append(contentsOf: joiner.finish())
+        return output
+    }
+
+    private func holdTail(from samples: [Float]) -> [Float] {
+        guard samples.count > crossfadeSampleCount else {
+            pendingTail = samples
+            return []
+        }
+        let split = samples.count - crossfadeSampleCount
+        pendingTail = Array(samples[split...])
+        return Array(samples[..<split])
+    }
+
+    private func trimEdgeSilence(_ samples: [Float]) -> [Float] {
+        guard !samples.isEmpty else { return [] }
+        let threshold = max(0.001, min(0.02, rms(samples) * 0.08))
+        guard let firstSignal = samples.firstIndex(where: { abs($0) >= threshold }),
+              let lastSignal = samples.lastIndex(where: { abs($0) >= threshold }) else {
+            return []
+        }
+        let start = max(0, firstSignal - edgePaddingSampleCount)
+        let end = min(samples.count - 1, lastSignal + edgePaddingSampleCount)
+        return Array(samples[start...end])
+    }
+
+    private func applyFadeIn(to samples: inout [Float]) {
+        let fadeCount = min(rampSampleCount, samples.count)
+        guard fadeCount > 0 else { return }
+        for index in 0..<fadeCount {
+            samples[index] *= Float(index + 1) / Float(fadeCount)
+        }
+    }
+
+    private func rms(_ samples: [Float]) -> Float {
+        guard !samples.isEmpty else { return 0 }
+        return sqrt(samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count))
+    }
+}
+
 private final class StreamingVoiceWAVWriter {
     private let url: URL
     private let format: AVAudioFormat
     private let file: AVAudioFile
     private(set) var framesWritten: Int64 = 0
     private var isFinished = false
+    private let sectionJoiner: VoiceSectionJoiner
 
     init(url: URL, sampleRate: Int) throws {
         self.url = url
@@ -198,6 +309,7 @@ private final class StreamingVoiceWAVWriter {
             interleaved: false
         ) else { throw KikiError("Kiki could not prepare the generated audio file.") }
         self.format = format
+        self.sectionJoiner = VoiceSectionJoiner(sampleRate: sampleRate)
         try? FileManager.default.removeItem(at: url)
         self.file = try AVAudioFile(
             forWriting: url,
@@ -207,7 +319,11 @@ private final class StreamingVoiceWAVWriter {
         )
     }
 
-    func write(_ samples: [Float]) throws {
+    func writeSection(_ samples: [Float]) throws {
+        try write(sectionJoiner.consume(samples))
+    }
+
+    private func write(_ samples: [Float]) throws {
         guard !isFinished, !samples.isEmpty,
               let buffer = AVAudioPCMBuffer(
                 pcmFormat: format,
@@ -223,6 +339,7 @@ private final class StreamingVoiceWAVWriter {
     }
 
     func finish() throws {
+        try write(sectionJoiner.finish())
         isFinished = true
     }
 

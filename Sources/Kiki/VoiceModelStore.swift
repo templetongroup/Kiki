@@ -4,6 +4,7 @@ struct VoiceModelDownloadProgress: Sendable {
     let completedBytes: Int64
     let totalBytes: Int64
     let currentFile: String
+    let isDownloading: Bool
 
     var fraction: Double {
         guard totalBytes > 0 else { return 0 }
@@ -20,21 +21,22 @@ enum VoiceModelStore {
     private struct ModelFile: Sendable {
         let path: String
         let size: Int64
+        let sha256: String?
     }
 
     private static let files: [ModelFile] = [
-        .init(path: "config.json", size: 5_522),
-        .init(path: "generation_config.json", size: 245),
-        .init(path: "merges.txt", size: 1_671_839),
-        .init(path: "model.safetensors", size: 1_304_461_214),
-        .init(path: "model.safetensors.index.json", size: 77_731),
-        .init(path: "preprocessor_config.json", size: 127),
-        .init(path: "speech_tokenizer/config.json", size: 2_336),
-        .init(path: "speech_tokenizer/configuration.json", size: 76),
-        .init(path: "speech_tokenizer/model.safetensors", size: 682_293_092),
-        .init(path: "speech_tokenizer/preprocessor_config.json", size: 234),
-        .init(path: "tokenizer_config.json", size: 7_344),
-        .init(path: "vocab.json", size: 2_776_833),
+        .init(path: "config.json", size: 5_522, sha256: nil),
+        .init(path: "generation_config.json", size: 245, sha256: nil),
+        .init(path: "merges.txt", size: 1_671_839, sha256: nil),
+        .init(path: "model.safetensors", size: 1_304_461_214, sha256: "9488e7005cc0cf44f8804eb543668d0763bb1c649ce6f1eddc663519524b3182"),
+        .init(path: "model.safetensors.index.json", size: 77_731, sha256: nil),
+        .init(path: "preprocessor_config.json", size: 127, sha256: nil),
+        .init(path: "speech_tokenizer/config.json", size: 2_336, sha256: nil),
+        .init(path: "speech_tokenizer/configuration.json", size: 76, sha256: nil),
+        .init(path: "speech_tokenizer/model.safetensors", size: 682_293_092, sha256: "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"),
+        .init(path: "speech_tokenizer/preprocessor_config.json", size: 234, sha256: nil),
+        .init(path: "tokenizer_config.json", size: 7_344, sha256: nil),
+        .init(path: "vocab.json", size: 2_776_833, sha256: nil),
     ]
 
     static var manifestSize: Int64 { files.reduce(0) { $0 + $1.size } }
@@ -51,9 +53,7 @@ enum VoiceModelStore {
     static var isInstalled: Bool {
         files.allSatisfy { file in
             let url = directory.appendingPathComponent(file.path)
-            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
-                  let size = values.fileSize else { return false }
-            return Int64(size) == file.size
+            return ModelFileIntegrity.matchesExpectedSize(url, expectedSize: file.size)
         }
     }
 
@@ -73,10 +73,27 @@ enum VoiceModelStore {
         for file in files {
             try Task.checkCancellation()
             let destination = directory.appendingPathComponent(file.path)
-            let existingSize = Int64((try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-            if existingSize == file.size {
+            let existingIsValid: Bool
+            if let sha256 = file.sha256 {
+                existingIsValid = await ModelFileIntegrity.validateAsync(
+                    destination,
+                    expectedSize: file.size,
+                    expectedSHA256: sha256
+                )
+            } else {
+                existingIsValid = ModelFileIntegrity.matchesExpectedSize(
+                    destination,
+                    expectedSize: file.size
+                )
+            }
+            if existingIsValid {
                 completed += file.size
-                await progress(.init(completedBytes: completed, totalBytes: downloadSize, currentFile: file.path))
+                await progress(.init(
+                    completedBytes: completed,
+                    totalBytes: downloadSize,
+                    currentFile: file.path,
+                    isDownloading: false
+                ))
                 continue
             }
 
@@ -84,6 +101,7 @@ enum VoiceModelStore {
                 at: destination.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
+            ModelFileIntegrity.removeMetadata(for: destination)
             try? FileManager.default.removeItem(at: destination)
 
             guard let encodedPath = file.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
@@ -100,15 +118,29 @@ enum VoiceModelStore {
                         progress(.init(
                             completedBytes: base + bounded,
                             totalBytes: downloadSize,
-                            currentFile: file.path
+                            currentFile: file.path,
+                            isDownloading: true
                         ))
                     }
                 }
             } onCancel: {
                 downloader.cancel()
             }
-            let downloadedSize = Int64((try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-            guard downloadedSize == file.size else {
+            let downloadedIsValid: Bool
+            if let sha256 = file.sha256 {
+                downloadedIsValid = await ModelFileIntegrity.validateAsync(
+                    destination,
+                    expectedSize: file.size,
+                    expectedSHA256: sha256
+                )
+            } else {
+                downloadedIsValid = ModelFileIntegrity.matchesExpectedSize(
+                    destination,
+                    expectedSize: file.size
+                )
+            }
+            guard downloadedIsValid else {
+                ModelFileIntegrity.removeMetadata(for: destination)
                 try? FileManager.default.removeItem(at: destination)
                 throw KikiError("The local voice model download was incomplete. Please try again.")
             }
@@ -116,7 +148,12 @@ enum VoiceModelStore {
         }
 
         guard isInstalled else { throw KikiError("The local voice model is incomplete.") }
-        await progress(.init(completedBytes: downloadSize, totalBytes: downloadSize, currentFile: "Complete"))
+        await progress(.init(
+            completedBytes: downloadSize,
+            totalBytes: downloadSize,
+            currentFile: "Complete",
+            isDownloading: false
+        ))
     }
 
     static func delete() throws {

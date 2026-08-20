@@ -151,18 +151,15 @@ final class DictationController {
                     guard self.preparationID == currentPreparationID else { return }
                     self.parakeetTranscriber = loaded
                 } else {
-                    if !ModelStore.isWhisperModelInstalled(selectedModel) {
-                        self.publishModelPreparation(.downloading(model: selectedModel, fraction: 0))
-                        try await ModelDownloadService.downloadWhisperModel(
-                            selectedModel
-                        ) { [weak self] progress in
-                            guard let self,
-                                  self.preparationID == currentPreparationID else { return }
-                            self.publishModelPreparation(.downloading(
-                                model: selectedModel,
-                                fraction: progress.fraction
-                            ))
-                        }
+                    try await ModelDownloadService.downloadWhisperModel(
+                        selectedModel
+                    ) { [weak self] progress in
+                        guard let self,
+                              self.preparationID == currentPreparationID else { return }
+                        self.publishModelPreparation(.downloading(
+                            model: selectedModel,
+                            fraction: progress.fraction
+                        ))
                     }
                     try Task.checkCancellation()
                     guard self.preparationID == currentPreparationID,

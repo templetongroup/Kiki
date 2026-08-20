@@ -68,4 +68,22 @@ enum TranscriptionModelID: String, CaseIterable, Codable, Sendable {
         guard let whisperFileName else { return nil }
         return URL(string: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/\(whisperFileName)")
     }
+
+    var downloadSize: Int64? {
+        switch self {
+        case .whisperLargeTurbo: 1_624_555_275
+        case .whisperSmallEnglish: 487_614_201
+        case .whisperBaseEnglish: 147_964_211
+        default: nil
+        }
+    }
+
+    var downloadSHA256: String? {
+        switch self {
+        case .whisperLargeTurbo: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69"
+        case .whisperSmallEnglish: "c6138d6d58ecc8322097e0f987c32f1be8bb0a18532a3f88f734d1bbf9c41e5d"
+        case .whisperBaseEnglish: "a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002"
+        default: nil
+        }
+    }
 }

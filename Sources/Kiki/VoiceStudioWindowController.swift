@@ -720,7 +720,13 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
                     let fileName = progress.currentFile == "Complete"
                         ? "Finalizing installation"
                         : progress.currentFile.split(separator: "/").last.map(String.init) ?? progress.currentFile
-                    self.modelStatusLabel.stringValue = "Installing locally… \(percent)% · \(fileName)"
+                    if progress.currentFile == "Complete" {
+                        self.modelStatusLabel.stringValue = "Finalizing local voice engine…"
+                    } else if progress.isDownloading {
+                        self.modelStatusLabel.stringValue = "Downloading local voice engine… \(percent)% · \(fileName)"
+                    } else {
+                        self.modelStatusLabel.stringValue = "Verifying local voice engine… · \(fileName)"
+                    }
                 }
                 self.downloadTask = nil
                 self.modelProgress.isHidden = true
@@ -763,9 +769,21 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let task = Task { [weak self] in
             guard let self else { return }
             do {
+                self.generationStatusLabel.stringValue = "Verifying the private local voice engine…"
+                try await VoiceModelStore.download { [weak self] progress in
+                    guard let self else { return }
+                    if progress.isDownloading {
+                        self.generationProgress.doubleValue = progress.fraction * 0.15
+                        let percent = Int((progress.fraction * 100).rounded())
+                        self.generationStatusLabel.stringValue = "Repairing local voice engine · \(percent)%"
+                    } else if progress.currentFile != "Complete" {
+                        self.generationStatusLabel.stringValue = "Verifying the private local voice engine…"
+                    }
+                }
+                try Task.checkCancellation()
                 let url = try await synthesisEngine.synthesize(text: text, profile: profile) { [weak self] progress in
                     guard let self else { return }
-                    self.generationProgress.doubleValue = progress.fraction
+                    self.generationProgress.doubleValue = 0.15 + progress.fraction * 0.85
                     let current = min(progress.totalChunks, progress.completedChunks + 1)
                     self.generationStatusLabel.stringValue = "Generating locally · section \(current) of \(progress.totalChunks)"
                 }
