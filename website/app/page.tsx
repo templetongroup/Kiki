@@ -1,7 +1,7 @@
 import FeatureJourney from './FeatureJourney';
 
 const downloadUrl =
-  'https://github.com/templetongroup/Kiki/releases/latest/download/kiki.dmg';
+  'https://templetongroup.dev/kiki/kiki.dmg';
 
 const waveform = [18, 34, 52, 26, 70, 42, 88, 54, 32, 66, 92, 48, 76, 38, 58, 24, 46, 20];
 const privacyWaveform = [24, 42, 68, 36, 82, 50, 92, 58, 32, 74, 46, 88, 54, 70, 38, 62, 28, 48, 76, 44, 84, 52, 66, 34, 58, 26, 42];
@@ -147,7 +147,9 @@ export default function Home() {
         <a className="brand" href="#top"><img src="/kiki-icon.png" alt="" /><span>Kiki</span></a>
         <div className="footer-product">
           <strong>Kiki is a Templeton Technologies product.</strong>
-          <img src="/templeton-technologies.png" alt="Templeton Technologies" />
+          <a href="https://templetontech.com" aria-label="Visit Templeton Technologies">
+            <img src="/templeton-technologies.png" alt="Templeton Technologies" />
+          </a>
         </div>
         <div className="footer-links"><a href="https://github.com/templetongroup/Kiki">GitHub</a><a href="https://github.com/templetongroup/Kiki/releases">Releases</a><a href="#privacy">Privacy</a></div>
       </footer>

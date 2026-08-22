@@ -393,6 +393,7 @@ footer { width: min(1380px, calc(100% - 64px)); min-height: 176px; margin: 0 aut
 footer .brand { color: var(--bone); } footer .brand img { width: 32px; height: 32px; }
 .footer-product { width: 310px; display: grid; justify-items: center; gap: 8px; text-align: center; }
 .footer-product strong { color: rgba(243,234,216,.7); font-size: 12px; font-weight: 600; }
+.footer-product a { display: block; }
 .footer-product img { width: 280px; height: 64px; object-fit: contain; }
 .footer-links { justify-self: end; display: flex; gap: 24px; }
 footer a { transition: color .2s ease; } .footer-links a:hover { color: var(--lichen); }
@@ -475,3 +476,52 @@ footer a { transition: color .2s ease; } .footer-links a:hover { color: var(--li
 }
 
 :focus-visible { outline: 2px solid var(--lichen); outline-offset: 4px; }
+
+.font-showcase { min-height: 100vh; background: #11130f; color: var(--bone); }
+.font-showcase-nav {
+  width: min(1380px, calc(100% - 64px));
+  min-height: 86px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+.font-showcase-nav > a:first-child { display: flex; align-items: center; gap: 10px; font: 600 19px/1 var(--font-body); }
+.font-showcase-nav img { width: 36px; height: 36px; border-radius: 10px; }
+.font-back-link { color: var(--lichen); font-size: 12px; }
+.font-showcase-intro { width: min(1380px, calc(100% - 64px)); margin: 0 auto; padding: 104px 0 82px; }
+.font-showcase-intro > p { margin: 0 0 18px; color: var(--lichen); font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.font-showcase-intro h1 { margin: 0; font-size: clamp(58px, 7vw, 106px); font-family: var(--font-body); font-weight: 600; letter-spacing: -.055em; line-height: .92; }
+.font-showcase-intro > span { display: block; max-width: 680px; margin-top: 30px; color: rgba(243,234,216,.64); font-size: 16px; line-height: 1.65; }
+.font-option-grid { width: min(1380px, calc(100% - 64px)); margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.font-option { min-width: 0; padding: clamp(28px, 3vw, 46px); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(255,255,255,.012); }
+.font-option-meta { min-height: 44px; display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: start; margin-bottom: 54px; }
+.font-option-meta > span { color: var(--lichen); font: 500 10px/1.2 var(--font-mono); }
+.font-option-meta div { display: grid; gap: 6px; }
+.font-option-meta strong { color: var(--bone); font-size: 13px; font-weight: 650; }
+.font-option-meta small { color: rgba(243,234,216,.47); font-size: 11px; }
+.font-option-meta em { padding: 6px 8px; border: 1px solid rgba(184,215,130,.3); border-radius: 999px; color: var(--lichen); font: 500 8px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; font-style: normal; }
+.font-hero-sample { max-width: none; margin: 0; color: var(--bone); font-family: inherit; font-size: clamp(48px, 4.45vw, 72px); font-weight: 560; letter-spacing: -.055em; line-height: .9; }
+.font-hero-sample i { color: var(--lichen); font-style: normal; }
+.font-section-sample { margin: 58px 0 0; color: var(--bone); font-size: clamp(29px, 2.65vw, 43px); font-weight: 560; letter-spacing: -.045em; line-height: 1.02; }
+.font-showcase-footer { width: min(1380px, calc(100% - 64px)); min-height: 170px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.font-showcase-footer p { margin: 0; color: rgba(243,234,216,.58); font-size: 13px; }
+.font-showcase-footer a { color: var(--lichen); font-size: 12px; }
+
+@media (max-width: 900px) {
+  .font-option-grid { grid-template-columns: 1fr; }
+  .font-hero-sample { font-size: clamp(52px, 11vw, 78px); }
+  .font-section-sample { font-size: clamp(32px, 6.5vw, 48px); }
+}
+
+@media (max-width: 680px) {
+  .font-showcase-nav, .font-showcase-intro, .font-option-grid, .font-showcase-footer { width: min(100% - 32px, 1380px); }
+  .font-showcase-intro { padding: 76px 0 58px; }
+  .font-showcase-intro h1 { font-size: 58px; }
+  .font-option { padding: 28px 22px 36px; }
+  .font-option-meta { margin-bottom: 40px; }
+  .font-hero-sample { font-size: 48px; }
+  .font-section-sample { margin-top: 42px; font-size: 29px; }
+  .font-showcase-footer { min-height: 190px; align-items: flex-start; justify-content: center; flex-direction: column; }
+}
