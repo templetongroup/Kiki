@@ -27,14 +27,18 @@ export default function Home() {
           <p className="hero-intro">
             Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice without sending a word off your Mac.
           </p>
+          <p className="hero-price"><span aria-hidden="true">✓</span> 100% free</p>
           <div className="hero-actions">
             <a className="primary-button" href={downloadUrl}>
               <span className="download-mark" aria-hidden="true">↓</span>
               Download Kiki
               <span className="button-arrow" aria-hidden="true">↘</span>
             </a>
-            <a className="text-link" href="#features">See what Kiki can do <span>↓</span></a>
+            <a className="secondary-button" href="https://github.com/templetongroup/Kiki" target="_blank" rel="noreferrer">
+              View on GitHub <span aria-hidden="true">↗</span>
+            </a>
           </div>
+          <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
           <p className="compatibility">Version 0.6.34 · macOS 14+ · Apple silicon</p>
         </div>
 

@@ -70,11 +70,13 @@ h1 { font-size: clamp(60px, 5.55vw, 88px); line-height: .9; }
 h1 em { color: var(--lichen); font-style: normal; }
 .hero-intro {
   width: min(570px, 96%);
-  margin: 34px 0 30px;
+  margin: 34px 0 22px;
   color: rgba(243,234,216,.69);
   font-size: 18px;
   line-height: 1.6;
 }
+.hero-price { margin: 0 0 12px; color: var(--lichen); font: 600 11px/1.2 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; }
+.hero-price span { margin-right: 6px; }
 .hero-actions { display: flex; align-items: center; gap: 28px; }
 .primary-button {
   display: inline-flex;
@@ -90,11 +92,27 @@ h1 em { color: var(--lichen); font-style: normal; }
   transition: transform .25s ease, box-shadow .25s ease;
 }
 .primary-button:hover { transform: translateY(-2px); box-shadow: 0 20px 60px rgba(184,215,130,.25); }
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 20px;
+  border: 1px solid rgba(243,234,216,.22);
+  border-radius: 14px;
+  color: var(--bone);
+  font-size: 14px;
+  font-weight: 700;
+  transition: border-color .25s ease, background .25s ease, transform .25s ease;
+}
+.secondary-button:hover { transform: translateY(-2px); border-color: rgba(184,215,130,.5); background: rgba(184,215,130,.06); }
 .download-mark { font-size: 16px; line-height: 1; }
 .button-arrow { font-size: 18px; margin-left: 8px; }
 .text-link { color: rgba(243,234,216,.72); font-size: 14px; }
 .text-link span { color: var(--lichen); margin-left: 4px; }
-.compatibility { margin: 18px 0 0; color: rgba(199,185,147,.55); font: 400 10px/1.4 var(--font-mono); letter-spacing: .05em; }
+.hero-feature-link { display: inline-block; margin-top: 18px; }
+.compatibility { margin: 14px 0 0; color: rgba(199,185,147,.55); font: 400 10px/1.4 var(--font-mono); letter-spacing: .05em; }
 
 .hero-stage { height: 650px; position: relative; isolation: isolate; }
 .stage-glow {
