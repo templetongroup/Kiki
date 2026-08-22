@@ -23,7 +23,7 @@ export default function Home() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Voice intelligence, on your Mac</p>
-          <h1>Kiki -<br /><em>Private Voice<br />Intelligence.</em></h1>
+          <h1>Kiki<br /><em>Private Voice<br />Intelligence.</em></h1>
           <p className="hero-intro">
             Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice without sending a word off your Mac.
           </p>
