@@ -104,9 +104,15 @@ export default function Home() {
       </section>
 
       <section className="details-section">
-        <div className="section-heading compact-heading">
-          <p className="eyebrow">Thoughtful by default</p>
-          <h2>Power when you need it.<br />Quiet when you don’t.</h2>
+        <div className="details-intro">
+          <div className="details-copy">
+            <p className="eyebrow">Thoughtful by default</p>
+            <h2>Power when you need it.<br />Quiet when you don’t.</h2>
+          </div>
+          <div className="details-character">
+            <div className="details-character-glow" aria-hidden="true" />
+            <img src="/kiki-studio-hero.png" alt="Kiki wearing headphones in front of a studio microphone" />
+          </div>
         </div>
         <div className="detail-grid">
           <article><p>Personalization</p><h3>Kiki learns the words that matter to you.</h3><span>Approve corrections, teach exact spellings, and import context from sources you choose.</span></article>

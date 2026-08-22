@@ -366,8 +366,45 @@ h2 { font-size: clamp(48px, 5vw, 78px); line-height: 1.02; max-width: 900px; }
 .cloud-blocked strong { font-size: 11px; font-weight: 500; margin-top: 4px; }
 
 .details-section { width: min(1380px, calc(100% - 64px)); margin: 0 auto; padding: 155px 0; }
-.compact-heading { align-items: start; }
-.detail-grid { margin-top: 78px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.details-intro {
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(520px, 1.1fr);
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 58px;
+  padding: 28px 56px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 82% 45%, rgba(184,215,130,.1), transparent 38%),
+    linear-gradient(135deg, rgba(184,215,130,.045), rgba(255,255,255,.012));
+}
+.details-copy { position: relative; z-index: 2; padding: 42px 0; }
+.details-copy h2 { font-size: clamp(54px, 5vw, 78px); line-height: .96; }
+.details-character { align-self: stretch; position: relative; min-height: 372px; }
+.details-character-glow {
+  position: absolute;
+  width: 430px;
+  height: 430px;
+  right: 5%;
+  top: 50%;
+  border-radius: 50%;
+  background: rgba(184,215,130,.12);
+  filter: blur(80px);
+  transform: translateY(-50%);
+}
+.details-character img {
+  position: absolute;
+  width: 960px;
+  max-width: none;
+  right: -82px;
+  bottom: -28px;
+  filter: drop-shadow(0 32px 45px rgba(0,0,0,.42));
+}
+.detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
 .detail-grid article { min-height: 300px; padding: 32px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; transition: background .3s ease; }
 .detail-grid article:hover { background: rgba(184,215,130,.035); }
 .detail-grid article::after { content: ''; position: absolute; width: 110px; height: 110px; right: -55px; bottom: -55px; border: 1px solid rgba(184,215,130,.14); border-radius: 50%; transition: transform .5s ease; }
@@ -429,6 +466,10 @@ footer a { transition: color .2s ease; } .footer-links a:hover { color: var(--li
   .mobile-feature-image { display: block; margin-top: 30px; border-radius: 18px; border: 1px solid var(--line); }
   .privacy-section { grid-template-columns: 1fr; }
   .privacy-diagram { min-height: 500px; }
+  .details-intro { grid-template-columns: minmax(0, .82fr) minmax(360px, 1.18fr); min-height: 390px; padding: 24px 38px; }
+  .details-copy h2 { font-size: clamp(48px, 6vw, 64px); }
+  .details-character { min-height: 340px; }
+  .details-character img { width: 820px; right: -105px; bottom: -20px; }
   .detail-grid { grid-template-columns: repeat(2, 1fr); }
   .setup-section { grid-template-columns: 1fr; gap: 60px; padding: 54px; }
   .download-copy { width: 72%; }
@@ -463,7 +504,13 @@ footer a { transition: color .2s ease; } .footer-links a:hover { color: var(--li
   .privacy-signal { width: 480px; height: 64px; left: 50%; right: auto; top: 50%; transform: translate(-50%, -50%) rotate(90deg); }
   .cloud-blocked { right: 18px; left: auto; bottom: 18px; transform: none; }
   .details-section { padding: 105px 0; }
-  .detail-grid { grid-template-columns: 1fr; margin-top: 48px; }
+  .details-intro { grid-template-columns: 1fr; min-height: 0; margin-bottom: 40px; padding: 34px 24px 0; border-radius: 22px; }
+  .details-copy { padding: 8px 0 18px; }
+  .details-copy h2 { font-size: 44px; }
+  .details-character { min-height: 300px; margin: 0 -24px; }
+  .details-character-glow { width: 310px; height: 310px; right: 4%; filter: blur(60px); }
+  .details-character img { width: 760px; right: -112px; bottom: -8px; }
+  .detail-grid { grid-template-columns: 1fr; }
   .detail-grid article { min-height: 250px; padding: 28px; }
   .setup-section { margin-bottom: 100px; padding: 36px 24px; border-radius: 22px; }
   .download-section { min-height: 720px; padding: 90px 16px; align-items: flex-start; }
