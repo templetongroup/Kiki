@@ -18,15 +18,12 @@ export default function Home() {
           <a href="#privacy">Privacy</a>
           <a href="#download">Download</a>
         </nav>
-        <a className="nav-download" href={downloadUrl}>
-          Download for Mac
-        </a>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Voice intelligence, on your Mac</p>
-          <h1>Your voice.<br />Your words.<br /><em>Your Mac.</em></h1>
+          <h1>Kiki -<br /><em>Private Voice<br />Intelligence.</em></h1>
           <p className="hero-intro">
             Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice without sending a word off your Mac.
           </p>

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, DM_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { DM_Sans, IBM_Plex_Mono, Instrument_Sans } from 'next/font/google';
 import './globals.css';
 
-const display = Bricolage_Grotesque({
+const display = Instrument_Sans({
   variable: '--font-display',
   subsets: ['latin'],
 });
