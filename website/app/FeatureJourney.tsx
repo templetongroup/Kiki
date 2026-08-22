@@ -26,7 +26,7 @@ const features = [
     label: 'Recordings',
     title: 'Turn old audio into useful text.',
     copy: 'Drop in a recording and get an editable local transcript. Copy it, refine it, or export it in the format you need.',
-    proof: 'Your selected local model does the work—no network transcription service.',
+    proof: 'Your selected local model does the work. No network transcription service.',
     image: '/product/kiki-file-transcription.png',
     alt: 'Kiki converting a local audio recording into editable text',
   },

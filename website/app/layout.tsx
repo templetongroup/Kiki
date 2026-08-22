@@ -20,17 +20,17 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kiki-for-mac.tonyricciardi.chatgpt.site'),
-  title: 'Kiki — Private voice intelligence for Mac',
+  title: 'Kiki | Private voice intelligence for Mac',
   description: 'Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice. Kiki runs fully locally on your Mac.',
   openGraph: {
-    title: 'Kiki — Private voice intelligence for Mac',
+    title: 'Kiki | Private voice intelligence for Mac',
     description: 'Dictate, capture meetings, transcribe recordings, and create audio without sending a word off your Mac.',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Kiki — Private voice intelligence for Mac' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Kiki | Private voice intelligence for Mac' }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kiki — Private voice intelligence for Mac',
+    title: 'Kiki | Private voice intelligence for Mac',
     description: 'Dictate, capture meetings, transcribe recordings, and create audio without sending a word off your Mac.',
     images: ['/og.png'],
   },

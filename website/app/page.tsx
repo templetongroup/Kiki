@@ -1,17 +1,17 @@
 import FeatureJourney from './FeatureJourney';
 
 const downloadUrl =
-  'https://github.com/templetongroup/Kiki/releases/download/v0.6.34/Kiki-0.6.34-macOS.zip';
+  'https://github.com/templetongroup/Kiki/releases/latest/download/kiki.dmg';
 
 const waveform = [18, 34, 52, 26, 70, 42, 88, 54, 32, 66, 92, 48, 76, 38, 58, 24, 46, 20];
+const privacyWaveform = [24, 42, 68, 36, 82, 50, 92, 58, 32, 74, 46, 88, 54, 70, 38, 62, 28, 48, 76, 44, 84, 52, 66, 34, 58, 26, 42];
 
 export default function Home() {
   return (
     <main>
       <header className="site-nav">
-        <a className="brand" href="#top" aria-label="Kiki home">
-          <img src="/kiki-icon.png" alt="" />
-          <span>Kiki</span>
+        <a className="developer-brand" href="#top" aria-label="Templeton Group Development, Kiki home">
+          <img src="/templeton-group-development.png" alt="Templeton Group Development" />
         </a>
         <nav aria-label="Primary navigation">
           <a href="#features">Features</a>
@@ -25,10 +25,10 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <p className="eyebrow"><span /> Voice intelligence, on your Mac</p>
+          <p className="eyebrow">Voice intelligence, on your Mac</p>
           <h1>Your voice.<br />Your words.<br /><em>Your Mac.</em></h1>
           <p className="hero-intro">
-            Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice—without sending a word off your Mac.
+            Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice without sending a word off your Mac.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href={downloadUrl}>
@@ -67,8 +67,8 @@ export default function Home() {
 
       <section className="product-reveal" id="features">
         <div className="section-heading">
-          <p className="eyebrow"><span /> One quiet command center</p>
-          <h2>Everything your voice can do,<br />without leaving your Mac.</h2>
+          <p className="eyebrow">One quiet command center</p>
+          <h2 className="product-heading">Everything your voice can do,<br />without leaving your Mac.</h2>
         </div>
         <div className="app-window">
           <img src="/product/kiki-home.png" alt="Kiki Workbench showing dictation, meetings, Voice Studio, transcription, and setup readiness" />
@@ -79,7 +79,7 @@ export default function Home() {
 
       <section className="privacy-section" id="privacy">
         <div className="privacy-copy">
-          <p className="eyebrow"><span /> Privacy is the architecture</p>
+          <p className="eyebrow">Privacy is the architecture</p>
           <h2>No cloud<br />to trust.</h2>
           <p>Kiki’s normal workflow happens on the Mac in front of you. Recordings, transcripts, learned spellings, and voice references don’t need a round trip through someone else’s server.</p>
           <ul>
@@ -90,10 +90,13 @@ export default function Home() {
           </ul>
         </div>
         <div className="privacy-diagram" aria-label="Audio is processed locally and becomes text without leaving the Mac">
+          <div className="privacy-signal" aria-hidden="true">
+            {privacyWaveform.map((height, index) => (
+              <i key={index} style={{ '--signal-height': `${height}%`, '--signal-delay': `${index * -0.055}s` } as React.CSSProperties} />
+            ))}
+          </div>
           <div className="privacy-node input-node"><small>Input</small><strong>Your voice</strong><div className="mini-wave">|||||||||</div></div>
-          <div className="privacy-path"><i /><i /><i /><i /><span>stays here</span></div>
           <div className="privacy-node mac-node"><img src="/kiki-icon.png" alt="" /><small>Local intelligence</small><strong>This Mac</strong></div>
-          <div className="privacy-path"><i /><i /><i /><i /><span>becomes</span></div>
           <div className="privacy-node output-node"><small>Output</small><strong>Your words</strong><p>Notes from today’s meeting…</p></div>
           <div className="cloud-blocked"><span>×</span><p>Cloud upload</p><strong>Not in the path</strong></div>
         </div>
@@ -101,7 +104,7 @@ export default function Home() {
 
       <section className="details-section">
         <div className="section-heading compact-heading">
-          <p className="eyebrow"><span /> Thoughtful by default</p>
+          <p className="eyebrow">Thoughtful by default</p>
           <h2>Power when you need it.<br />Quiet when you don’t.</h2>
         </div>
         <div className="detail-grid">
@@ -116,7 +119,7 @@ export default function Home() {
 
       <section className="setup-section">
         <div className="setup-title">
-          <p className="eyebrow"><span /> From download to first words</p>
+          <p className="eyebrow">From download to first words</p>
           <h2>Ready in three<br />clear steps.</h2>
         </div>
         <ol>
@@ -129,21 +132,24 @@ export default function Home() {
       <section className="download-section" id="download">
         <div className="download-glow" />
         <div className="download-copy">
-          <p className="eyebrow"><span /> Ready when you are</p>
+          <p className="eyebrow">Ready when you are</p>
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
             Download Kiki 0.6.34 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
-          <small>53.8 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
+          <small>62.8 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>
         <img src="/kiki-studio-hero.png" alt="Kiki wearing headphones beside a studio microphone" />
       </section>
 
       <footer>
         <a className="brand" href="#top"><img src="/kiki-icon.png" alt="" /><span>Kiki</span></a>
-        <p>Voice intelligence that stays on your Mac.</p>
-        <div><a href="https://github.com/templetongroup/Kiki">GitHub</a><a href="https://github.com/templetongroup/Kiki/releases">Releases</a><a href="#privacy">Privacy</a></div>
+        <div className="footer-product">
+          <strong>Kiki is a Templeton Technologies product.</strong>
+          <img src="/templeton-technologies.png" alt="Templeton Technologies" />
+        </div>
+        <div className="footer-links"><a href="https://github.com/templetongroup/Kiki">GitHub</a><a href="https://github.com/templetongroup/Kiki/releases">Releases</a><a href="#privacy">Privacy</a></div>
       </footer>
     </main>
   );
