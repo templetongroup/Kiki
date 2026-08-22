@@ -18,8 +18,9 @@ final class SystemAudioSilencer {
 
     var isActive: Bool { !snapshots.isEmpty }
 
-    func silence() {
-        guard snapshots.isEmpty, let deviceID = Self.defaultOutputDevice() else { return }
+    @discardableResult
+    func silence() -> Bool {
+        guard snapshots.isEmpty, let deviceID = Self.defaultOutputDevice() else { return false }
 
         // Prefer the device's mute control. It is lossless and lets macOS show
         // the muted state normally in Control Center and on the keyboard HUD.
@@ -32,7 +33,7 @@ final class SystemAudioSilencer {
            Self.isSettable(deviceID, muteAddress),
            Self.writeUInt32(1, to: deviceID, muteAddress) {
             snapshots = [Snapshot(deviceID: deviceID, address: muteAddress, value: .uint32(previousMute))]
-            return
+            return true
         }
 
         // Some HDMI, aggregate, and virtual devices expose volume but no mute.
@@ -47,7 +48,7 @@ final class SystemAudioSilencer {
            Self.isSettable(deviceID, mainVolumeAddress),
            Self.writeFloat32(0, to: deviceID, mainVolumeAddress) {
             snapshots = [Snapshot(deviceID: deviceID, address: mainVolumeAddress, value: .float32(previousVolume))]
-            return
+            return true
         }
 
         // Fall back to independent left/right controls only when there is no
@@ -63,6 +64,7 @@ final class SystemAudioSilencer {
                   Self.writeFloat32(0, to: deviceID, volumeAddress) else { continue }
             snapshots.append(Snapshot(deviceID: deviceID, address: volumeAddress, value: .float32(previousVolume)))
         }
+        return !snapshots.isEmpty
     }
 
     func restore() {

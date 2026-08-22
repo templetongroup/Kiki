@@ -12,6 +12,7 @@ final class HotkeyManager {
     var onToggle: @MainActor () -> Void = {}
     var onHoldStart: @MainActor () -> Void = {}
     var onHoldEnd: @MainActor () -> Void = {}
+    var onCancel: @MainActor () -> Void = {}
 
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
@@ -65,6 +66,10 @@ final class HotkeyManager {
     }
 
     private func handleTriggerEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == UInt16(kVK_Escape) {
+            DispatchQueue.main.async { self.onCancel() }
+            return
+        }
         let shortcut = dictationShortcut
         guard event.keyCode == shortcut.keyCode else { return }
 
@@ -75,8 +80,16 @@ final class HotkeyManager {
         } else {
             guard event.type == .keyDown || event.type == .keyUp else { return }
             let relevant: NSEvent.ModifierFlags = [.command, .option, .control, .shift, .function]
-            guard event.modifierFlags.intersection(relevant) == shortcut.modifiers.intersection(relevant) else { return }
-            isDown = event.type == .keyDown
+            if event.type == .keyDown {
+                guard event.modifierFlags.intersection(relevant) == shortcut.modifiers.intersection(relevant) else {
+                    return
+                }
+                isDown = true
+            } else {
+                // A user can release the modifier before releasing the letter.
+                // The matching key-up still ends the hold and rearms the shortcut.
+                isDown = false
+            }
         }
 
         if isDown && !triggerDown {
@@ -89,4 +102,10 @@ final class HotkeyManager {
             if activationMode == .hold { DispatchQueue.main.async { self.onHoldEnd() } }
         }
     }
+
+    func processEventForDiagnostics(_ event: NSEvent) {
+        handleTriggerEvent(event)
+    }
+
+    var diagnosticTriggerDown: Bool { triggerDown }
 }

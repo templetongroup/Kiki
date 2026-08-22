@@ -50,7 +50,11 @@ enum ModelStore {
     }
 
     static func isWhisperModelInstalled(_ model: TranscriptionModelID) -> Bool {
-        guard let fileName = model.whisperFileName else { return false }
-        return installedModels().contains(fileName)
+        guard let fileName = model.whisperFileName,
+              let expectedSize = model.downloadSize else { return false }
+        return ModelFileIntegrity.matchesExpectedSize(
+            modelsDirectory.appendingPathComponent(fileName),
+            expectedSize: expectedSize
+        )
     }
 }

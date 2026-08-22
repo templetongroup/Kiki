@@ -10,6 +10,8 @@ LOCAL_SIGNING_IDENTITY="${KIKI_LOCAL_SIGNING_IDENTITY:-Kiki Local Code Signing}"
 SIGNING_IDENTITY="${KIKI_SIGNING_IDENTITY:-}"
 RELEASE_BUILD="${KIKI_RELEASE:-0}"
 ENTITLEMENTS="${KIKI_ENTITLEMENTS:-Resources/Kiki.entitlements}"
+SPARKLE_PUBLIC_KEY="${KIKI_SPARKLE_PUBLIC_KEY:-xp9FZx3OYN5NpmFPmxw3AN7HfLPVcXe5+s+xB27QKwM=}"
+SPARKLE_FEED_URL="${KIKI_SPARKLE_FEED_URL:-https://raw.githubusercontent.com/templetongroup/Kiki/main/appcast.xml}"
 
 if [[ ! -f "$ENTITLEMENTS" ]]; then
     echo "error: entitlements file not found: $ENTITLEMENTS" >&2
@@ -17,17 +19,29 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
 fi
 
 swift build -c release
+./scripts/fetch-mlx-metallib.sh
 
 APP="build/Kiki.app"
 BIN=".build/release/Kiki"
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN" "$APP/Contents/MacOS/Kiki"
+cp build/MLX/mlx.metallib "$APP/Contents/MacOS/mlx.metallib"
+
+if [[ -d ".build/release/Sparkle.framework" ]]; then
+    ditto ".build/release/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
+    install_name_tool -add_rpath "@loader_path/../Frameworks" "$APP/Contents/MacOS/Kiki"
+else
+    echo "error: Sparkle.framework was not produced by the release build" >&2
+    exit 1
+fi
 
 # App icon.
 cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
 cp Resources/MenuBarIcon.png "$APP/Contents/Resources/MenuBarIcon.png"
+cp Assets/kiki-portrait.png "$APP/Contents/Resources/SplashArtwork.png"
+cp Assets/kiki-studio-hero.png "$APP/Contents/Resources/VoiceStudioHero.png"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.
@@ -67,6 +81,20 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Kiki records your voice while dictating so it can transcribe it locally.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>Kiki can import contact names into an optional local vocabulary so names are spelled correctly.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Kiki can import upcoming meeting titles and attendee names into an optional local vocabulary.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Kiki Meeting Mode can capture Mac system audio for a fully local, source-labelled transcript.</string>
+    <key>SUFeedURL</key>
+    <string>$SPARKLE_FEED_URL</string>
+    <key>SUPublicEDKey</key>
+    <string>$SPARKLE_PUBLIC_KEY</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <true/>
 </dict>
 </plist>
 PLIST
@@ -124,6 +152,25 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
         exit 1
     fi
 
+    # Secure timestamping rejects a generic file when its copied mtime is stale.
+    # Refresh the packaged metallib immediately before applying its signature.
+    touch "$APP/Contents/MacOS/mlx.metallib"
+
+    codesign \
+        --force \
+        --sign "$SIGNING_IDENTITY" \
+        --options runtime \
+        --timestamp \
+        "$APP/Contents/MacOS/mlx.metallib"
+
+    codesign \
+        --force \
+        --deep \
+        --sign "$SIGNING_IDENTITY" \
+        --options runtime \
+        --timestamp \
+        "$APP/Contents/Frameworks/Sparkle.framework"
+
     codesign \
         --force \
         --sign "$SIGNING_IDENTITY" \
@@ -141,9 +188,21 @@ else
     codesign \
         --force \
         --sign "$SIGNING_IDENTITY" \
+        --timestamp=none \
+        "$APP/Contents/MacOS/mlx.metallib"
+
+    codesign \
+        --force \
+        --deep \
+        --sign "$SIGNING_IDENTITY" \
+        --timestamp=none \
+        "$APP/Contents/Frameworks/Sparkle.framework"
+
+    codesign \
+        --force \
+        --sign "$SIGNING_IDENTITY" \
         --identifier "$APP_ID" \
         --entitlements "$ENTITLEMENTS" \
-        --options runtime \
         --timestamp=none \
         "$APP"
 fi

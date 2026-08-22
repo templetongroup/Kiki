@@ -4,26 +4,76 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     var onSettingsChange: (@MainActor (DictationShortcut, ActivationMode) -> Void)?
     var onModelChange: (@MainActor (TranscriptionModelID) -> Void)?
+    var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
+    var onMicrophoneChange: (@MainActor (String) -> Void)?
+    var onOpenPersonalization: (@MainActor () -> Void)?
 
     private let shortcutButton = NSButton(title: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
-    private let modelPopup = NSPopUpButton()
-    private let modelDetailLabel = NSTextField(wrappingLabelWithString: "")
-    private let useModelButton = NSButton(title: "Use Model", target: nil, action: nil)
-    private let silenceAudioCheckbox = NSButton(
-        checkboxWithTitle: "Silence system audio while recording",
+    private let speechProfilePopup = NSPopUpButton()
+    private let soundPopup = NSPopUpButton()
+    private let microphonePopup = NSPopUpButton()
+    private let listeningPositionPopup = NSPopUpButton()
+    private let listeningDisplayControl = NSSegmentedControl(
+        labels: ListeningDisplayMode.allCases.map(\.title),
+        trackingMode: .selectOne,
         target: nil,
         action: nil
     )
     private let messageLabel = NSTextField(labelWithString: "")
+    private let startupStatusLabel = NSTextField(labelWithString: "")
+    private let lookAndSoundStatusLabel = NSTextField(labelWithString: "")
+    private let speechProfileDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
+    private let listeningDisplayDescriptionLabel = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
+    private let pageHost = NSView()
+    private let pageTitleLabel = kikiLabel("General", size: 28, weight: .bold)
+    private let pageSubtitleLabel = kikiLabel(
+        "Shape how Kiki sounds and starts.",
+        size: 13.5,
+        color: KikiPalette.secondaryText
+    )
+    private var navButtons: [KikiNavButton] = []
+
+    private let pageMetadata: [(title: String, subtitle: String, symbol: String)] = [
+        ("General", "Shape how Kiki sounds and starts.", "slider.horizontal.3"),
+        ("Dictation", "Tune the way Kiki listens and keeps up with you.", "waveform"),
+        ("Models", "Choose the local engine that fits your voice and workflow.", "cpu"),
+        ("Intelligence", "Make Kiki more accurate without slowing down transcription.", "sparkles"),
+        ("Privacy", "Control exactly what Kiki remembers—and where it remembers nothing.", "lock.shield"),
+    ]
+
+    private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
+    private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
+    private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
+    private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
+    private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
+    private let learningCheckbox = NSButton(checkboxWithTitle: "Notice corrections and suggest what Kiki should learn", target: nil, action: nil)
+    private let contextCheckbox = NSButton(checkboxWithTitle: "Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
+    private let confidenceCheckbox = NSButton(checkboxWithTitle: "Audit results with a background Whisper model", target: nil, action: nil)
+    private let historyCheckbox = NSButton(checkboxWithTitle: "Save text-only transcription history", target: nil, action: nil)
+
+    private var pages: [NSView] = []
+    private var modelCards: [ModelCardView] = []
+    private var modelPreparationStatus: ModelPreparationStatus?
     private var captureMonitor: Any?
     private var pendingModifierKeyCode: UInt16?
     private var pendingModifierFlags: NSEvent.ModifierFlags = []
+    private let soundPreview = DictationSoundPlayer()
 
     init() {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
-                              styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 682, height: 802),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
         window.title = "Kiki Settings"
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = false
+        window.minSize = NSSize(width: 682, height: 802)
+        window.maxSize = NSSize(width: 682, height: 802)
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
@@ -31,89 +81,579 @@ final class SettingsWindowController: NSWindowController {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func show() {
+    func show(page index: Int? = nil) {
         refresh()
+        if let index, pages.indices.contains(index) {
+            showPage(index: index)
+        }
         showWindow(nil)
+        window?.setContentSize(NSSize(width: 682, height: 802))
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func prepareForDiagnostics(page index: Int) {
+        guard pages.indices.contains(index) else { return }
+        refresh()
+        showPage(index: index)
+        window?.contentView?.layoutSubtreeIfNeeded()
+    }
+
+    func workbenchPage(_ index: Int) -> NSView {
+        guard pages.indices.contains(index) else { return NSView() }
+        refresh()
+        showPage(index: index)
+        let page = pages[index]
+        page.removeFromSuperview()
+        return page
+    }
+
+    func updateModelPreparationStatus(_ status: ModelPreparationStatus) {
+        modelPreparationStatus = status
+        modelCards.forEach { $0.refresh() }
+        modelCards.forEach { $0.update(preparationStatus: status) }
+    }
+
     private func buildContent() {
-        let title = NSTextField(labelWithString: "Dictation Shortcut")
-        title.font = .systemFont(ofSize: 20, weight: .semibold)
-        let detail = NSTextField(wrappingLabelWithString: "Choose any modifier key or a keyboard shortcut. Kiki listens globally after Accessibility permission is granted.")
-        detail.textColor = .secondaryLabelColor
+        guard let content = window?.contentView else { return }
+        NSLayoutConstraint.activate([
+            content.widthAnchor.constraint(equalToConstant: 682),
+            content.heightAnchor.constraint(equalToConstant: 802),
+        ])
+        let backdrop = KikiBackdropView()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        let sidebar = makeSidebar()
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+
+        let headingStack = NSStackView(views: [pageTitleLabel, pageSubtitleLabel])
+        headingStack.orientation = .vertical
+        headingStack.alignment = .leading
+        headingStack.spacing = 5
+        headingStack.translatesAutoresizingMaskIntoConstraints = false
+        pageHost.translatesAutoresizingMaskIntoConstraints = false
+
+        content.addSubview(backdrop)
+        content.addSubview(sidebar)
+        content.addSubview(headingStack)
+        content.addSubview(pageHost)
+        NSLayoutConstraint.activate([
+            backdrop.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            backdrop.topAnchor.constraint(equalTo: content.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            sidebar.topAnchor.constraint(equalTo: content.topAnchor),
+            sidebar.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            sidebar.widthAnchor.constraint(equalToConstant: 205),
+            headingStack.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: 24),
+            headingStack.trailingAnchor.constraint(lessThanOrEqualTo: content.trailingAnchor, constant: -24),
+            headingStack.topAnchor.constraint(equalTo: content.topAnchor, constant: 54),
+            pageHost.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            pageHost.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            pageHost.topAnchor.constraint(equalTo: headingStack.bottomAnchor, constant: 14),
+            pageHost.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+        ])
+
+        configureControls()
+        pages = [
+            makeGeneralPage(),
+            makeDictationPage(),
+            makeModelsPage(),
+            makeIntelligencePage(),
+            makePrivacyPage(),
+        ]
+        showPage(index: 0)
+        refresh()
+    }
+
+    private func makeSidebar() -> NSView {
+        let sidebar = KikiSidebarView()
+        let icon = KikiCircularPortraitView()
+
+        let title = kikiLabel("Kiki", size: 21, weight: .bold)
+        let subtitle = kikiLabel("VOICE INTELLIGENCE", size: 10.5, weight: .semibold, color: KikiPalette.tertiaryText)
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        let versionLabel = kikiLabel("Version \(version) · Build \(build)", size: 10.5, weight: .medium, color: KikiPalette.secondaryText)
+        let labels = NSStackView(views: [title, subtitle, versionLabel])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 2
+
+        let brand = NSStackView(views: [icon, labels])
+        brand.orientation = .horizontal
+        brand.alignment = .centerY
+        brand.spacing = 12
+        brand.translatesAutoresizingMaskIntoConstraints = false
+        let brandContainer = NSView()
+        brandContainer.addSubview(brand)
+        NSLayoutConstraint.activate([
+            brand.leadingAnchor.constraint(equalTo: brandContainer.leadingAnchor, constant: 9),
+            brand.trailingAnchor.constraint(lessThanOrEqualTo: brandContainer.trailingAnchor),
+            brand.topAnchor.constraint(equalTo: brandContainer.topAnchor),
+            brand.bottomAnchor.constraint(equalTo: brandContainer.bottomAnchor),
+        ])
+
+        navButtons = pageMetadata.enumerated().map { index, item in
+            let button = KikiNavButton(title: item.title, symbol: item.symbol, target: self, action: #selector(navigationChanged(_:)))
+            button.tag = index
+            button.isSelectedPage = index == 0
+            return button
+        }
+        let navigation = NSStackView(views: navButtons)
+        navigation.orientation = .vertical
+        navigation.alignment = .width
+        navigation.spacing = 6
+        navButtons.forEach {
+            $0.widthAnchor.constraint(equalTo: navigation.widthAnchor).isActive = true
+        }
+
+        let localDot = NSView()
+        localDot.wantsLayer = true
+        localDot.layer?.backgroundColor = KikiPalette.success.cgColor
+        localDot.layer?.cornerRadius = 4
+        let localLabel = kikiLabel("100% local", size: 11.5, weight: .medium, color: KikiPalette.secondaryText)
+        let localRow = NSStackView(views: [localDot, localLabel])
+        localRow.orientation = .horizontal
+        localRow.alignment = .centerY
+        localRow.spacing = 8
+        let footer = KikiCardView()
+        footer.translatesAutoresizingMaskIntoConstraints = false
+        footer.addSubview(localRow)
+        localRow.translatesAutoresizingMaskIntoConstraints = false
+        let footerContainer = NSView()
+        footerContainer.addSubview(footer)
+
+        let stack = NSStackView(views: [brandContainer, navigation, NSView(), footerContainer])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 26
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(stack)
+        NSLayoutConstraint.activate([
+            navigation.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 50),
+            icon.heightAnchor.constraint(equalToConstant: 50),
+            localDot.widthAnchor.constraint(equalToConstant: 8),
+            localDot.heightAnchor.constraint(equalToConstant: 8),
+            localRow.leadingAnchor.constraint(equalTo: footer.leadingAnchor, constant: 14),
+            localRow.trailingAnchor.constraint(lessThanOrEqualTo: footer.trailingAnchor, constant: -14),
+            localRow.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            footer.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 9),
+            footer.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -9),
+            footer.topAnchor.constraint(equalTo: footerContainer.topAnchor),
+            footer.bottomAnchor.constraint(equalTo: footerContainer.bottomAnchor),
+            footer.heightAnchor.constraint(equalToConstant: 34),
+            footerContainer.heightAnchor.constraint(equalToConstant: 34),
+            stack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 10),
+            stack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -10),
+            stack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 52),
+            stack.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -22),
+        ])
+        return sidebar
+    }
+
+    private func configureControls() {
+        let checkboxes = [
+            launchAtLoginCheckbox, automaticUpdatesCheckbox, silenceAudioCheckbox,
+            zeroWaitCheckbox,
+            continuationsCheckbox, learningCheckbox, contextCheckbox,
+            confidenceCheckbox, historyCheckbox,
+        ]
+        checkboxes.forEach {
+            $0.font = .systemFont(ofSize: 13)
+            $0.contentTintColor = KikiPalette.accentText
+        }
+
+        launchAtLoginCheckbox.target = self
+        launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
+        automaticUpdatesCheckbox.target = self
+        automaticUpdatesCheckbox.action = #selector(automaticUpdatesChanged)
+        microphonePopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.microphone")
+        microphonePopup.target = self
+        microphonePopup.action = #selector(microphoneChanged)
+        microphonePopup.controlSize = .large
+        microphonePopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        microphonePopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
+        silenceAudioCheckbox.target = self
+        silenceAudioCheckbox.action = #selector(silenceAudioChanged)
+        listeningDisplayControl.target = self
+        listeningDisplayControl.action = #selector(listeningDisplayChanged)
+        listeningDisplayControl.segmentStyle = .rounded
+        listeningDisplayControl.controlSize = .large
+        listeningDisplayControl.selectedSegmentBezelColor = KikiPalette.accent
+        listeningDisplayControl.font = .systemFont(ofSize: 12.5, weight: .semibold)
+        listeningDisplayControl.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        for index in 0..<listeningDisplayControl.segmentCount {
+            listeningDisplayControl.setWidth(150, forSegment: index)
+        }
+        listeningPositionPopup.addItems(withTitles: ListeningDisplayPosition.allCases.map(\.title))
+        listeningPositionPopup.identifier = NSUserInterfaceItemIdentifier("kiki.listening-display-position")
+        listeningPositionPopup.target = self
+        listeningPositionPopup.action = #selector(listeningPositionChanged)
+        listeningPositionPopup.controlSize = .large
+        listeningPositionPopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        listeningPositionPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
+        zeroWaitCheckbox.target = self
+        zeroWaitCheckbox.action = #selector(zeroWaitChanged)
+        continuationsCheckbox.target = self
+        continuationsCheckbox.action = #selector(continuationsChanged)
+        learningCheckbox.target = self
+        learningCheckbox.action = #selector(learningChanged)
+        contextCheckbox.target = self
+        contextCheckbox.action = #selector(contextChanged)
+        confidenceCheckbox.target = self
+        confidenceCheckbox.action = #selector(confidenceChanged)
+        historyCheckbox.target = self
+        historyCheckbox.action = #selector(historyChanged)
+
+        soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
+        soundPopup.identifier = NSUserInterfaceItemIdentifier("kiki.sound-style")
+        soundPopup.target = self
+        soundPopup.action = #selector(soundChanged)
+        modePopup.addItems(withTitles: ActivationMode.allCases.map(\.title))
+        modePopup.identifier = NSUserInterfaceItemIdentifier("kiki.activation-mode")
+        modePopup.target = self
+        modePopup.action = #selector(modeChanged)
+        speechProfilePopup.addItems(withTitles: SpeechProfile.allCases.map(\.title))
+        speechProfilePopup.identifier = NSUserInterfaceItemIdentifier("kiki.speech-profile")
+        speechProfilePopup.target = self
+        speechProfilePopup.action = #selector(speechProfileChanged)
+
+        [soundPopup, modePopup, speechProfilePopup].forEach {
+            $0.controlSize = .large
+            $0.font = .systemFont(ofSize: 12.5, weight: .medium)
+        }
+        soundPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
 
         shortcutButton.target = self
         shortcutButton.action = #selector(beginCapture)
-        shortcutButton.bezelStyle = .rounded
-        shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .medium)
-
-        let reset = NSButton(title: "Restore Default", target: self, action: #selector(resetShortcut))
-        modePopup.addItems(withTitles: ActivationMode.allCases.map(\.title))
-        modePopup.target = self
-        modePopup.action = #selector(modeChanged)
-
-        let modelTitle = NSTextField(labelWithString: "Local Transcription Model")
-        modelTitle.font = .systemFont(ofSize: 16, weight: .semibold)
-        modelPopup.addItems(withTitles: TranscriptionModelID.allCases.map(\.displayName))
-        for (index, model) in TranscriptionModelID.allCases.enumerated() {
-            modelPopup.item(at: index)?.isEnabled = model.isCompatible
-        }
-        modelPopup.target = self
-        modelPopup.action = #selector(modelSelectionChanged)
-        modelDetailLabel.textColor = .secondaryLabelColor
-        useModelButton.target = self
-        useModelButton.action = #selector(useSelectedModel)
-
-        let modelRow = NSStackView(views: [modelPopup, useModelButton])
-        modelRow.spacing = 10
-
-        messageLabel.textColor = .secondaryLabelColor
+        shortcutButton.identifier = NSUserInterfaceItemIdentifier("kiki.dictation-shortcut")
+        shortcutButton.bezelStyle = .texturedRounded
+        shortcutButton.controlSize = .large
+        shortcutButton.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
+        messageLabel.textColor = KikiPalette.secondaryText
         messageLabel.font = .systemFont(ofSize: 12)
+        [startupStatusLabel, lookAndSoundStatusLabel].forEach {
+            $0.textColor = KikiPalette.secondaryText
+            $0.font = .systemFont(ofSize: 12)
+            $0.maximumNumberOfLines = 2
+        }
+        speechProfileDescriptionLabel.maximumNumberOfLines = 0
+        listeningDisplayDescriptionLabel.maximumNumberOfLines = 0
+    }
 
-        let shortcutRow = NSStackView(views: [NSTextField(labelWithString: "Shortcut:"), shortcutButton, reset])
-        shortcutRow.spacing = 10
-        let modeRow = NSStackView(views: [NSTextField(labelWithString: "Behavior:"), modePopup])
-        modeRow.spacing = 10
-        let note = NSTextField(labelWithString: "Control–Option–D remains available as a backup toggle shortcut.")
-        note.textColor = .tertiaryLabelColor
-        note.font = .systemFont(ofSize: 12)
+    private func makeGeneralPage() -> NSView {
+        let microphoneRow = labeledRow(
+            "Microphone",
+            controls: [microphonePopup],
+            identifier: "kiki.settings.microphone-row",
+            placesControlsAtTrailingEdge: false
+        )
+        let soundRow = labeledRow(
+            "Dictation sounds",
+            controls: [soundPopup],
+            identifier: "kiki.settings.sound-row",
+            placesControlsAtTrailingEdge: false
+        )
+        return page(with: [
+            SettingsCard(
+                title: "Startup & Updates",
+                subtitle: "Keep Kiki ready and securely up to date.",
+                views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, startupStatusLabel]
+            ),
+            SettingsCard(
+                title: "Input",
+                subtitle: "Choose the microphone Kiki uses for dictation, meetings, and voice recording.",
+                views: [microphoneRow]
+            ),
+            SettingsCard(
+                title: "Sound",
+                subtitle: "Choose the audio feedback Kiki uses while dictating.",
+                views: [soundRow, lookAndSoundStatusLabel]
+            ),
+        ])
+    }
 
-        silenceAudioCheckbox.target = self
-        silenceAudioCheckbox.action = #selector(silenceAudioChanged)
-        let silenceAudioDetail = NSTextField(wrappingLabelWithString: "Prevents music, podcasts, and other playback from reaching the microphone. Kiki restores the previous mute or volume when recording stops.")
-        silenceAudioDetail.textColor = .secondaryLabelColor
-        silenceAudioDetail.font = .systemFont(ofSize: 12)
+    private func makeDictationPage() -> NSView {
+        let reset = KikiActionButton("Restore Default", kind: .secondary, target: self, action: #selector(resetShortcut))
+        let shortcutRow = labeledRow(
+            "Shortcut",
+            controls: [shortcutButton, reset],
+            identifier: "kiki.settings.shortcut-row",
+            placesControlsAtTrailingEdge: false
+        )
+        let behaviorRow = labeledRow(
+            "Behavior",
+            controls: [modePopup],
+            identifier: "kiki.settings.behavior-row",
+            placesControlsAtTrailingEdge: false
+        )
+        let profileRow = labeledRow(
+            "Transcription style",
+            controls: [speechProfilePopup],
+            identifier: "kiki.settings.speech-profile-row",
+            placesControlsAtTrailingEdge: false
+        )
+        return page(with: [
+            SettingsCard(
+                title: "Activation",
+                subtitle: "Choose how your configured shortcut behaves. ⌃⌥D is always available as a separate hands-free start/stop toggle.",
+                views: [shortcutRow, behaviorRow, messageLabel]
+            ),
+            SettingsCard(
+                title: "Listening Display",
+                subtitle: "Choose how much Kiki shows while it works. This never changes transcription speed or quality.",
+                views: [
+                    listeningDisplayControl,
+                    listeningDisplayDescriptionLabel,
+                    labeledRow(
+                        "Position",
+                        controls: [listeningPositionPopup],
+                        identifier: "kiki.settings.listening-position-row",
+                        placesControlsAtTrailingEdge: false
+                    ),
+                ]
+            ),
+            SettingsCard(
+                title: "Flow",
+                subtitle: "Optional conveniences that never change the speed or accuracy of your final transcription.",
+                views: [
+                    informativeToggle(
+                        zeroWaitCheckbox,
+                        title: "Start another dictation immediately",
+                        detail: "Starts a fresh recording while the previous clip finishes transcribing. Your first result still pastes normally."
+                    ),
+                    informativeToggle(
+                        continuationsCheckbox,
+                        title: "Join back-to-back dictations",
+                        detail: "When you dictate again within a few seconds, Kiki joins the thoughts with natural spacing instead of treating them as unrelated."
+                    ),
+                ]
+            ),
+            SettingsCard(
+                title: "Audio",
+                subtitle: "Protect microphone quality while Kiki is listening.",
+                views: [silenceAudioCheckbox]
+            ),
+            SettingsCard(
+                title: "Speech Style",
+                subtitle: "Choose how closely Kiki should follow your spoken words. This changes text after transcription unless you choose Quiet Voice.",
+                views: [profileRow, speechProfileDescriptionLabel]
+            ),
+        ])
+    }
 
-        let divider = NSBox()
-        divider.boxType = .separator
-        let stack = NSStackView(views: [title, detail, shortcutRow, messageLabel, modeRow, note, silenceAudioCheckbox, silenceAudioDetail, divider, modelTitle, modelRow, modelDetailLabel])
+    private func makeModelsPage() -> NSView {
+        modelCards = TranscriptionModelID.allCases.map { model in
+            let card = ModelCardView(model: model)
+            card.onUse = { [weak self] model in self?.use(model: model) }
+            return card
+        }
+        let introduction = ModelSectionHeaderView(
+            title: "Choose speed, range, or a second opinion.",
+            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and optional confidence checks."
+        )
+        return modelsPage(with: [introduction] + modelCards)
+    }
+
+    private func makeIntelligencePage() -> NSView {
+        let manage = KikiActionButton("Open Personalization Studio", kind: .primary, target: self, action: #selector(openPersonalization))
+        return page(with: [
+            FeatureSpotlightView(
+                eyebrow: "PERSONAL, NOT CLOUD",
+                title: "A voice model of you—not a profile about you.",
+                detail: "Kiki notices the corrections, names, phrases, and rhythms that make your writing yours. Every rule stays on this Mac and remains under your control.",
+                symbol: "person.crop.circle.badge.checkmark"
+            ),
+            SettingsCard(
+                title: "Kiki Learns You",
+                subtitle: "Everything stays on this Mac. Suggestions require your approval before becoming permanent.",
+                views: [learningCheckbox, contextCheckbox, manage]
+            ),
+            SettingsCard(
+                title: "Confidence Shadow",
+                subtitle: "The primary result still pastes immediately. If an installed Whisper model strongly disagrees, Kiki saves a private review for later.",
+                views: [confidenceCheckbox]
+            ),
+        ])
+    }
+
+    private func makePrivacyPage() -> NSView {
+        let manage = KikiActionButton("Manage Private Apps", kind: .secondary, target: self, action: #selector(openPersonalization))
+        return page(with: [
+            SettingsCard(
+                title: "Local History",
+                subtitle: "Kiki stores text only. Microphone audio is never added to dictation history.",
+                views: [historyCheckbox]
+            ),
+            SettingsCard(
+                title: "Private Zones",
+                subtitle: "Secure text fields are always private. Add apps where Kiki should also skip history, learning, and background verification.",
+                views: [manage]
+            ),
+        ])
+    }
+
+    private func page(with views: [NSView]) -> NSView {
+        let stack = NSStackView(views: views)
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 14
+        stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
-        guard let content = window?.contentView else { return }
-        content.addSubview(stack)
+        let document = KikiFlippedView()
+        document.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(stack)
+        let scroll = NSScrollView()
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.scrollerStyle = .overlay
+        scroll.drawsBackground = false
+        scroll.documentView = document
+        scroll.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 28),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -28),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 26),
-            detail.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            silenceAudioDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            modelDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            divider.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+            stack.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 28),
+            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -28),
+            stack.topAnchor.constraint(equalTo: document.topAnchor, constant: 8),
+            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor, constant: -34),
         ])
-        refresh()
+        for view in views {
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return scroll
+    }
+
+    private func modelsPage(with views: [NSView]) -> NSView {
+        let stack = NSStackView(views: views)
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let document = KikiFlippedView()
+        document.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(stack)
+        let scroll = NSScrollView()
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.scrollerStyle = .overlay
+        scroll.drawsBackground = false
+        scroll.documentView = document
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.identifier = NSUserInterfaceItemIdentifier("kiki.models.scroll")
+        NSLayoutConstraint.activate([
+            document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+            stack.leadingAnchor.constraint(equalTo: document.leadingAnchor, constant: 7),
+            stack.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -30),
+            stack.topAnchor.constraint(equalTo: document.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: document.bottomAnchor),
+        ])
+        for view in views {
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return scroll
+    }
+
+    private func labeledRow(
+        _ title: String,
+        controls: [NSView],
+        identifier: String? = nil,
+        placesControlsAtTrailingEdge: Bool = true
+    ) -> NSView {
+        let label = kikiLabel(title, size: 13, weight: .medium, color: KikiPalette.secondaryText)
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        let rowViews = placesControlsAtTrailingEdge ? [label, NSView()] + controls : [label] + controls
+        let row = NSStackView(views: rowViews)
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        if let identifier {
+            row.identifier = NSUserInterfaceItemIdentifier(identifier)
+        }
+        return row
+    }
+
+    private func secondaryLabel(_ text: String) -> NSTextField {
+        kikiLabel(text, size: 13, color: KikiPalette.secondaryText)
+    }
+
+    private func informativeToggle(_ checkbox: NSButton, title: String, detail: String) -> NSView {
+        let info = KikiInfoButton(title: title, detail: detail)
+        let row = NSStackView(views: [checkbox, info])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
+        checkbox.setContentHuggingPriority(.required, for: .horizontal)
+        return row
     }
 
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
-        silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
+        messageLabel.stringValue = Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut)
+        launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
+        automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
+            || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
+        let microphones = AudioInputDevice.available()
+        let selectedMicrophone = AudioInputDevice.selected(
+            from: microphones,
+            preferredID: Settings.microphoneDeviceUID
+        )
+        microphonePopup.removeAllItems()
+        for microphone in microphones {
+            microphonePopup.addItem(withTitle: microphone.name)
+            microphonePopup.lastItem?.representedObject = microphone.uniqueID
+        }
+        if let selectedMicrophone,
+           let index = microphonePopup.itemArray.firstIndex(where: {
+               ($0.representedObject as? String) == selectedMicrophone.uniqueID
+           }) {
+            microphonePopup.selectItem(at: index)
+        } else {
+            microphonePopup.addItem(withTitle: "No microphone found")
+        }
+        microphonePopup.isEnabled = !microphones.isEmpty
+        soundPopup.selectItem(at: DictationSoundStyle.allCases.firstIndex(of: Settings.soundStyle) ?? 0)
         modePopup.selectItem(at: ActivationMode.allCases.firstIndex(of: Settings.activationMode) ?? 0)
-        modelPopup.selectItem(at: TranscriptionModelID.allCases.firstIndex(of: Settings.transcriptionModel) ?? 0)
-        updateModelControls()
+        speechProfilePopup.selectItem(at: SpeechProfile.allCases.firstIndex(of: Settings.speechProfile) ?? 0)
+        speechProfileDescriptionLabel.stringValue = Settings.speechProfile.detail
+        silenceAudioCheckbox.state = Settings.silenceSystemAudioWhileRecording ? .on : .off
+        let listeningMode = Settings.listeningDisplayMode
+        listeningDisplayControl.selectedSegment = ListeningDisplayMode.allCases.firstIndex(of: listeningMode) ?? 0
+        listeningDisplayDescriptionLabel.stringValue = listeningMode.detail
+        listeningPositionPopup.selectItem(at: ListeningDisplayPosition.allCases.firstIndex(of: Settings.listeningDisplayPosition) ?? 0)
+        listeningPositionPopup.isEnabled = listeningMode != .hidden
+        zeroWaitCheckbox.state = Settings.enableZeroWaitChaining ? .on : .off
+        continuationsCheckbox.state = Settings.enableVoiceContinuations ? .on : .off
+        learningCheckbox.state = Settings.learnFromCorrections ? .on : .off
+        contextCheckbox.state = Settings.useContextVocabulary ? .on : .off
+        confidenceCheckbox.state = Settings.enableConfidenceVerification ? .on : .off
+        historyCheckbox.state = Settings.saveTranscriptionHistory ? .on : .off
+        modelCards.forEach { $0.refresh() }
+        if let modelPreparationStatus {
+            modelCards.forEach { $0.update(preparationStatus: modelPreparationStatus) }
+        }
+    }
+
+    @objc private func navigationChanged(_ sender: KikiNavButton) {
+        showPage(index: sender.tag)
+    }
+
+    private func showPage(index: Int) {
+        pageHost.subviews.forEach { $0.removeFromSuperview() }
+        guard pages.indices.contains(index), pageMetadata.indices.contains(index) else { return }
+        pageTitleLabel.stringValue = pageMetadata[index].title
+        pageSubtitleLabel.stringValue = pageMetadata[index].subtitle
+        navButtons.enumerated().forEach { $0.element.isSelectedPage = $0.offset == index }
+        let page = pages[index]
+        pageHost.addSubview(page)
+        page.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            page.leadingAnchor.constraint(equalTo: pageHost.leadingAnchor),
+            page.trailingAnchor.constraint(equalTo: pageHost.trailingAnchor),
+            page.topAnchor.constraint(equalTo: pageHost.topAnchor),
+            page.bottomAnchor.constraint(equalTo: pageHost.bottomAnchor),
+        ])
     }
 
     @objc private func beginCapture() {
@@ -121,7 +661,7 @@ final class SettingsWindowController: NSWindowController {
         pendingModifierKeyCode = nil
         pendingModifierFlags = []
         shortcutButton.title = "Press shortcut…"
-        messageLabel.stringValue = "Press a modifier by itself, or a modifier plus another key. Escape cancels."
+        messageLabel.stringValue = "Press a modifier alone, or a modifier plus another key. Escape cancels."
         captureMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             self?.capture(event) ?? event
         }
@@ -131,11 +671,13 @@ final class SettingsWindowController: NSWindowController {
         let relevant = event.modifierFlags.intersection([.command, .option, .control, .shift, .function])
         if event.type == .keyDown {
             if event.keyCode == 53 { stopCapture(); refresh(); messageLabel.stringValue = ""; return nil }
-            guard !relevant.isEmpty else { messageLabel.stringValue = "Use a modifier key or a modified shortcut."; return nil }
+            guard !relevant.isEmpty else { messageLabel.stringValue = "Use a modifier key or modified shortcut."; return nil }
             save(DictationShortcut(keyCode: event.keyCode, modifiersRawValue: relevant.rawValue))
             return nil
         }
-        guard event.type == .flagsChanged, let flag = DictationShortcut.modifierFlag(for: event.keyCode) else { return nil }
+        guard event.type == .flagsChanged,
+              let flag = DictationShortcut.modifierFlag(for: event.keyCode)
+        else { return nil }
         if relevant.contains(flag) {
             pendingModifierKeyCode = event.keyCode
             pendingModifierFlags = relevant
@@ -149,7 +691,7 @@ final class SettingsWindowController: NSWindowController {
         Settings.dictationShortcut = shortcut
         stopCapture()
         refresh()
-        messageLabel.stringValue = "Shortcut updated."
+        messageLabel.stringValue = "Shortcut updated. \(Settings.activationMode.configuredInstruction(for: shortcut))"
         onSettingsChange?(shortcut, Settings.activationMode)
     }
 
@@ -158,70 +700,330 @@ final class SettingsWindowController: NSWindowController {
         captureMonitor = nil
     }
 
-    @objc private func resetShortcut() { save(.rightOption) }
+    private func use(model: TranscriptionModelID) {
+        guard model.isCompatible else { return }
+        onModelChange?(model)
+    }
 
+    @objc private func resetShortcut() { save(.rightOption) }
     @objc private func modeChanged() {
         Settings.activationMode = ActivationMode.allCases[modePopup.indexOfSelectedItem]
+        refresh()
+        messageLabel.stringValue = "Behavior updated. \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
         onSettingsChange?(Settings.dictationShortcut, Settings.activationMode)
     }
+    @objc private func speechProfileChanged() {
+        Settings.speechProfile = SpeechProfile.allCases[speechProfilePopup.indexOfSelectedItem]
+        refresh()
+    }
+    @objc private func launchAtLoginChanged() {
+        do {
+            let enabled = launchAtLoginCheckbox.state == .on
+            try LaunchAtLoginController.setEnabled(enabled)
+            startupStatusLabel.stringValue = enabled
+                ? "Kiki will open automatically when you log in."
+                : "Kiki will no longer open automatically."
+        } catch {
+            startupStatusLabel.stringValue = "Could not change login setting: \(error.localizedDescription)"
+            launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
+        }
+    }
+    @objc private func automaticUpdatesChanged() {
+        let enabled = automaticUpdatesCheckbox.state == .on
+        onAutomaticUpdatesChange?(enabled)
+        startupStatusLabel.stringValue = enabled
+            ? "Kiki will automatically check for signed updates."
+            : "Automatic update checks are off. You can still check from the menu."
+    }
+    @objc private func microphoneChanged() {
+        guard let uniqueID = microphonePopup.selectedItem?.representedObject as? String else { return }
+        Settings.microphoneDeviceUID = uniqueID
+        onMicrophoneChange?(uniqueID)
+    }
+    @objc private func soundChanged() {
+        Settings.soundStyle = DictationSoundStyle.allCases[soundPopup.indexOfSelectedItem]
+        soundPreview.playRecordingStarted()
+        lookAndSoundStatusLabel.stringValue = Settings.soundStyle == .off
+            ? "Dictation sounds are off."
+            : "Previewing \(Settings.soundStyle.title.lowercased()) sounds."
+    }
+    @objc private func silenceAudioChanged() { Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on }
+    @objc private func listeningDisplayChanged() {
+        guard ListeningDisplayMode.allCases.indices.contains(listeningDisplayControl.selectedSegment) else { return }
+        Settings.listeningDisplayMode = ListeningDisplayMode.allCases[listeningDisplayControl.selectedSegment]
+        refresh()
+    }
+    @objc private func listeningPositionChanged() {
+        guard ListeningDisplayPosition.allCases.indices.contains(listeningPositionPopup.indexOfSelectedItem) else { return }
+        Settings.listeningDisplayPosition = ListeningDisplayPosition.allCases[listeningPositionPopup.indexOfSelectedItem]
+    }
+    @objc private func zeroWaitChanged() { Settings.enableZeroWaitChaining = zeroWaitCheckbox.state == .on; onSettingsChange?(Settings.dictationShortcut, Settings.activationMode) }
+    @objc private func continuationsChanged() { Settings.enableVoiceContinuations = continuationsCheckbox.state == .on }
+    @objc private func learningChanged() { Settings.learnFromCorrections = learningCheckbox.state == .on }
+    @objc private func contextChanged() { Settings.useContextVocabulary = contextCheckbox.state == .on }
+    @objc private func confidenceChanged() { Settings.enableConfidenceVerification = confidenceCheckbox.state == .on }
+    @objc private func historyChanged() { Settings.saveTranscriptionHistory = historyCheckbox.state == .on }
+    @objc private func openPersonalization() { onOpenPersonalization?() }
+}
+@MainActor
+private final class SettingsCard: KikiCardView {
+    init(title: String, subtitle: String, views: [NSView]) {
+        super.init(frame: .zero)
 
-    @objc private func silenceAudioChanged() {
-        Settings.silenceSystemAudioWhileRecording = silenceAudioCheckbox.state == .on
+        let titleLabel = kikiLabel(title, size: 16.5, weight: .semibold)
+        let subtitleLabel = kikiLabel(subtitle, size: 12.5, color: KikiPalette.secondaryText)
+        let stack = NSStackView(views: [titleLabel, subtitleLabel] + views)
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 20),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
+            subtitleLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
+        for view in views { view.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor).isActive = true }
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+private final class ModelCardView: KikiCardView {
+    let model: TranscriptionModelID
+    var onUse: ((TranscriptionModelID) -> Void)?
+    private let statusLabel = NSTextField(labelWithString: "")
+    private let downloadProgress = NSProgressIndicator()
+    private let button = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
+    private let dial = KikiHardwareDialView()
+    private let activeLabel = kikiLabel("ACTIVE", size: 10.5, weight: .semibold, color: KikiPalette.accentText)
+    private let meter = KikiAnalogMeterView()
+
+    init(model: TranscriptionModelID) {
+        self.model = model
+        super.init(frame: .zero)
+        usesSelectionFill = false
+        usesSelectionBorder = false
+        cardCornerRadius = 5
+        identifier = NSUserInterfaceItemIdentifier("kiki.model.card.\(model.rawValue)")
+        dial.translatesAutoresizingMaskIntoConstraints = false
+        activeLabel.translatesAutoresizingMaskIntoConstraints = false
+        meter.translatesAutoresizingMaskIntoConstraints = false
+
+        let title = kikiLabel(model.displayName, size: 15, weight: .regular)
+        let detailText = model == .parakeetEnglish
+            ? model.detail.replacingOccurrences(of: " About 500 MB.", with: "")
+            : model.detail
+        let detail = kikiLabel(detailText, size: 11, color: KikiPalette.secondaryText)
+        detail.maximumNumberOfLines = 2
+        statusLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        downloadProgress.style = .bar
+        downloadProgress.isIndeterminate = false
+        downloadProgress.minValue = 0
+        downloadProgress.maxValue = 1
+        downloadProgress.controlSize = .small
+        downloadProgress.isHidden = true
+        downloadProgress.identifier = NSUserInterfaceItemIdentifier(
+            "kiki.model.progress.\(model.rawValue)"
+        )
+        downloadProgress.setAccessibilityLabel("\(model.displayName) download progress")
+        button.target = self
+        button.action = #selector(useModel)
+        button.identifier = NSUserInterfaceItemIdentifier("kiki.model.action")
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        let labels = NSStackView(views: [title, detail, statusLabel, downloadProgress])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 6
+        labels.translatesAutoresizingMaskIntoConstraints = false
+        labels.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        detail.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let bay = NSView()
+        bay.translatesAutoresizingMaskIntoConstraints = false
+        bay.identifier = NSUserInterfaceItemIdentifier("kiki.model.control-bay")
+        let divider = NSView()
+        divider.wantsLayer = true
+        divider.translatesAutoresizingMaskIntoConstraints = false
+        divider.identifier = NSUserInterfaceItemIdentifier("kiki.model.divider")
+        divider.layer?.backgroundColor = KikiPalette.stroke.cgColor
+
+        addSubview(bay)
+        addSubview(divider)
+        addSubview(labels)
+        addSubview(button)
+        addSubview(meter)
+        bay.addSubview(dial)
+        bay.addSubview(activeLabel)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: model == .parakeetEnglish ? 109 : 99),
+            bay.leadingAnchor.constraint(equalTo: leadingAnchor),
+            bay.topAnchor.constraint(equalTo: topAnchor),
+            bay.bottomAnchor.constraint(equalTo: bottomAnchor),
+            bay.widthAnchor.constraint(equalToConstant: 72),
+            divider.leadingAnchor.constraint(equalTo: bay.trailingAnchor),
+            divider.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            divider.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+            divider.widthAnchor.constraint(equalToConstant: 1),
+            dial.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
+            dial.centerYAnchor.constraint(equalTo: bay.centerYAnchor, constant: -6),
+            dial.widthAnchor.constraint(equalToConstant: 42),
+            dial.heightAnchor.constraint(equalToConstant: 42),
+            activeLabel.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
+            activeLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
+            labels.leadingAnchor.constraint(equalTo: divider.trailingAnchor, constant: 15),
+            labels.trailingAnchor.constraint(equalTo: button.leadingAnchor, constant: -10),
+            labels.widthAnchor.constraint(greaterThanOrEqualToConstant: 158),
+            labels.topAnchor.constraint(equalTo: topAnchor, constant: 22),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
+            button.topAnchor.constraint(equalTo: topAnchor, constant: 22),
+            meter.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -11),
+            meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            meter.widthAnchor.constraint(equalToConstant: 100),
+            meter.heightAnchor.constraint(equalToConstant: 34),
+            detail.widthAnchor.constraint(equalTo: labels.widthAnchor),
+            downloadProgress.widthAnchor.constraint(equalTo: labels.widthAnchor),
+            downloadProgress.heightAnchor.constraint(equalToConstant: 6),
+        ])
+        let targetButtonWidth: CGFloat
+        switch model {
+        case .parakeetEnglish: targetButtonWidth = 65
+        case .parakeetMultilingual: targetButtonWidth = 78
+        default: targetButtonWidth = 101
+        }
+        button.widthAnchor.constraint(equalToConstant: targetButtonWidth).isActive = true
+        refresh()
     }
 
-    @objc private func modelSelectionChanged() {
-        updateModelControls()
-    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    private var selectedModel: TranscriptionModelID {
-        TranscriptionModelID.allCases[max(0, modelPopup.indexOfSelectedItem)]
-    }
-
-    private func updateModelControls() {
-        let model = selectedModel
-        var detail = model.detail
+    func refresh() {
+        let selected = Settings.transcriptionModel == model
+        self.selected = selected
+        dial.isActive = selected
+        activeLabel.isHidden = !selected
+        meter.isHidden = !selected
+        let installed = model.isParakeet || ModelStore.isWhisperModelInstalled(model)
         if !model.isCompatible {
-            detail += " Requires Apple Silicon."
-        } else if model.isParakeet {
-            detail += " The Core ML model downloads automatically on first use."
-        } else if ModelStore.isWhisperModelInstalled(model) {
-            detail += " Installed."
+            statusLabel.stringValue = "Unavailable on this Mac"
+            statusLabel.textColor = KikiPalette.tertiaryText
+            button.title = "Unavailable"
+            button.isEnabled = false
+        } else if selected {
+            statusLabel.stringValue = model == .parakeetEnglish ? "About 500 MB." : ""
+            statusLabel.textColor = KikiPalette.secondaryText
+            button.title = "Using"
+            button.isEnabled = false
         } else {
-            detail += " Not installed."
-        }
-        modelDetailLabel.stringValue = detail
-        useModelButton.isEnabled = model.isCompatible
-        useModelButton.title = !model.isParakeet && !ModelStore.isWhisperModelInstalled(model)
-            ? "Download & Use" : "Use Model"
-    }
-
-    @objc private func useSelectedModel() {
-        let model = selectedModel
-        guard model.isCompatible else { return }
-        useModelButton.isEnabled = false
-        modelDetailLabel.stringValue = model.isParakeet ? "Downloading or loading Core ML model…" : "Downloading Whisper model…"
-
-        if model.isParakeet || ModelStore.isWhisperModelInstalled(model) {
-            Settings.transcriptionModel = model
-            onModelChange?(model)
-            updateModelControls()
-            return
-        }
-
-        Task { [weak self] in
-            do {
-                try await ModelDownloadService.downloadWhisperModel(model)
-                await MainActor.run {
-                    Settings.transcriptionModel = model
-                    self?.onModelChange?(model)
-                    self?.updateModelControls()
-                }
-            } catch {
-                await MainActor.run {
-                    self?.modelDetailLabel.stringValue = "Download failed: \(error.localizedDescription)"
-                    self?.useModelButton.isEnabled = true
-                }
-            }
+            statusLabel.stringValue = installed ? "Installed" : "Downloads when selected"
+            statusLabel.textColor = KikiPalette.secondaryText
+            button.title = installed ? "Use Model" : "Download & Use"
+            button.isEnabled = true
         }
     }
+
+    func update(preparationStatus status: ModelPreparationStatus) {
+        guard status.model == model else { return }
+        switch status {
+        case .downloading:
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.secondaryText
+            downloadProgress.doubleValue = status.downloadFraction ?? 0
+            downloadProgress.isHidden = false
+            button.title = "Downloading…"
+            button.isEnabled = false
+        case .loading:
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.secondaryText
+            downloadProgress.isHidden = true
+            button.title = "Loading…"
+            button.isEnabled = false
+        case .ready:
+            downloadProgress.isHidden = true
+            refresh()
+        case let .failed(_, message):
+            downloadProgress.isHidden = true
+            showError(message)
+        case .unavailable:
+            downloadProgress.isHidden = true
+            statusLabel.stringValue = status.modelsDetail
+            statusLabel.textColor = KikiPalette.tertiaryText
+            button.title = "Unavailable"
+            button.isEnabled = false
+        }
+    }
+
+    func showError(_ message: String) {
+        statusLabel.stringValue = "Could not use model: \(message)"
+        statusLabel.textColor = .systemRed
+        button.title = "Try Again"
+        button.isEnabled = true
+    }
+
+    @objc private func useModel() { onUse?(model) }
+}
+
+@MainActor
+private final class ModelSectionHeaderView: NSView {
+    init(title: String, detail: String) {
+        super.init(frame: .zero)
+        let eyebrow = kikiLabel("LOCAL MODELS", size: 10, weight: .bold, color: KikiPalette.accentText)
+        let titleLabel = kikiLabel(title, size: 19, weight: .semibold)
+        let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
+        detailLabel.maximumNumberOfLines = 0
+        let stack = NSStackView(views: [eyebrow, titleLabel, detailLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            detailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+@MainActor
+private final class FeatureSpotlightView: NSView {
+    init(eyebrow: String, title: String, detail: String, symbol: String) {
+        super.init(frame: .zero)
+
+        let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: title) ?? NSImage())
+        icon.contentTintColor = KikiPalette.accentText
+
+        let eyebrowLabel = kikiLabel(eyebrow, size: 10, weight: .bold, color: KikiPalette.accentText)
+        let titleLabel = kikiLabel(title, size: 20, weight: .semibold)
+        let detailLabel = kikiLabel(detail, size: 13, color: KikiPalette.secondaryText)
+        let labels = NSStackView(views: [eyebrowLabel, titleLabel, detailLabel])
+        labels.orientation = .vertical
+        labels.alignment = .leading
+        labels.spacing = 6
+        let row = NSStackView(views: [icon, labels])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 14
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+            icon.widthAnchor.constraint(equalToConstant: 28),
+            icon.heightAnchor.constraint(equalToConstant: 28),
+            detailLabel.widthAnchor.constraint(equalTo: labels.widthAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }

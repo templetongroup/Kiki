@@ -4,15 +4,33 @@ import AVFoundation
 /// the input format Whisper expects.
 final class AudioRecorder {
     static let sampleRate: Double = 16000
+    static let tapBufferSize: AVAudioFrameCount = 1024
+
+    static func captureInterval(inputSampleRate: Double) -> TimeInterval {
+        Double(tapBufferSize) / inputSampleRate
+    }
 
     private var engine: AVAudioEngine?
     private var converter: AVAudioConverter?
     private var samples: [Float] = []
+    private var samplesHandler: (([Float]) -> Void)?
     private let lock = NSLock()
+
+    /// Receives newly captured 16 kHz mono samples. The handler runs off the
+    /// main thread and should return quickly.
+    func setSamplesHandler(_ handler: (([Float]) -> Void)?) {
+        lock.lock()
+        samplesHandler = handler
+        lock.unlock()
+    }
 
     func start() throws {
         let engine = AVAudioEngine()
         let input = engine.inputNode
+        if let uniqueID = Settings.microphoneDeviceUID,
+           let audioUnit = input.audioUnit {
+            try AudioInputDevice.apply(uniqueID: uniqueID, to: audioUnit)
+        }
         let inFormat = input.outputFormat(forBus: 0)
         guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
             throw KikiError("No audio input device available.")
@@ -30,7 +48,7 @@ final class AudioRecorder {
         lock.unlock()
 
         self.converter = converter
-        input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
+        input.installTap(onBus: 0, bufferSize: Self.tapBufferSize, format: inFormat) { [weak self] buffer, _ in
             self?.consume(buffer, outFormat: outFormat)
         }
         engine.prepare()
@@ -68,10 +86,12 @@ final class AudioRecorder {
         }
         guard error == nil, out.frameLength > 0, let channel = out.floatChannelData else { return }
 
-        let ptr = UnsafeBufferPointer(start: channel[0], count: Int(out.frameLength))
+        let chunk = Array(UnsafeBufferPointer(start: channel[0], count: Int(out.frameLength)))
         lock.lock()
-        samples.append(contentsOf: ptr)
+        samples.append(contentsOf: chunk)
+        let handler = samplesHandler
         lock.unlock()
+        handler?(chunk)
     }
 }
 

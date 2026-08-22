@@ -53,12 +53,234 @@ enum Settings {
         }
         set { UserDefaults.standard.set(newValue, forKey: "silenceSystemAudioWhileRecording") }
     }
+
+    static var listeningDisplayMode: ListeningDisplayMode {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: "listeningDisplayMode"),
+               let mode = ListeningDisplayMode(rawValue: raw) {
+                return mode
+            }
+            // The old switch controlled live words but always kept the panel.
+            // Preserve that preference by migrating "off" to the compact mode.
+            if UserDefaults.standard.object(forKey: "showLiveTranscription") != nil,
+               !UserDefaults.standard.bool(forKey: "showLiveTranscription") {
+                return .waveform
+            }
+            return .fullTranscript
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "listeningDisplayMode") }
+    }
+
+    static var appearanceMode: AppAppearanceMode {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "appearanceMode") else {
+                return .dark
+            }
+            return AppAppearanceMode(rawValue: raw) ?? .dark
+        }
+        set { UserDefaults.standard.set(AppAppearanceMode.dark.rawValue, forKey: "appearanceMode") }
+    }
+
+    static var accentColor: KikiAccentColor {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "accentColor") else {
+                return .gold
+            }
+            return KikiAccentColor(rawValue: raw) ?? .gold
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "accentColor") }
+    }
+
+    static var soundStyle: DictationSoundStyle {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "soundStyle") else {
+                return .subtle
+            }
+            return DictationSoundStyle(rawValue: raw) ?? .subtle
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "soundStyle") }
+    }
+
+    static var saveTranscriptionHistory: Bool {
+        get {
+            let key = "saveTranscriptionHistory"
+            guard UserDefaults.standard.object(forKey: key) != nil else { return true }
+            return UserDefaults.standard.bool(forKey: key)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "saveTranscriptionHistory") }
+    }
+
+    static var learnFromCorrections: Bool {
+        get { bool(forKey: "learnFromCorrections", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "learnFromCorrections") }
+    }
+
+    static var useContextVocabulary: Bool {
+        get { bool(forKey: "useContextVocabulary", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "useContextVocabulary") }
+    }
+
+    static var enableZeroWaitChaining: Bool {
+        get { bool(forKey: "enableZeroWaitChaining", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableZeroWaitChaining") }
+    }
+
+    static var enableVoiceContinuations: Bool {
+        get { bool(forKey: "enableVoiceContinuations", default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableVoiceContinuations") }
+    }
+
+    static var listeningDisplayPosition: ListeningDisplayPosition {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: "listeningDisplayPosition"),
+               let position = ListeningDisplayPosition(rawValue: raw) {
+                return position
+            }
+            // Preserve the former near-cursor preference when upgrading.
+            if UserDefaults.standard.object(forKey: "showHUDNearCaret") != nil,
+               !UserDefaults.standard.bool(forKey: "showHUDNearCaret") {
+                return .bottom
+            }
+            return .nearTargetWindow
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "listeningDisplayPosition") }
+    }
+
+    static var enableConfidenceVerification: Bool {
+        get { bool(forKey: "enableConfidenceVerification", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "enableConfidenceVerification") }
+    }
+
+    static var speechProfile: SpeechProfile {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: "speechProfile") else { return .standard }
+            return SpeechProfile(rawValue: raw) ?? .standard
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "speechProfile") }
+    }
+
+    static var continuationWindow: TimeInterval {
+        get {
+            let value = UserDefaults.standard.double(forKey: "continuationWindow")
+            return value > 0 ? min(max(value, 1), 12) : 4
+        }
+        set { UserDefaults.standard.set(min(max(newValue, 1), 12), forKey: "continuationWindow") }
+    }
+
+    static var saveMeetingAudio: Bool {
+        get { bool(forKey: "saveMeetingAudio", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "saveMeetingAudio") }
+    }
+
+    static var microphoneDeviceUID: String? {
+        get { UserDefaults.standard.string(forKey: "microphoneDeviceUID") }
+        set { UserDefaults.standard.set(newValue, forKey: "microphoneDeviceUID") }
+    }
+
+    static var checkupShortcutVerified: Bool {
+        get { UserDefaults.standard.bool(forKey: "checkupShortcutVerified") }
+        set { UserDefaults.standard.set(newValue, forKey: "checkupShortcutVerified") }
+    }
+
+    static var checkupFirstDictationCompleted: Bool {
+        get { UserDefaults.standard.bool(forKey: "checkupFirstDictationCompleted") }
+        set { UserDefaults.standard.set(newValue, forKey: "checkupFirstDictationCompleted") }
+    }
+
+    static var pawprintsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "pawprintsEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "pawprintsEnabled") }
+    }
+
+    private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return defaultValue }
+        return UserDefaults.standard.bool(forKey: key)
+    }
 }
 
 enum ActivationMode: String, CaseIterable {
     case hold, toggle
 
     var title: String { self == .hold ? "Hold to Dictate" : "Press to Toggle" }
+
+    func configuredInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Hold \(shortcut.displayString) to dictate; release to stop and insert."
+        case .toggle:
+            "Press \(shortcut.displayString) to start; press it again to stop and insert."
+        }
+    }
+
+    func shortcutTestInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Hold \(shortcut.displayString) briefly, then release."
+        case .toggle:
+            "Press \(shortcut.displayString) once."
+        }
+    }
+
+    func recordingStopInstruction(for shortcut: DictationShortcut) -> String {
+        switch self {
+        case .hold:
+            "Release \(shortcut.displayString)"
+        case .toggle:
+            "Press \(shortcut.displayString) again"
+        }
+    }
+}
+
+enum DictationShortcutGuidance {
+    static let handsFreeKeys = "⌃⌥D"
+    static let handsFreeInstruction = "Hands-free toggle: press ⌃⌥D to start; press it again to stop and insert."
+}
+
+enum ListeningDisplayMode: String, CaseIterable {
+    case fullTranscript
+    case waveform
+    case hidden
+
+    var title: String {
+        switch self {
+        case .fullTranscript: "Full Transcript"
+        case .waveform: "Waveform"
+        case .hidden: "Hidden"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .fullTranscript:
+            "Shows Kiki's live words and recording status while you speak."
+        case .waveform:
+            "Shows only a compact sound wave that responds to your voice."
+        case .hidden:
+            "Keeps the screen completely clear while Kiki listens and transcribes."
+        }
+    }
+}
+
+enum ListeningDisplayPosition: String, CaseIterable {
+    case bottom
+    case top
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
+    case nearTargetWindow
+
+    var title: String {
+        switch self {
+        case .bottom: "Bottom of Screen"
+        case .top: "Top of Screen"
+        case .topLeft: "Top Left"
+        case .topRight: "Top Right"
+        case .bottomLeft: "Bottom Left"
+        case .bottomRight: "Bottom Right"
+        case .nearTargetWindow: "Hover Near Target Window"
+        }
+    }
 }
 
 struct DictationShortcut: Codable, Equatable {
