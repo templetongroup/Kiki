@@ -111,7 +111,7 @@ export default function Home() {
           </div>
           <div className="details-character">
             <div className="details-character-glow" aria-hidden="true" />
-            <img src="/kiki-studio-hero.png" alt="Kiki wearing headphones in front of a studio microphone" />
+            <img src="/kiki-gold-microphone.png" alt="Kiki sitting behind a gold studio microphone" />
           </div>
         </div>
         <div className="detail-grid">
