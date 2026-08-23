@@ -455,9 +455,25 @@ enum FeatureDiagnostics {
         aboutView.layoutSubtreeIfNeeded()
         guard let checkupButton = findView(in: aboutView, identifier: "kiki.workbench.about.checkup"),
               let updateButton = findView(in: aboutView, identifier: "kiki.workbench.about.check-updates"),
+              let templetonFooter = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-footer"),
+              let templetonLogo = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-logo"),
               abs(checkupButton.frame.width - updateButton.frame.width) <= 0.5,
-              abs(checkupButton.frame.height - updateButton.frame.height) <= 0.5 else {
-            throw failure("About update and Checkup actions must share one geometry")
+              abs(checkupButton.frame.height - updateButton.frame.height) <= 0.5,
+              abs((templetonFooter.frame.width / templetonFooter.frame.height) - (698.0 / 318.0)) <= 0.02,
+              abs((templetonLogo.frame.width / templetonFooter.frame.width) - (600.0 / 698.0)) <= 0.02,
+              NSColor(cgColor: templetonFooter.layer?.backgroundColor ?? NSColor.clear.cgColor)?.alphaComponent ?? 1 <= 0.01 else {
+            throw failure("About actions and responsive Templeton footer geometry")
+        }
+        let compactFooterWidth = templetonFooter.frame.width
+        aboutView.frame.size.width = 1_100
+        aboutView.layoutSubtreeIfNeeded()
+        let expandedFooterWidth = templetonFooter.frame.width
+        guard compactFooterWidth >= 419.5,
+              expandedFooterWidth > compactFooterWidth + 75,
+              abs((compactFooterWidth / 900) - (expandedFooterWidth / 1_100)) <= 0.02 else {
+            throw failure(
+                "Templeton footer must scale with About width compact=\(compactFooterWidth) expanded=\(expandedFooterWidth)"
+            )
         }
 
         let narrowPersonalizationHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))

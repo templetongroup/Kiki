@@ -744,8 +744,13 @@ final class GuidedWorkbenchAboutView: NSView {
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
-        let preferredFooterWidth = templetonFooter.widthAnchor.constraint(equalToConstant: 698)
-        preferredFooterWidth.priority = .init(999)
+        let responsiveFooterWidth = templetonFooter.widthAnchor.constraint(
+            equalTo: templetonFooterContainer.widthAnchor,
+            multiplier: 0.52
+        )
+        responsiveFooterWidth.priority = .init(998)
+        let minimumReadableFooterWidth = templetonFooter.widthAnchor.constraint(greaterThanOrEqualToConstant: 420)
+        minimumReadableFooterWidth.priority = .init(999)
         NSLayoutConstraint.activate([
             backdrop.leadingAnchor.constraint(equalTo: leadingAnchor), backdrop.trailingAnchor.constraint(equalTo: trailingAnchor), backdrop.topAnchor.constraint(equalTo: topAnchor), backdrop.bottomAnchor.constraint(equalTo: bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28), stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -28), stack.topAnchor.constraint(equalTo: topAnchor, constant: 28),
@@ -754,7 +759,8 @@ final class GuidedWorkbenchAboutView: NSView {
             templetonFooter.topAnchor.constraint(equalTo: templetonFooterContainer.topAnchor),
             templetonFooter.bottomAnchor.constraint(equalTo: templetonFooterContainer.bottomAnchor),
             templetonFooter.centerXAnchor.constraint(equalTo: templetonFooterContainer.centerXAnchor),
-            preferredFooterWidth,
+            responsiveFooterWidth,
+            minimumReadableFooterWidth,
             templetonFooter.widthAnchor.constraint(lessThanOrEqualTo: templetonFooterContainer.widthAnchor),
             templetonFooter.heightAnchor.constraint(equalTo: templetonFooter.widthAnchor, multiplier: 318.0 / 698.0),
         ])
@@ -771,9 +777,7 @@ private final class TempletonTechnologiesProductFooterView: NSView {
         super.init(frame: .zero)
         identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.templeton-footer")
         wantsLayer = true
-        layer?.backgroundColor = KikiPalette.sidebar.cgColor
-        layer?.cornerRadius = 10
-        layer?.masksToBounds = true
+        layer?.backgroundColor = NSColor.clear.cgColor
 
         let productLabel = kikiLabel(
             "A Templeton Technologies Product",
@@ -790,6 +794,8 @@ private final class TempletonTechnologiesProductFooterView: NSView {
         logoView.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.templeton-logo")
         logoView.imageScaling = .scaleProportionallyUpOrDown
         logoView.imageAlignment = .alignCenter
+        logoView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        logoView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         logoView.translatesAutoresizingMaskIntoConstraints = false
         if let url = Bundle.main.url(forResource: "TempletonTechnologies", withExtension: "png") {
             logoView.image = NSImage(contentsOf: url)
@@ -798,12 +804,21 @@ private final class TempletonTechnologiesProductFooterView: NSView {
         logoView.setAccessibilityLabel("Templeton Technologies")
         addSubview(logoView)
 
+        let labelTopGuide = NSLayoutGuide()
+        let logoTopGuide = NSLayoutGuide()
+        addLayoutGuide(labelTopGuide)
+        addLayoutGuide(logoTopGuide)
+
         NSLayoutConstraint.activate([
-            productLabel.topAnchor.constraint(equalTo: topAnchor, constant: 23),
+            labelTopGuide.topAnchor.constraint(equalTo: topAnchor),
+            labelTopGuide.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 23.0 / 318.0),
+            productLabel.topAnchor.constraint(equalTo: labelTopGuide.bottomAnchor),
             productLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             productLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
             productLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -24),
-            logoView.topAnchor.constraint(equalTo: topAnchor, constant: 70),
+            logoTopGuide.topAnchor.constraint(equalTo: topAnchor),
+            logoTopGuide.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 70.0 / 318.0),
+            logoView.topAnchor.constraint(equalTo: logoTopGuide.bottomAnchor),
             logoView.centerXAnchor.constraint(equalTo: centerXAnchor),
             logoView.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 600.0 / 698.0),
             logoView.heightAnchor.constraint(equalTo: logoView.widthAnchor, multiplier: 2_178.0 / 5_000.0),
