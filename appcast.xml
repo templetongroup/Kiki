@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.36</title>
+            <pubDate>Sat, 22 Aug 2026 21:58:54 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.36</link>
+            <sparkle:version>69</sparkle:version>
+            <sparkle:shortVersionString>0.6.36</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.36
+
+- Rebuilds the Templeton Technologies footer on About as responsive app content.
+- Inherits Kiki’s About canvas color instead of using the darker sidebar color.
+- Preserves the supplied footer proportions while scaling the lockup with the window.
+- Keeps the complete footer reachable at Kiki’s compact supported window size.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.36/Kiki-0.6.36-macOS.zip" length="54240033" type="application/octet-stream" sparkle:edSignature="hDn3FWEwZvj3S3EAwDKqkQXeWM0mtVlskpI9NktqKRF4nFtLQwgoUMBWfz4aNBI0muHG6oWhkrobGl1cyEbsCg=="/>
+        </item>
+        <item>
             <title>0.6.35</title>
             <pubDate>Sat, 22 Aug 2026 21:32:15 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.35</link>
@@ -73,21 +90,6 @@
 - Keeps the review controls compact and aligned at every supported window size.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.32/Kiki-0.6.32-macOS.zip" length="53807655" type="application/octet-stream" sparkle:edSignature="0gov5B+hHc47vw2DHEel3pVKNRjaMLmjQT+7EETrO2zxwDWKhhuRf0oMzQEWXtzZBs+qi2EoH2GoZ5uj5sCfCA=="/>
-        </item>
-        <item>
-            <title>0.6.31</title>
-            <pubDate>Mon, 17 Aug 2026 19:21:48 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.31</link>
-            <sparkle:version>64</sparkle:version>
-            <sparkle:shortVersionString>0.6.31</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.31
-
-- Pulls Home setup checks into one compact, left-aligned group.
-- Keeps labels, statuses, and actions close together at every window size.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.31/Kiki-0.6.31-macOS.zip" length="53806231" type="application/octet-stream" sparkle:edSignature="itJREsnwgwuVLSedwPG97vwhBBRLOGI8Lu4VF+NwRto9MyEThEosU5DM9vd5A/FCRxjVQewSoQqJPu9mPsJ5Bg=="/>
         </item>
     </channel>
 </rss>
