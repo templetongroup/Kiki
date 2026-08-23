@@ -456,23 +456,26 @@ enum FeatureDiagnostics {
         guard let checkupButton = findView(in: aboutView, identifier: "kiki.workbench.about.checkup"),
               let updateButton = findView(in: aboutView, identifier: "kiki.workbench.about.check-updates"),
               let templetonFooter = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-footer"),
-              let templetonLogo = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-logo"),
+              let templetonLogo = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-logo") as? NSButton,
+              let templetonLabel = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-product-label") as? NSTextField,
               abs(checkupButton.frame.width - updateButton.frame.width) <= 0.5,
               abs(checkupButton.frame.height - updateButton.frame.height) <= 0.5,
-              abs((templetonFooter.frame.width / templetonFooter.frame.height) - (698.0 / 318.0)) <= 0.02,
-              abs((templetonLogo.frame.width / templetonFooter.frame.width) - (600.0 / 698.0)) <= 0.02,
+              abs(templetonLogo.frame.width - 285) <= 0.5,
+              abs((templetonLogo.frame.height / templetonLogo.frame.width) - (192.0 / 900.0)) <= 0.01,
+              templetonLogo.target != nil,
+              templetonLogo.action != nil,
+              abs((templetonLabel.font?.pointSize ?? 0) - 12) <= 0.5,
+              abs(templetonLabel.frame.minY - templetonLogo.frame.maxY - 14) <= 0.5,
               NSColor(cgColor: templetonFooter.layer?.backgroundColor ?? NSColor.clear.cgColor)?.alphaComponent ?? 1 <= 0.01 else {
-            throw failure("About actions and responsive Templeton footer geometry")
+            throw failure("About actions and Radiant-matched Templeton footer geometry")
         }
-        let compactFooterWidth = templetonFooter.frame.width
-        aboutView.frame.size.width = 1_100
+        aboutView.frame.size.width = 700
         aboutView.layoutSubtreeIfNeeded()
-        let expandedFooterWidth = templetonFooter.frame.width
-        guard compactFooterWidth >= 419.5,
-              expandedFooterWidth > compactFooterWidth + 75,
-              abs((compactFooterWidth / 900) - (expandedFooterWidth / 1_100)) <= 0.02 else {
+        let compactLogoWidth = templetonLogo.frame.width
+        guard abs(compactLogoWidth - 220) <= 0.5,
+              templetonLogo.frame.maxX <= templetonFooter.bounds.maxX + 0.5 else {
             throw failure(
-                "Templeton footer must scale with About width compact=\(compactFooterWidth) expanded=\(expandedFooterWidth)"
+                "Templeton footer must scale down without overflow compactLogo=\(compactLogoWidth) footer=\(templetonFooter.frame.width)"
             )
         }
 
