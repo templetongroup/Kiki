@@ -5,6 +5,7 @@ final class SettingsWindowController: NSWindowController {
     var onSettingsChange: (@MainActor (DictationShortcut, ActivationMode) -> Void)?
     var onModelChange: (@MainActor (TranscriptionModelID) -> Void)?
     var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
+    var onAutomaticDownloadsChange: (@MainActor (Bool) -> Void)?
     var onMicrophoneChange: (@MainActor (String) -> Void)?
     var onOpenPersonalization: (@MainActor () -> Void)?
 
@@ -44,6 +45,7 @@ final class SettingsWindowController: NSWindowController {
 
     private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
     private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
+    private let automaticDownloadsCheckbox = NSButton(checkboxWithTitle: "Download and install signed updates automatically", target: nil, action: nil)
     private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
     private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
     private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
@@ -256,7 +258,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func configureControls() {
         let checkboxes = [
-            launchAtLoginCheckbox, automaticUpdatesCheckbox, silenceAudioCheckbox,
+            launchAtLoginCheckbox, automaticUpdatesCheckbox, automaticDownloadsCheckbox, silenceAudioCheckbox,
             zeroWaitCheckbox,
             continuationsCheckbox, learningCheckbox, contextCheckbox,
             confidenceCheckbox, historyCheckbox,
@@ -270,6 +272,10 @@ final class SettingsWindowController: NSWindowController {
         launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
         automaticUpdatesCheckbox.target = self
         automaticUpdatesCheckbox.action = #selector(automaticUpdatesChanged)
+        automaticUpdatesCheckbox.identifier = NSUserInterfaceItemIdentifier("kiki.settings.automatic-update-checks")
+        automaticDownloadsCheckbox.target = self
+        automaticDownloadsCheckbox.action = #selector(automaticDownloadsChanged)
+        automaticDownloadsCheckbox.identifier = NSUserInterfaceItemIdentifier("kiki.settings.automatic-update-downloads")
         microphonePopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.microphone")
         microphonePopup.target = self
         microphonePopup.action = #selector(microphoneChanged)
@@ -361,7 +367,7 @@ final class SettingsWindowController: NSWindowController {
             SettingsCard(
                 title: "Startup & Updates",
                 subtitle: "Keep Kiki ready and securely up to date.",
-                views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, startupStatusLabel]
+                views: [launchAtLoginCheckbox, automaticUpdatesCheckbox, automaticDownloadsCheckbox, startupStatusLabel]
             ),
             SettingsCard(
                 title: "Input",
@@ -592,8 +598,14 @@ final class SettingsWindowController: NSWindowController {
         shortcutButton.title = Settings.dictationShortcut.displayString
         messageLabel.stringValue = Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut)
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
-        automaticUpdatesCheckbox.state = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
-            || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks") ? .on : .off
+        let automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
+            || UserDefaults.standard.bool(forKey: "SUEnableAutomaticChecks")
+        let automaticallyDownloadsUpdates = UserDefaults.standard.object(forKey: "SUAutomaticallyUpdate") == nil
+            || UserDefaults.standard.bool(forKey: "SUAutomaticallyUpdate")
+        automaticUpdatesCheckbox.state = automaticallyChecksForUpdates ? .on : .off
+        automaticDownloadsCheckbox.state = automaticallyDownloadsUpdates ? .on : .off
+        automaticDownloadsCheckbox.isEnabled = automaticallyChecksForUpdates
+        updateAutomaticUpdatesStatus()
         let microphones = AudioInputDevice.available()
         let selectedMicrophone = AudioInputDevice.selected(
             from: microphones,
@@ -731,9 +743,21 @@ final class SettingsWindowController: NSWindowController {
     @objc private func automaticUpdatesChanged() {
         let enabled = automaticUpdatesCheckbox.state == .on
         onAutomaticUpdatesChange?(enabled)
-        startupStatusLabel.stringValue = enabled
-            ? "Kiki will automatically check for signed updates."
-            : "Automatic update checks are off. You can still check from the menu."
+        automaticDownloadsCheckbox.isEnabled = enabled
+        updateAutomaticUpdatesStatus()
+    }
+    @objc private func automaticDownloadsChanged() {
+        onAutomaticDownloadsChange?(automaticDownloadsCheckbox.state == .on)
+        updateAutomaticUpdatesStatus()
+    }
+    private func updateAutomaticUpdatesStatus() {
+        guard automaticUpdatesCheckbox.state == .on else {
+            startupStatusLabel.stringValue = "Automatic checks are off. You can still check from About or the Kiki menu."
+            return
+        }
+        startupStatusLabel.stringValue = automaticDownloadsCheckbox.state == .on
+            ? "Kiki will check automatically, download signed updates, and install them when it can safely quit."
+            : "Kiki will check automatically and ask before downloading or installing an update."
     }
     @objc private func microphoneChanged() {
         guard let uniqueID = microphonePopup.selectedItem?.representedObject as? String else { return }

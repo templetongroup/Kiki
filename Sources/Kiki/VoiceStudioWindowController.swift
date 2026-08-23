@@ -54,6 +54,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private let playbackLabel = NSTextField(labelWithString: "No audio generated yet")
     private let playbackProgress = NSProgressIndicator()
     private let exportFormatPopup = NSPopUpButton()
+    private let workflowRail = VoiceStudioWorkflowRail()
 
     init() {
         let window = NSWindow(
@@ -151,15 +152,21 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             subtitle.widthAnchor.constraint(equalToConstant: 310),
         ])
 
-        let leftCard = makeVoiceCard()
-        let rightCard = makeGenerationCard()
-        let columns = NSStackView(views: [leftCard, rightCard])
+        let voiceCard = makeVoiceCard()
+        let modelCard = makeModelCard()
+        let generationCard = makeGenerationCard()
+        let rightColumn = NSStackView(views: [modelCard, generationCard])
+        rightColumn.orientation = .vertical
+        rightColumn.alignment = .leading
+        rightColumn.spacing = 14
+        let columns = NSStackView(views: [voiceCard, rightColumn])
         columns.orientation = .horizontal
         columns.alignment = .top
-        columns.distribution = .fill
+        columns.distribution = .fillEqually
         columns.spacing = 18
 
-        let root = NSStackView(views: [header, columns])
+        workflowRail.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow")
+        let root = NSStackView(views: [header, workflowRail, columns])
         root.orientation = .vertical
         root.alignment = .leading
         root.spacing = KikiMetrics.space3
@@ -172,19 +179,25 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             root.topAnchor.constraint(equalTo: content.topAnchor, constant: KikiMetrics.space6),
             root.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -KikiMetrics.space5),
             header.widthAnchor.constraint(equalTo: root.widthAnchor),
-            header.heightAnchor.constraint(equalToConstant: 160),
+            header.heightAnchor.constraint(equalToConstant: 150),
+            workflowRail.widthAnchor.constraint(equalTo: root.widthAnchor),
+            workflowRail.heightAnchor.constraint(equalToConstant: 72),
             columns.widthAnchor.constraint(equalTo: root.widthAnchor),
-            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -172),
-            leftCard.widthAnchor.constraint(equalToConstant: 450),
-            rightCard.widthAnchor.constraint(greaterThanOrEqualToConstant: 480),
-            rightCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
-            leftCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
+            columns.heightAnchor.constraint(equalTo: root.heightAnchor, constant: -246),
+            voiceCard.widthAnchor.constraint(equalTo: rightColumn.widthAnchor),
+            voiceCard.heightAnchor.constraint(equalTo: columns.heightAnchor),
+            rightColumn.heightAnchor.constraint(equalTo: columns.heightAnchor),
+            modelCard.widthAnchor.constraint(equalTo: rightColumn.widthAnchor),
+            modelCard.heightAnchor.constraint(equalToConstant: 144),
+            generationCard.widthAnchor.constraint(equalTo: rightColumn.widthAnchor),
         ])
     }
 
     private func makeVoiceCard() -> NSView {
         let card = KikiCardView()
         let sectionTitle = kikiLabel("1. Record your voice", size: 18, weight: .bold)
+        let sectionDetail = kikiLabel("Read the short passage once. Kiki keeps this reference recording private on this Mac.", size: 12, color: KikiPalette.secondaryText)
+        sectionDetail.maximumNumberOfLines = 2
         profileStatusLabel.font = .systemFont(ofSize: 12.5)
         profileStatusLabel.textColor = KikiPalette.secondaryText
         profileStatusLabel.maximumNumberOfLines = 3
@@ -265,27 +278,10 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         recordButton.setContentHuggingPriority(.defaultLow, for: .horizontal)
         recordingReviewActions.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        let divider = NSBox()
-        divider.boxType = .separator
-        let modelTitle = kikiLabel("2. Install the voice engine", size: 13.5, weight: .semibold)
-        modelStatusLabel.font = .systemFont(ofSize: 11.5)
-        modelStatusLabel.textColor = KikiPalette.secondaryText
-        modelStatusLabel.maximumNumberOfLines = 2
-        modelProgress.style = .bar
-        modelProgress.minValue = 0
-        modelProgress.maxValue = 1
-        modelProgress.isHidden = true
-        modelProgress.controlSize = .small
-        let modelActions = NSStackView(views: [modelButton, NSView()])
-        modelActions.orientation = .horizontal
-        modelActions.alignment = .centerY
-        modelActions.spacing = 8
-
         let stack = NSStackView(views: [
-            sectionTitle, profileStatusLabel, voiceNameField,
+            sectionTitle, sectionDetail, profileStatusLabel, voiceNameField,
             enrollmentModeDetailLabel, scriptPanel, consentCheckbox,
-            meterRow, qualityLabel, recordingActions, divider,
-            modelTitle, modelStatusLabel, modelProgress, modelActions,
+            meterRow, qualityLabel, recordingActions,
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -296,12 +292,13 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
             stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
             stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 20),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -18),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -18),
+            sectionDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             profileStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             voiceNameField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             enrollmentModeDetailLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scriptPanel.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            scriptPanel.heightAnchor.constraint(equalToConstant: 112),
+            scriptPanel.heightAnchor.constraint(equalToConstant: 126),
             consentCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor),
             meterRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordingMeter.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
@@ -309,10 +306,40 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             recordingActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
             recordButton.widthAnchor.constraint(equalTo: recordingActions.widthAnchor),
             recordingReviewActions.widthAnchor.constraint(equalTo: recordingActions.widthAnchor),
-            divider.widthAnchor.constraint(equalTo: stack.widthAnchor),
+        ])
+        return card
+    }
+
+    private func makeModelCard() -> NSView {
+        let card = KikiCardView()
+        card.identifier = NSUserInterfaceItemIdentifier("kiki.voice.engine-card")
+        let title = kikiLabel("2. Install the voice engine", size: 16, weight: .semibold)
+        modelStatusLabel.font = .systemFont(ofSize: 11.5)
+        modelStatusLabel.textColor = KikiPalette.secondaryText
+        modelStatusLabel.maximumNumberOfLines = 2
+        modelProgress.style = .bar
+        modelProgress.minValue = 0
+        modelProgress.maxValue = 1
+        modelProgress.isHidden = true
+        modelProgress.controlSize = .small
+        let actions = NSStackView(views: [modelButton, NSView()])
+        actions.orientation = .horizontal
+        actions.alignment = .centerY
+        actions.spacing = 8
+        let stack = NSStackView(views: [title, modelStatusLabel, modelProgress, actions])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 7
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -14),
             modelStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             modelProgress.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            modelActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            actions.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
         return card
     }
@@ -338,7 +365,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
 
     private func makeGenerationCard() -> NSView {
         let card = KikiCardView()
-        let sectionTitle = kikiLabel("3. Create audio", size: 18, weight: .bold)
+        let sectionTitle = kikiLabel("3. Write and generate", size: 18, weight: .bold)
         let sectionDetail = kikiLabel("Write, paste, or edit a script. Kiki keeps normal-length text in one continuous take.", size: 12, color: KikiPalette.secondaryText)
 
         setupStatusLabel.font = .systemFont(ofSize: 12.5, weight: .semibold)
@@ -379,7 +406,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         generationActions.spacing = 8
 
         let outputCard = KikiCardView()
-        let outputTitle = kikiLabel("Generated audio", size: 13.5, weight: .semibold)
+        let outputTitle = kikiLabel("4. Review and export", size: 13.5, weight: .semibold)
         playbackLabel.font = .systemFont(ofSize: 11.5)
         playbackLabel.textColor = KikiPalette.secondaryText
         playbackProgress.style = .bar
@@ -425,7 +452,7 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
             sectionDetail.widthAnchor.constraint(equalTo: stack.widthAnchor),
             setupStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             editorScroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            editorScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 210),
+            editorScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 132),
             generationActions.widthAnchor.constraint(equalTo: stack.widthAnchor),
             generationProgress.widthAnchor.constraint(equalTo: stack.widthAnchor),
             generationStatusLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -488,6 +515,12 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
         let isInstalled = VoiceModelStore.isInstalled
         let isGenerating = synthesisTask != nil
         let ready = hasUsableProfile && isInstalled && !isGenerating
+        workflowRail.update(
+            hasVoice: hasUsableProfile,
+            hasEngine: isInstalled,
+            isGenerating: isGenerating,
+            hasOutput: generatedAudioURL != nil
+        )
         generateButton.isEnabled = ready && hasText
         if !isGenerating {
             if !hasUsableProfile {
@@ -954,6 +987,126 @@ final class VoiceStudioWindowController: NSWindowController, NSWindowDelegate {
     private static func durationString(_ duration: TimeInterval) -> String {
         let total = max(0, Int(duration.rounded()))
         return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+@MainActor
+private final class VoiceStudioWorkflowRail: NSStackView {
+    private let voiceStep = VoiceStudioWorkflowStep(number: 1, title: "Record voice", identifier: "record")
+    private let engineStep = VoiceStudioWorkflowStep(number: 2, title: "Install engine", identifier: "engine")
+    private let createStep = VoiceStudioWorkflowStep(number: 3, title: "Create audio", identifier: "create")
+    private let outputStep = VoiceStudioWorkflowStep(number: 4, title: "Review & export", identifier: "output")
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        orientation = .horizontal
+        alignment = .centerY
+        distribution = .fillEqually
+        spacing = 10
+        for step in [voiceStep, engineStep, createStep, outputStep] {
+            addArrangedSubview(step)
+            step.heightAnchor.constraint(equalTo: heightAnchor).isActive = true
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(hasVoice: Bool, hasEngine: Bool, isGenerating: Bool, hasOutput: Bool) {
+        voiceStep.update(state: hasVoice ? .complete : .current, status: hasVoice ? "Saved" : "Start here")
+        engineStep.update(
+            state: hasEngine ? .complete : hasVoice ? .current : .upcoming,
+            status: hasEngine ? "Installed" : hasVoice ? "Next" : "After voice"
+        )
+        let createState: VoiceStudioWorkflowStep.State = if isGenerating {
+            .current
+        } else if hasOutput {
+            .complete
+        } else if hasVoice && hasEngine {
+            .current
+        } else {
+            .upcoming
+        }
+        createStep.update(
+            state: createState,
+            status: isGenerating ? "Generating" : hasOutput ? "Generated" : hasVoice && hasEngine ? "Ready" : "Locked"
+        )
+        outputStep.update(
+            state: hasOutput && !isGenerating ? .current : .upcoming,
+            status: isGenerating ? "Updating" : hasOutput ? "Audio ready" : "Waiting"
+        )
+    }
+}
+
+@MainActor
+private final class VoiceStudioWorkflowStep: KikiCardView {
+    enum State { case complete, current, upcoming }
+
+    private let numberLabel: NSTextField
+    private let titleLabel: NSTextField
+    private let statusLabel = kikiLabel("", size: 10.5, weight: .semibold, color: KikiPalette.tertiaryText)
+    private let stepNumber: Int
+
+    init(number: Int, title: String, identifier: String) {
+        stepNumber = number
+        numberLabel = kikiLabel(String(number), size: 11, weight: .bold, color: KikiPalette.accentText)
+        titleLabel = kikiLabel(title, size: 12.5, weight: .semibold)
+        super.init(frame: .zero)
+        self.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow.\(identifier)")
+        usesHardwareDepth = true
+        cardCornerRadius = 8
+
+        numberLabel.alignment = .center
+        numberLabel.wantsLayer = true
+        numberLabel.layer?.cornerRadius = 11
+        numberLabel.layer?.borderWidth = 1
+        numberLabel.layer?.borderColor = KikiPalette.strongStroke.cgColor
+        numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+        numberLabel.widthAnchor.constraint(equalToConstant: 22).isActive = true
+        numberLabel.heightAnchor.constraint(equalToConstant: 22).isActive = true
+        titleLabel.lineBreakMode = .byTruncatingTail
+        let copy = NSStackView(views: [titleLabel, statusLabel])
+        copy.orientation = .vertical
+        copy.alignment = .leading
+        copy.spacing = 2
+        let row = NSStackView(views: [numberLabel, copy])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 9
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            row.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        setAccessibilityLabel("Step \(number), \(title)")
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(state: State, status: String) {
+        statusLabel.stringValue = status
+        switch state {
+        case .complete:
+            selected = false
+            numberLabel.stringValue = "✓"
+            numberLabel.textColor = KikiPalette.accentText
+            numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+            statusLabel.textColor = KikiPalette.accentText
+        case .current:
+            selected = true
+            numberLabel.stringValue = String(stepNumber)
+            numberLabel.textColor = KikiPalette.onAccentText
+            numberLabel.layer?.backgroundColor = KikiPalette.accent.cgColor
+            statusLabel.textColor = KikiPalette.khaki
+        case .upcoming:
+            selected = false
+            numberLabel.stringValue = String(stepNumber)
+            numberLabel.textColor = KikiPalette.tertiaryText
+            numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+            statusLabel.textColor = KikiPalette.tertiaryText
+        }
+        setAccessibilityValue(status)
     }
 }
 

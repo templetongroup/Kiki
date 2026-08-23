@@ -46,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onAutomaticUpdatesChange = { [weak self] enabled in
             self?.updateController.automaticallyChecksForUpdates = enabled
         }
+        controller.onAutomaticDownloadsChange = { [weak self] enabled in
+            self?.updateController.automaticallyDownloadsUpdates = enabled
+        }
         controller.onMicrophoneChange = { [weak self] _ in
             self?.checkupInputResponding = false
             self?.refreshCheckup(restartInputMonitor: true)
@@ -159,6 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var workbenchAboutView: GuidedWorkbenchAboutView = {
         let view = GuidedWorkbenchAboutView()
         view.onRunCheckup = { [weak self] in self?.openCheckup() }
+        view.onCheckUpdates = { [weak self] in self?.updateController.checkForUpdates(nil) }
         return view
     }()
     private lazy var workbenchWindow: GuidedWorkbenchWindowController = {
@@ -662,7 +666,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case 6:
                 return GuidedWorkbenchSurface(view: workbenchSupportView, sizing: .fill)
             default:
-                return GuidedWorkbenchSurface(view: workbenchAboutView, sizing: .fill)
+                return GuidedWorkbenchSurface(
+                    view: workbenchAboutView,
+                    sizing: .scroll(NSSize(width: 900, height: 830))
+                )
             }
         }
     }

@@ -194,9 +194,10 @@ enum FeatureDiagnostics {
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.readiness-card"
               ),
-              abs(compactReadinessCard.frame.height - 264) <= 1 else {
+              compactReadinessCard.frame.height >= 200,
+              findView(in: compactHomeView, identifier: "kiki.workbench.home.capabilities") != nil else {
             throw failure(
-                "Home content must fit its single setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds) fitting=\(compactHomeView.fittingSize)"
+                "Home content must fit its capability launchpad and contextual setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds) fitting=\(compactHomeView.fittingSize)"
             )
         }
         let wideHomeView = GuidedWorkbenchHomeView()
@@ -206,18 +207,13 @@ enum FeatureDiagnostics {
                   in: wideHomeView,
                   identifier: "kiki.workbench.home.readiness-card"
               ),
-              let wideReadinessCopy = findView(
-                  in: wideHomeView,
-                  identifier: "kiki.workbench.home.readiness-copy"
-              ),
               let wideReadinessList = findView(
                   in: wideHomeView,
                   identifier: "kiki.workbench.home.readiness-list"
               ),
-              abs(wideReadinessCard.frame.height - 264) <= 1,
-              abs(wideReadinessList.frame.width - 376) <= 1,
-              abs(wideReadinessCopy.frame.minX - wideReadinessList.frame.minX) <= 1 else {
-            throw failure("Home setup checks must keep the heading and compact row grid aligned")
+              wideReadinessCard.frame.height >= 200,
+              abs(wideReadinessList.frame.width - 376) <= 1 else {
+            throw failure("Home setup checks must keep the compact unfinished-check grid aligned")
         }
         let homeActionIDs = [
             "kiki.workbench.home.dictation",
@@ -229,7 +225,7 @@ enum FeatureDiagnostics {
             in: compactHomeView,
             identifier: "kiki.workbench.home.title"
         ) as? NSTextField,
-              homeTitle.stringValue == "Finish Kiki setup.",
+              homeTitle.stringValue == "Your voice, ready to work.",
               let microphoneValue = findView(
                   in: compactHomeView,
                   identifier: "kiki.workbench.home.readiness.microphone.value"
@@ -385,11 +381,12 @@ enum FeatureDiagnostics {
         let visibleTryDictationButtons = descendants(of: compactHomeView)
             .compactMap { $0 as? NSButton }
             .filter { !$0.isHidden && $0.title == "Try Dictation" }
-        guard homeTitle.stringValue == "Kiki is ready.",
+        guard homeTitle.stringValue == "Your voice, ready to work.",
               microphoneValue.stringValue == "Ready",
               accessibilityValue.stringValue == "Ready",
               shortcutHelp.stringValue.contains(Settings.dictationShortcut.displayString),
               homeDictationButton.title == "Try Dictation",
+              compactReadinessCard.isHidden,
               readinessActionsWhenReady.count == 5,
               readinessActionsWhenReady.allSatisfy(\.isHidden),
               visibleTryDictationButtons.count == 1,
@@ -399,9 +396,12 @@ enum FeatureDiagnostics {
         let homeActionButtons = homeActionIDs.compactMap {
             findView(in: compactHomeView, identifier: $0) as? KikiActionButton
         }
+        let capabilityCardIDs = ["dictation", "meeting", "audio", "voice"].map {
+            "kiki.workbench.home.capability.\($0)"
+        }
+        let capabilityCards = capabilityCardIDs.compactMap { findView(in: compactHomeView, identifier: $0) }
+        let capabilityCardHeights = capabilityCards.map(\.frame.height)
         let homeActionHeights = homeActionButtons.map(\.frame.height)
-        let homeActionWidths = homeActionButtons.map(\.frame.width)
-        let homeActionMinY = homeActionButtons.map(\.frame.minY)
         let homeActionFontSizes = homeActionButtons.compactMap { $0.font?.pointSize }
         let homeActionFontNames = homeActionButtons.compactMap { $0.font?.fontName }
         let homeActionRenderedFontSizes = homeActionButtons.compactMap {
@@ -411,22 +411,16 @@ enum FeatureDiagnostics {
             $0.attributedTitle.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
         }.map(\.fontName)
         guard homeActionButtons.count == homeActionIDs.count,
-              let minimumHomeActionHeight = homeActionHeights.min(),
-              let maximumHomeActionHeight = homeActionHeights.max(),
-              maximumHomeActionHeight - minimumHomeActionHeight <= 0.5,
-              let minimumHomeActionWidth = homeActionWidths.min(),
-              let maximumHomeActionWidth = homeActionWidths.max(),
-              maximumHomeActionWidth - minimumHomeActionWidth <= 0.5,
-              let minimumHomeActionMinY = homeActionMinY.min(),
-              let maximumHomeActionMinY = homeActionMinY.max(),
-              maximumHomeActionMinY - minimumHomeActionMinY <= 0.5,
+              capabilityCards.count == capabilityCardIDs.count,
+              capabilityCardHeights.allSatisfy({ abs($0 - 148) <= 1 }),
+              homeActionHeights.allSatisfy({ abs($0 - KikiMetrics.compactControlHeight) <= 1 }),
               Set(homeActionFontSizes).count == 1,
               Set(homeActionFontNames).count == 1,
               Set(homeActionRenderedFontSizes).count == 1,
               Set(homeActionRenderedFontNames).count == 1,
-              homeActionRenderedFontSizes.allSatisfy({ abs($0 - 13) < 0.1 }) else {
+              homeActionRenderedFontSizes.allSatisfy({ abs($0 - 12.5) < 0.1 }) else {
             throw failure(
-                "Home actions must share one geometry and label treatment widths=\(homeActionWidths) heights=\(homeActionHeights) y=\(homeActionMinY) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes) renderedFonts=\(homeActionRenderedFontNames) renderedSizes=\(homeActionRenderedFontSizes)"
+                "Home capability cards must share one geometry and button treatment cards=\(capabilityCardHeights) heights=\(homeActionHeights) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes) renderedFonts=\(homeActionRenderedFontNames) renderedSizes=\(homeActionRenderedFontSizes)"
             )
         }
 
@@ -450,8 +444,20 @@ enum FeatureDiagnostics {
         let embeddedSettings = settingsController.workbenchPage(0)
         let embeddedPersonalization = personalizationController.workbenchPage(context: nil, page: 0)
         guard descendants(of: embeddedSettings).allSatisfy({ !($0 is KikiNavButton) }),
-              descendants(of: embeddedPersonalization).allSatisfy({ !($0 is KikiNavButton) }) else {
+              descendants(of: embeddedPersonalization).allSatisfy({ !($0 is KikiNavButton) }),
+              findView(in: embeddedSettings, identifier: "kiki.settings.automatic-update-checks") is NSButton,
+              findView(in: embeddedSettings, identifier: "kiki.settings.automatic-update-downloads") is NSButton else {
             throw failure("Workbench content must not embed legacy sidebars")
+        }
+
+        let aboutView = GuidedWorkbenchAboutView()
+        aboutView.frame = NSRect(x: 0, y: 0, width: 900, height: 830)
+        aboutView.layoutSubtreeIfNeeded()
+        guard let checkupButton = findView(in: aboutView, identifier: "kiki.workbench.about.checkup"),
+              let updateButton = findView(in: aboutView, identifier: "kiki.workbench.about.check-updates"),
+              abs(checkupButton.frame.width - updateButton.frame.width) <= 0.5,
+              abs(checkupButton.frame.height - updateButton.frame.height) <= 0.5 else {
+            throw failure("About update and Checkup actions must share one geometry")
         }
 
         let narrowPersonalizationHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
@@ -629,6 +635,12 @@ enum FeatureDiagnostics {
 
         let controller = VoiceStudioWindowController()
         guard let contentView = controller.window?.contentView,
+              findView(in: contentView, identifier: "kiki.voice.workflow") is NSStackView,
+              findView(in: contentView, identifier: "kiki.voice.workflow.record") != nil,
+              findView(in: contentView, identifier: "kiki.voice.workflow.engine") != nil,
+              findView(in: contentView, identifier: "kiki.voice.workflow.create") != nil,
+              findView(in: contentView, identifier: "kiki.voice.workflow.output") != nil,
+              findView(in: contentView, identifier: "kiki.voice.engine-card") != nil,
               findView(in: contentView, identifier: "kiki.voice.enrollment-mode") == nil,
               findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
               findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView,
