@@ -733,7 +733,7 @@ final class GuidedWorkbenchAboutView: NSView {
         NSLayoutConstraint.activate([
             changeStack.leadingAnchor.constraint(equalTo: changes.leadingAnchor, constant: 20), changeStack.trailingAnchor.constraint(equalTo: changes.trailingAnchor, constant: -20), changeStack.topAnchor.constraint(equalTo: changes.topAnchor, constant: 18), changeStack.bottomAnchor.constraint(equalTo: changes.bottomAnchor, constant: -18),
         ])
-        let templetonFooter = TempletonTechnologiesProductFooterView()
+        let templetonFooter = TempletonTechnologiesProductFooterView(placement: .about)
         let templetonFooterContainer = NSView()
         templetonFooterContainer.translatesAutoresizingMaskIntoConstraints = false
         templetonFooter.translatesAutoresizingMaskIntoConstraints = false
@@ -759,69 +759,4 @@ final class GuidedWorkbenchAboutView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     @objc private func runCheckup() { onRunCheckup?() }
     @objc private func checkUpdates() { onCheckUpdates?() }
-}
-
-@MainActor
-private final class TempletonTechnologiesProductFooterView: NSView {
-    init() {
-        super.init(frame: .zero)
-        identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.templeton-footer")
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.clear.cgColor
-
-        let productLabel = kikiLabel(
-            "A Templeton Technologies Product",
-            size: 12,
-            weight: .regular,
-            color: KikiPalette.secondaryText
-        )
-        productLabel.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.templeton-product-label")
-        productLabel.alignment = .center
-        productLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(productLabel)
-
-        let logoButton = NSButton()
-        logoButton.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.templeton-logo")
-        logoButton.isBordered = false
-        logoButton.imagePosition = .imageOnly
-        logoButton.imageScaling = .scaleProportionallyUpOrDown
-        logoButton.target = self
-        logoButton.action = #selector(openTempletonTechnologies)
-        logoButton.toolTip = "Visit templetontech.com"
-        logoButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        logoButton.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        logoButton.translatesAutoresizingMaskIntoConstraints = false
-        if let url = Bundle.main.url(forResource: "TempletonTechnologies", withExtension: "png") {
-            logoButton.image = NSImage(contentsOf: url)
-        }
-        logoButton.setAccessibilityLabel("Open the Templeton Technologies website")
-        addSubview(logoButton)
-
-        let responsiveLogoWidth = logoButton.widthAnchor.constraint(equalTo: widthAnchor, multiplier: 0.34)
-        responsiveLogoWidth.priority = .init(998)
-        let minimumLogoWidth = logoButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 220)
-        minimumLogoWidth.priority = .init(999)
-
-        NSLayoutConstraint.activate([
-            productLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            productLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            productLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 24),
-            productLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -24),
-            logoButton.topAnchor.constraint(equalTo: productLabel.bottomAnchor, constant: 14),
-            logoButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            responsiveLogoWidth,
-            minimumLogoWidth,
-            logoButton.widthAnchor.constraint(lessThanOrEqualToConstant: 285),
-            logoButton.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -48),
-            logoButton.heightAnchor.constraint(equalTo: logoButton.widthAnchor, multiplier: 192.0 / 900.0),
-            logoButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24),
-        ])
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    @objc private func openTempletonTechnologies() {
-        guard let url = URL(string: "https://templetontech.com") else { return }
-        NSWorkspace.shared.open(url)
-    }
 }

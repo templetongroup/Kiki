@@ -99,8 +99,21 @@ enum FeatureDiagnostics {
                 guard controller.route == route else { throw failure("Guided Workbench route \(section.rawValue) \(subpage)") }
             }
         }
+        controller.window?.contentView?.layoutSubtreeIfNeeded()
         guard let content = controller.window?.contentView,
               findView(in: content, identifier: "kiki.workbench.sidebar") != nil,
+              let sidebarFooter = findView(
+                  in: content,
+                  identifier: "kiki.workbench.sidebar.templeton-footer"
+              ),
+              let sidebarFooterLabel = findView(
+                  in: content,
+                  identifier: "kiki.workbench.sidebar.templeton-product-label"
+              ) as? NSTextField,
+              let sidebarFooterLogo = findView(
+                  in: content,
+                  identifier: "kiki.workbench.sidebar.templeton-logo"
+              ) as? NSButton,
               findView(in: content, identifier: "kiki.workbench.content") != nil,
               findView(in: content, identifier: "kiki.workbench.context-bar")?.layer?.backgroundColor == KikiPalette.surface.cgColor,
               findView(in: content, identifier: "kiki.workbench.tab-rail")?.layer?.backgroundColor != nil,
@@ -114,6 +127,15 @@ enum FeatureDiagnostics {
               findView(in: content, identifier: "kiki.workbench.quick-dictation") == nil,
               let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
               releaseLabel.stringValue.hasPrefix("RELEASE "),
+              sidebarFooterLabel.stringValue == "Kiki is a Templeton Technologies product.",
+              abs(sidebarFooterLogo.frame.width - 138) <= 0.5,
+              abs(
+                  (sidebarFooterLogo.frame.height / sidebarFooterLogo.frame.width)
+                      - (192.0 / 900.0)
+              ) <= 0.01,
+              sidebarFooterLogo.target != nil,
+              sidebarFooterLogo.action != nil,
+              abs(sidebarFooter.frame.minY - 14) <= 0.5,
               GuidedWorkbenchSection.allCases.allSatisfy({
                   findView(in: content, identifier: "kiki.workbench.nav.\($0.rawValue)") is NSButton
               }),

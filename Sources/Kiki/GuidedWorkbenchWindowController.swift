@@ -311,10 +311,14 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
         ])
 
-        for view in [brand, workflowLabel, scroll] { view.translatesAutoresizingMaskIntoConstraints = false }
+        let templetonFooter = TempletonTechnologiesProductFooterView(placement: .sidebar)
+        for view in [brand, workflowLabel, scroll, templetonFooter] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+        }
         sidebar.addSubview(brand)
         sidebar.addSubview(workflowLabel)
         sidebar.addSubview(scroll)
+        sidebar.addSubview(templetonFooter)
         NSLayoutConstraint.activate([
             portrait.widthAnchor.constraint(equalToConstant: 48),
             portrait.heightAnchor.constraint(equalToConstant: 48),
@@ -326,7 +330,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             scroll.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14),
             scroll.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14),
             scroll.topAnchor.constraint(equalTo: workflowLabel.bottomAnchor, constant: 12),
-            scroll.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -16),
+            scroll.bottomAnchor.constraint(equalTo: templetonFooter.topAnchor, constant: -12),
+            templetonFooter.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14),
+            templetonFooter.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14),
+            templetonFooter.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor, constant: -14),
         ])
         return sidebar
     }
