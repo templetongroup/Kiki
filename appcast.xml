@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.38</title>
+            <pubDate>Wed, 26 Aug 2026 12:42:57 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.38</link>
+            <sparkle:version>71</sparkle:version>
+            <sparkle:shortVersionString>0.6.38</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.38
+
+- Adds the Templeton Technologies product footer to the bottom of the Workbench navigation rail.
+- Keeps navigation independently scrollable while the footer remains anchored at every supported window size.
+- Matches the supplied compact reference with a 138-point wordmark and restrained label spacing.
+- Opens templetontech.com when the Templeton Technologies wordmark is selected.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.38/Kiki-0.6.38-macOS.zip" length="53948118" type="application/octet-stream" sparkle:edSignature="jctGu4kOjEix0DDwJxA3/6FYS0hbL4BwmYCq0uVaH94gdJ/vEWK/487bPq3ZasE2L1e/Dp5AGNcpsKvDH47lDA=="/>
+        </item>
+        <item>
             <title>0.6.37</title>
             <pubDate>Sat, 22 Aug 2026 22:20:02 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.37</link>
@@ -75,23 +92,6 @@
 - Clarified whether Voice Studio is verifying, downloading, repairing, or generating.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.34/Kiki-0.6.34-macOS.zip" length="53839664" type="application/octet-stream" sparkle:edSignature="n9341jOz1juWsJyWN2jzTMU0JO0AuXX9fqf6NOxFGA4XD+1dhMr8i7G9Acm1CbzrJ4qJuOxxeoMYmdu0JQCvBw=="/>
-        </item>
-        <item>
-            <title>0.6.33</title>
-            <pubDate>Wed, 19 Aug 2026 19:41:59 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.33</link>
-            <sparkle:version>66</sparkle:version>
-            <sparkle:shortVersionString>0.6.33</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.33
-
-- Reworked Kiki's interface around a consistent compact spacing, typography, surface, and control system.
-- Fixed Learning table rows and selection highlights so text stays vertically centered at every window size.
-- Made correction scope default to the app where Kiki observed an app-specific edit.
-- Tightened Voice Studio, navigation, buttons, tables, history, dictionary, and speaker editing for a calmer native Mac layout.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.33/Kiki-0.6.33-macOS.zip" length="53808874" type="application/octet-stream" sparkle:edSignature="/IE47iXCvEaebz+N6ZSEftSKlFF+8br5PFvAGBazb4iCo1g7dNrc2E3NW6LSl6aM8xdsGgZQsC3cuZ1zNaEzDw=="/>
         </item>
     </channel>
 </rss>
