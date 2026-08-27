@@ -54,7 +54,11 @@ final class DictationController {
     private var transientMessageID = UUID()
     private(set) var state: DictationState = .loadingModel {
         didSet {
-            transientMessageID = UUID()
+            // Returning to idle is the normal final step after a paste fallback.
+            // Keep that message's dismissal token alive so its HUD cannot stick.
+            if state != .idle {
+                transientMessageID = UUID()
+            }
             onStateChange?(state)
         }
     }
@@ -788,6 +792,16 @@ final class DictationController {
         case .transcribing:
             showTranscribingPresentation()
         }
+    }
+
+    func showPasteFallbackForDiagnostics() {
+        state = .transcribing
+        showTransientMessage("Copied — return to the original app to paste")
+        state = .idle
+    }
+
+    var isTransientHUDVisibleForDiagnostics: Bool {
+        hud.isVisibleOnScreen
     }
 
     func prepareForTermination() {

@@ -482,6 +482,28 @@ if args.count >= 2, args[1] == "--self-test-hud" {
     }
 }
 
+if args.count >= 2, args[1] == "--self-test-transient-hud" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        let controller = DictationController()
+        controller.showPasteFallbackForDiagnostics()
+        guard controller.isTransientHUDVisibleForDiagnostics else {
+            fputs("Error: Kiki paste fallback HUD did not appear.\n", stderr)
+            exit(1)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.25) {
+            guard !controller.isTransientHUDVisibleForDiagnostics else {
+                fputs("Error: Kiki paste fallback HUD remained visible after its dismissal deadline.\n", stderr)
+                exit(1)
+            }
+            print("Kiki paste fallback HUD dismissed after its deadline")
+            exit(0)
+        }
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--preview-settings" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
