@@ -1,5 +1,7 @@
 # Kiki
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-6D7B62.svg)](LICENSE)
+
 <p align="center">
   <img src="Assets/kiki-portrait.png" alt="Kiki dog portrait" width="560">
 </p>
@@ -139,6 +141,12 @@ Transcribe a file without the mic (useful for testing changes):
 `Vendor/whisper.cpp` is v1.7.2 — the last release with a source-build SwiftPM package. One local patch: the Metal shader resource uses `.copy` instead of `.process` so the project builds with Command Line Tools alone (no Xcode); ggml compiles the shader at runtime instead (see `MetalResources.swift`).
 
 FluidAudio is pinned to v0.15.5 and licensed under Apache 2.0. NVIDIA's Parakeet TDT v2/v3 model weights are distributed under CC BY 4.0; Kiki should preserve model attribution in public distributions.
+
+## License
+
+Kiki's original source code is open source under the [MIT License](LICENSE). Third-party software and model weights remain subject to their respective licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).
+
+The Kiki and Templeton Technologies names, logos, and other brand assets are not licensed for use as trademarks by the MIT License.
 
 ## Feature freeze
 
