@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.39</title>
+            <pubDate>Thu, 27 Aug 2026 15:05:43 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.39</link>
+            <sparkle:version>72</sparkle:version>
+            <sparkle:shortVersionString>0.6.39</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.39
+
+- Fixes the paste-fallback popup remaining on screen after dictation finishes in another app.
+- Keeps transient messages dismissing after three seconds when Kiki returns from transcribing to idle.
+- Adds a deterministic HUD lifecycle check that reproduces and prevents this regression.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.39/Kiki-0.6.39-macOS.zip" length="53949229" type="application/octet-stream" sparkle:edSignature="OViQ/3OL9FPpYFFZAytPXrJcko/xvF7Koc5HKKTJzy7gCqI/k86X0Rlm09n2vhGDrmhOe3DZXeMFM4ZXl26FAw=="/>
+        </item>
+        <item>
             <title>0.6.38</title>
             <pubDate>Wed, 26 Aug 2026 12:42:57 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.38</link>
@@ -74,24 +90,6 @@
 - Improved narrow-window behavior and added diagnostics for update controls, About actions, Home geometry, and Voice Studio workflow structure.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.35/Kiki-0.6.35-macOS.zip" length="54237993" type="application/octet-stream" sparkle:edSignature="4IVDarOIrsHO8BFEx2nfUWQeChCJ6Vup41iPjuTtbQ3z86UZOaGFGVlD4YzZJPjzPsmr5i04cXB5WbsAHOi6CQ=="/>
-        </item>
-        <item>
-            <title>0.6.34</title>
-            <pubDate>Thu, 20 Aug 2026 16:26:06 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.34</link>
-            <sparkle:version>67</sparkle:version>
-            <sparkle:shortVersionString>0.6.34</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.34
-
-- Smoothed long Voice Studio output across generated sections so volume and transitions remain consistent.
-- Added gentle edge cleanup, crossfades, and loudness matching without sending audio off the Mac.
-- Added checksum verification for Whisper and Kiki's local voice models.
-- Kiki now removes and repairs a corrupted model automatically instead of trying to load it or silently accepting it.
-- Clarified whether Voice Studio is verifying, downloading, repairing, or generating.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.34/Kiki-0.6.34-macOS.zip" length="53839664" type="application/octet-stream" sparkle:edSignature="n9341jOz1juWsJyWN2jzTMU0JO0AuXX9fqf6NOxFGA4XD+1dhMr8i7G9Acm1CbzrJ4qJuOxxeoMYmdu0JQCvBw=="/>
         </item>
     </channel>
 </rss>
