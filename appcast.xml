@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.40</title>
+            <pubDate>Tue, 01 Sep 2026 12:28:53 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.40</link>
+            <sparkle:version>73</sparkle:version>
+            <sparkle:shortVersionString>0.6.40</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.40
+
+- Adds a responsive, state-aware native voice instrument for dictation.
+- Replaces generic Home workflow symbols with original Kiki hardware glyphs.
+- Adds layered audio-file drop artwork and a custom local processing indicator.
+- Preserves full shortcut guidance at compact window widths and honors Reduce Motion.
+- Adds deterministic previews and diagnostics for the new visual states.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.40/Kiki-0.6.40-macOS.zip" length="53962697" type="application/octet-stream" sparkle:edSignature="836TleWfZa4L8cJeGYsXjK7DU6ft4NQ1K9sbIe7grzfVm/L3lraqqsRqMJ3NFGgn28yGs3zhc+IaDz6OdBP7CA=="/>
+        </item>
+        <item>
             <title>0.6.39</title>
             <pubDate>Thu, 27 Aug 2026 15:05:43 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.39</link>
@@ -72,24 +90,6 @@
 - Keeps the complete footer reachable at Kiki’s compact supported window size.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.36/Kiki-0.6.36-macOS.zip" length="54240033" type="application/octet-stream" sparkle:edSignature="hDn3FWEwZvj3S3EAwDKqkQXeWM0mtVlskpI9NktqKRF4nFtLQwgoUMBWfz4aNBI0muHG6oWhkrobGl1cyEbsCg=="/>
-        </item>
-        <item>
-            <title>0.6.35</title>
-            <pubDate>Sat, 22 Aug 2026 21:32:15 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.35</link>
-            <sparkle:version>68</sparkle:version>
-            <sparkle:shortVersionString>0.6.35</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.35
-
-- Rebuilt Home as a responsive workflow launchpad with consistent capability cards and contextual setup checks.
-- Clarified Voice Studio as a four-step record, install, create, and export workflow.
-- Added the Templeton Technologies product footer to About using the approved 698 × 318 layout.
-- Added a Check for Updates action to About and separate automatic checking and automatic download/install preferences in Settings.
-- Improved narrow-window behavior and added diagnostics for update controls, About actions, Home geometry, and Voice Studio workflow structure.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.35/Kiki-0.6.35-macOS.zip" length="54237993" type="application/octet-stream" sparkle:edSignature="4IVDarOIrsHO8BFEx2nfUWQeChCJ6Vup41iPjuTtbQ3z86UZOaGFGVlD4YzZJPjzPsmr5i04cXB5WbsAHOi6CQ=="/>
         </item>
     </channel>
 </rss>
