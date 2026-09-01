@@ -268,7 +268,9 @@ enum FeatureDiagnostics {
         }
 
         let dictationView = GuidedWorkbenchDictationView()
+        dictationView.frame = NSRect(x: 0, y: 0, width: 900, height: 560)
         dictationView.update(state: .idle, canUndo: false, canRetry: false)
+        dictationView.layoutSubtreeIfNeeded()
         guard let configuredShortcut = findView(
                   in: dictationView,
                   identifier: "kiki.workbench.dictation.configured-shortcut"
@@ -279,8 +281,33 @@ enum FeatureDiagnostics {
                   in: dictationView,
                   identifier: "kiki.workbench.dictation.hands-free-shortcut"
               ) as? NSTextField,
-              handsFreeShortcut.stringValue == DictationShortcutGuidance.handsFreeInstruction else {
+              handsFreeShortcut.stringValue == DictationShortcutGuidance.handsFreeInstruction,
+              let dictationVisual = findView(
+                  in: dictationView,
+                  identifier: "kiki.workbench.dictation.voice-visual"
+              ) as? KikiVoiceStateVisual,
+              !dictationVisual.isHidden,
+              !dictationVisual.isAccessibilityElement() else {
             throw failure("Dictation surface must distinguish configured and hands-free shortcuts")
+        }
+        dictationView.setFrameSize(NSSize(width: 700, height: 560))
+        dictationView.layoutSubtreeIfNeeded()
+        guard dictationVisual.isHidden,
+              !configuredShortcut.isHidden,
+              !handsFreeShortcut.isHidden else {
+            throw failure("Dictation voice visual must yield to shortcut guidance at compact widths")
+        }
+
+        let capabilityVisualIDs = ["dictation", "meeting", "audio", "voice"].map {
+            "kiki.workbench.home.capability.\($0).visual"
+        }
+        guard capabilityVisualIDs.allSatisfy({ identifier in
+            guard let visual = findView(in: compactHomeView, identifier: identifier) as? KikiCapabilityGlyphView else {
+                return false
+            }
+            return !visual.isAccessibilityElement()
+        }) else {
+            throw failure("Home capability visuals must be present and decorative")
         }
         guard let homeDictationButton = findView(
             in: compactHomeView,
@@ -1724,6 +1751,15 @@ enum FeatureDiagnostics {
                 identifier: "kiki.file-transcript.export"
               ) as? KikiActionButton,
               findView(in: fileContent, identifier: "kiki.file-transcript.empty") is KikiEmptyStateView,
+              let fileDropTarget = findView(
+                  in: fileContent,
+                  identifier: "kiki.file-transcript.drop-target"
+              ) as? FileDropView,
+              fileDropTarget.isAccessibilityElement(),
+              findView(
+                  in: fileContent,
+                  identifier: "kiki.file-transcript.file-stack"
+              ) is KikiAudioFileStackVisual,
               !fileExport.isEnabled else {
             throw failure("File transcription guided empty state")
         }

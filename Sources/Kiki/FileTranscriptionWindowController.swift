@@ -7,7 +7,7 @@ final class FileTranscriptionWindowController: NSWindowController {
 
     private let dropView = FileDropView()
     private let statusLabel = NSTextField(labelWithString: "Drop an audio file or choose one below")
-    private let progressIndicator = NSProgressIndicator()
+    private let progressIndicator = KikiActivityIndicatorView()
     private let textView = NSTextView()
     private lazy var chooseButton = KikiActionButton("Choose Audio File", kind: .primary, target: self, action: #selector(chooseFile))
     private let copyButton = KikiActionButton("Copy", kind: .secondary, target: nil, action: nil)
@@ -79,9 +79,6 @@ final class FileTranscriptionWindowController: NSWindowController {
         dropView.onFile = { [weak self] url in self?.startTranscription(url) }
         chooseButton.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.choose")
 
-        progressIndicator.style = .spinning
-        progressIndicator.controlSize = .small
-        progressIndicator.isDisplayedWhenStopped = false
         statusLabel.textColor = KikiPalette.secondaryText
         let statusRow = NSStackView(views: [progressIndicator, statusLabel, NSView(), chooseButton])
         statusRow.spacing = 10
@@ -195,7 +192,7 @@ final class FileTranscriptionWindowController: NSWindowController {
         dropView.isInputEnabled = false
         chooseButton.title = "Cancel Transcription"
         chooseButton.isEnabled = true
-        progressIndicator.startAnimation(nil)
+        progressIndicator.startAnimating()
         copyButton.isEnabled = false
         exportFormatPopup.isEnabled = false
         exportButton.isEnabled = false
@@ -252,7 +249,7 @@ final class FileTranscriptionWindowController: NSWindowController {
     }
 
     private func finishTranscriptionUI(showDropTarget: Bool) {
-        progressIndicator.stopAnimation(nil)
+        progressIndicator.stopAnimating()
         dropView.isInputEnabled = true
         dropView.isHidden = !showDropTarget
         chooseButton.title = showDropTarget ? "Choose Audio File" : "Transcribe Another File"
@@ -356,10 +353,14 @@ enum FileTranscriptExportFormat: String, CaseIterable {
 final class FileDropView: NSView {
     var onFile: ((URL) -> Void)?
     private let label = NSTextField(labelWithString: "Drop an audio file here")
+    private let detailLabel = NSTextField(labelWithString: "WAV · MP3 · M4A · AIFF")
+    private let fileStack = KikiAudioFileStackVisual()
+    private var isDropTargetActive = false
     var isInputEnabled = true {
         didSet {
             label.stringValue = isInputEnabled ? "Drop an audio file here" : "Transcription in progress"
             alphaValue = isInputEnabled ? 1 : 0.55
+            needsDisplay = true
         }
     }
 
@@ -367,13 +368,31 @@ final class FileDropView: NSView {
         super.init(frame: frameRect)
         registerForDraggedTypes([.fileURL])
         wantsLayer = true
-        label.font = .systemFont(ofSize: 16, weight: .medium)
-        label.textColor = KikiPalette.secondaryText
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
+        identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.drop-target")
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Drop an audio file here")
+        label.font = .systemFont(ofSize: 14.5, weight: .semibold)
+        label.textColor = KikiPalette.primaryText
+        detailLabel.font = .systemFont(ofSize: 10.5, weight: .medium)
+        detailLabel.textColor = KikiPalette.tertiaryText
+        fileStack.identifier = NSUserInterfaceItemIdentifier("kiki.file-transcript.file-stack")
+        fileStack.translatesAutoresizingMaskIntoConstraints = false
+        let copy = NSStackView(views: [label, detailLabel])
+        copy.orientation = .vertical
+        copy.alignment = .centerX
+        copy.spacing = 2
+        let stack = NSStackView(views: [fileStack, copy])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 5
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            fileStack.widthAnchor.constraint(equalToConstant: 88),
+            fileStack.heightAnchor.constraint(equalToConstant: 50),
+            stack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
@@ -382,22 +401,32 @@ final class FileDropView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 14, yRadius: 14)
-        path.setLineDash([7, 5], count: 2, phase: 0)
-        path.lineWidth = 2
-        KikiPalette.accentText.withAlphaComponent(0.72).setStroke()
-        KikiPalette.violet.withAlphaComponent(0.10).setFill()
+        path.setLineDash([6, 5], count: 2, phase: 0)
+        path.lineWidth = isDropTargetActive ? 1.7 : 1.2
+        KikiPalette.accentText.withAlphaComponent(isDropTargetActive ? 0.88 : 0.48).setStroke()
+        KikiPalette.accent.withAlphaComponent(isDropTargetActive ? 0.18 : 0.07).setFill()
         path.fill()
         path.stroke()
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         guard isInputEnabled else { return [] }
-        return fileURL(from: sender) == nil ? [] : .copy
+        let acceptsFile = fileURL(from: sender) != nil
+        isDropTargetActive = acceptsFile
+        needsDisplay = true
+        return acceptsFile ? .copy : []
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        isDropTargetActive = false
+        needsDisplay = true
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard isInputEnabled else { return false }
         guard let url = fileURL(from: sender) else { return false }
+        isDropTargetActive = false
+        needsDisplay = true
         onFile?(url)
         return true
     }

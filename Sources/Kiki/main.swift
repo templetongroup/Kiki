@@ -103,6 +103,32 @@ if args.count >= 2, args[1] == "--preview-ready-home" {
     }
 }
 
+if args.count >= 2, args[1] == "--preview-dictation" || args[1] == "--preview-dictation-listening" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let dictation = GuidedWorkbenchDictationView()
+        dictation.update(
+            state: args[1] == "--preview-dictation-listening" ? .recording : .idle,
+            canUndo: false,
+            canRetry: false
+        )
+        let controller = GuidedWorkbenchWindowController()
+        controller.onRouteChange = { route in
+            route.section == .dictation
+                ? GuidedWorkbenchSurface(view: dictation, sizing: .fill)
+                : nil
+        }
+        controller.select(GuidedWorkbenchRoute(section: .dictation))
+        controller.window?.setContentSize(NSSize(width: 1_240, height: 840))
+        controller.window?.makeKeyAndOrderFront(nil)
+        app.activate(ignoringOtherApps: true)
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--preview-voice-studio" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
@@ -126,6 +152,18 @@ if args.count >= 2, args[1] == "--preview-file-transcription" {
             transcription: "Alex welcomed Jordan to the meeting and reviewed the launch plan.",
             sourceURL: URL(fileURLWithPath: "/tmp/Launch Interview.m4a")
         )
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-file-transcription-empty" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.finishLaunching()
+        AppearanceController.apply()
+        let controller = FileTranscriptionWindowController()
+        controller.show()
         app.run()
     }
 }

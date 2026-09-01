@@ -19,7 +19,7 @@ final class GuidedWorkbenchHomeView: NSView {
     private let shortcutReadinessRow = GuidedWorkbenchReadinessRow(title: "Dictation shortcut", identifier: "shortcut")
     private let firstDictationReadinessRow = GuidedWorkbenchReadinessRow(title: "First dictation", identifier: "first-dictation")
     private lazy var dictationCapability = GuidedWorkbenchCapabilityCard(
-        symbol: "waveform",
+        visualKind: .dictation,
         title: "Dictate anywhere",
         detail: "Speak into any Mac app. Kiki transcribes and inserts your words locally.",
         actionTitle: "Try Dictation",
@@ -29,7 +29,7 @@ final class GuidedWorkbenchHomeView: NSView {
         action: #selector(startDictation)
     )
     private lazy var meetingCapability = GuidedWorkbenchCapabilityCard(
-        symbol: "person.2.wave.2",
+        visualKind: .meeting,
         title: "Capture a meeting",
         detail: "Record microphone and Mac audio, then review, edit, and export the result.",
         actionTitle: "Capture Meeting",
@@ -38,7 +38,7 @@ final class GuidedWorkbenchHomeView: NSView {
         action: #selector(openMeeting)
     )
     private lazy var audioCapability = GuidedWorkbenchCapabilityCard(
-        symbol: "waveform.badge.plus",
+        visualKind: .audioFile,
         title: "Transcribe a recording",
         detail: "Open an audio file, refine its local transcript, and export clean text.",
         actionTitle: "Transcribe Audio",
@@ -47,7 +47,7 @@ final class GuidedWorkbenchHomeView: NSView {
         action: #selector(openAudioFile)
     )
     private lazy var voiceCapability = GuidedWorkbenchCapabilityCard(
-        symbol: "waveform.badge.mic",
+        visualKind: .voiceStudio,
         title: "Create in your voice",
         detail: "Record a private voice sample and turn written text into speech on this Mac.",
         actionTitle: "Open Voice Studio",
@@ -325,7 +325,7 @@ private final class GuidedWorkbenchCapabilityCard: KikiCardView {
     let actionButton: KikiActionButton
 
     init(
-        symbol: String,
+        visualKind: KikiCapabilityVisualKind,
         title: String,
         detail: String,
         actionTitle: String,
@@ -341,10 +341,8 @@ private final class GuidedWorkbenchCapabilityCard: KikiCardView {
         actionButton.font = .systemFont(ofSize: 12.5, weight: .semibold)
         actionButton.heightAnchor.constraint(equalToConstant: KikiMetrics.compactControlHeight).isActive = true
 
-        let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = KikiPalette.accentText
-        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 17, weight: .medium)
-        icon.setAccessibilityElement(false)
+        let icon = KikiCapabilityGlyphView(kind: visualKind)
+        icon.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.capability.\(identifier).visual")
         let titleLabel = kikiLabel(title, size: 15.5, weight: .semibold)
         let heading = NSStackView(views: [icon, titleLabel])
         heading.orientation = .horizontal
@@ -467,6 +465,11 @@ final class GuidedWorkbenchDictationView: NSView {
     private lazy var undoButton = KikiActionButton("Undo Last Dictation", kind: .hardware, target: self, action: #selector(undo))
     private lazy var retryButton = KikiActionButton("Retry Last Dictation", kind: .hardware, target: self, action: #selector(retry))
     private lazy var privateButton = KikiActionButton("Start Private Session", kind: .hardware, target: self, action: #selector(togglePrivate))
+    private let heroCard = KikiCardView()
+    private let voiceVisual = KikiVoiceStateVisual()
+    private var wideHeroConstraints: [NSLayoutConstraint] = []
+    private var compactHeroConstraint: NSLayoutConstraint?
+    private var usesCompactHero: Bool?
 
     init() {
         super.init(frame: .zero)
@@ -474,6 +477,18 @@ final class GuidedWorkbenchDictationView: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        if !wideHeroConstraints.isEmpty {
+            updateHeroLayout(compact: newSize.width < 820)
+        }
+        super.setFrameSize(newSize)
+    }
+
+    override func layout() {
+        updateHeroLayout(compact: bounds.width < 820)
+        super.layout()
+    }
 
     func update(state: DictationState, canUndo: Bool, canRetry: Bool) {
         configuredShortcutLabel.stringValue = "Configured shortcut: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))"
@@ -483,20 +498,25 @@ final class GuidedWorkbenchDictationView: NSView {
         privateButton.title = PrivateSessionController.shared.isActive ? "End Private Session" : "Start Private Session"
         switch state {
         case .noModel:
+            voiceVisual.setState(.unavailable)
             stateLabel.stringValue = "MODEL UNAVAILABLE"
             toggleButton.title = "Open Models"
             toggleButton.isEnabled = false
         case .loadingModel:
+            voiceVisual.setState(.loading)
             stateLabel.stringValue = "LOADING MODEL"
             toggleButton.title = "Loading…"
             toggleButton.isEnabled = false
         case .idle:
+            voiceVisual.setState(.ready)
             stateLabel.stringValue = "READY"
             toggleButton.title = "Try Dictation"
         case .recording:
+            voiceVisual.setState(.listening)
             stateLabel.stringValue = "LISTENING"
             toggleButton.title = "Stop & Insert"
         case .transcribing:
+            voiceVisual.setState(.transcribing)
             stateLabel.stringValue = "TRANSCRIBING"
             toggleButton.title = Settings.enableZeroWaitChaining ? "Try Another Dictation" : "Transcribing…"
             toggleButton.isEnabled = Settings.enableZeroWaitChaining
@@ -522,8 +542,25 @@ final class GuidedWorkbenchDictationView: NSView {
         heading.spacing = 8
         heading.setCustomSpacing(16, after: detail)
         heading.setCustomSpacing(18, after: handsFreeShortcutLabel)
-        let hero = KikiCardView()
-        install(heading, in: hero)
+        voiceVisual.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.dictation.voice-visual")
+        heading.translatesAutoresizingMaskIntoConstraints = false
+        voiceVisual.translatesAutoresizingMaskIntoConstraints = false
+        heroCard.addSubview(heading)
+        heroCard.addSubview(voiceVisual)
+        let wideCopyConstraint = heading.trailingAnchor.constraint(lessThanOrEqualTo: voiceVisual.leadingAnchor, constant: -18)
+        let visualConstraints = [
+            voiceVisual.trailingAnchor.constraint(equalTo: heroCard.trailingAnchor, constant: -28),
+            voiceVisual.centerYAnchor.constraint(equalTo: heroCard.centerYAnchor, constant: 4),
+            voiceVisual.widthAnchor.constraint(equalToConstant: 182),
+            voiceVisual.heightAnchor.constraint(equalToConstant: 182),
+        ]
+        wideHeroConstraints = [wideCopyConstraint] + visualConstraints
+        compactHeroConstraint = heading.trailingAnchor.constraint(lessThanOrEqualTo: heroCard.trailingAnchor, constant: -22)
+        NSLayoutConstraint.activate([
+            heading.leadingAnchor.constraint(equalTo: heroCard.leadingAnchor, constant: 22),
+            heading.topAnchor.constraint(equalTo: heroCard.topAnchor, constant: 20),
+            heading.bottomAnchor.constraint(lessThanOrEqualTo: heroCard.bottomAnchor, constant: -20),
+        ])
 
         let behaviorTitle = kikiLabel("Current behavior", size: 18, weight: .semibold)
         let behavior = NSStackView(views: [behaviorTitle, row("Listening display", "\(Settings.listeningDisplayMode.title)"), row("Position", Settings.listeningDisplayPosition.title), row("Speech style", Settings.speechProfile.title), row("Mac audio", Settings.silenceSystemAudioWhileRecording ? "Muted" : "Not muted")])
@@ -552,7 +589,7 @@ final class GuidedWorkbenchDictationView: NSView {
         columns.spacing = 14
         behaviorCard.widthAnchor.constraint(equalTo: recoveryCard.widthAnchor).isActive = true
 
-        let stack = NSStackView(views: [hero, columns])
+        let stack = NSStackView(views: [heroCard, columns])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -567,13 +604,28 @@ final class GuidedWorkbenchDictationView: NSView {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -24),
             stack.topAnchor.constraint(equalTo: topAnchor, constant: 24),
             stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -24),
-            hero.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            hero.heightAnchor.constraint(equalToConstant: 255),
+            heroCard.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            heroCard.heightAnchor.constraint(equalToConstant: 255),
             columns.widthAnchor.constraint(equalTo: stack.widthAnchor),
             behaviorCard.heightAnchor.constraint(equalToConstant: 245),
             recoveryCard.heightAnchor.constraint(equalToConstant: 245),
         ])
+        updateHeroLayout(compact: true)
         update(state: .idle, canUndo: false, canRetry: false)
+    }
+
+    private func updateHeroLayout(compact: Bool) {
+        guard usesCompactHero != compact else { return }
+        usesCompactHero = compact
+        if compact {
+            NSLayoutConstraint.deactivate(wideHeroConstraints)
+            compactHeroConstraint?.isActive = true
+            voiceVisual.isHidden = true
+        } else {
+            compactHeroConstraint?.isActive = false
+            NSLayoutConstraint.activate(wideHeroConstraints)
+            voiceVisual.isHidden = false
+        }
     }
 
     private func row(_ title: String, _ value: String) -> NSView {
