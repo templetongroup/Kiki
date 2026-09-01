@@ -1041,34 +1041,28 @@ private final class VoiceStudioWorkflowRail: NSStackView {
 private final class VoiceStudioWorkflowStep: KikiCardView {
     enum State { case complete, current, upcoming }
 
-    private let numberLabel: NSTextField
+    private let badge: VoiceStudioStepBadgeView
     private let titleLabel: NSTextField
     private let statusLabel = kikiLabel("", size: 10.5, weight: .semibold, color: KikiPalette.tertiaryText)
     private let stepNumber: Int
 
     init(number: Int, title: String, identifier: String) {
         stepNumber = number
-        numberLabel = kikiLabel(String(number), size: 11, weight: .bold, color: KikiPalette.accentText)
+        badge = VoiceStudioStepBadgeView(number: number)
         titleLabel = kikiLabel(title, size: 12.5, weight: .semibold)
         super.init(frame: .zero)
         self.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow.\(identifier)")
         usesHardwareDepth = true
         cardCornerRadius = 8
 
-        numberLabel.alignment = .center
-        numberLabel.wantsLayer = true
-        numberLabel.layer?.cornerRadius = 11
-        numberLabel.layer?.borderWidth = 1
-        numberLabel.layer?.borderColor = KikiPalette.strongStroke.cgColor
-        numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
-        numberLabel.widthAnchor.constraint(equalToConstant: 22).isActive = true
-        numberLabel.heightAnchor.constraint(equalToConstant: 22).isActive = true
+        badge.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow.\(identifier).badge")
         titleLabel.lineBreakMode = .byTruncatingTail
         let copy = NSStackView(views: [titleLabel, statusLabel])
         copy.orientation = .vertical
         copy.alignment = .leading
         copy.spacing = 2
-        let row = NSStackView(views: [numberLabel, copy])
+        copy.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow.\(identifier).copy")
+        let row = NSStackView(views: [badge, copy])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 9
@@ -1089,24 +1083,67 @@ private final class VoiceStudioWorkflowStep: KikiCardView {
         switch state {
         case .complete:
             selected = false
-            numberLabel.stringValue = "✓"
-            numberLabel.textColor = KikiPalette.accentText
-            numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+            badge.update(number: stepNumber, state: .complete)
             statusLabel.textColor = KikiPalette.accentText
         case .current:
             selected = true
-            numberLabel.stringValue = String(stepNumber)
-            numberLabel.textColor = KikiPalette.onAccentText
-            numberLabel.layer?.backgroundColor = KikiPalette.accent.cgColor
+            badge.update(number: stepNumber, state: .current)
             statusLabel.textColor = KikiPalette.khaki
         case .upcoming:
             selected = false
-            numberLabel.stringValue = String(stepNumber)
-            numberLabel.textColor = KikiPalette.tertiaryText
-            numberLabel.layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+            badge.update(number: stepNumber, state: .upcoming)
             statusLabel.textColor = KikiPalette.tertiaryText
         }
         setAccessibilityValue(status)
+    }
+}
+
+@MainActor
+private final class VoiceStudioStepBadgeView: NSView {
+    enum State { case complete, current, upcoming }
+
+    private let contentLabel = NSTextField(labelWithString: "")
+
+    init(number: Int) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = 11
+        layer?.cornerCurve = .continuous
+        layer?.borderWidth = 1
+        translatesAutoresizingMaskIntoConstraints = false
+
+        contentLabel.alignment = .center
+        contentLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .bold)
+        contentLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentLabel.identifier = NSUserInterfaceItemIdentifier("kiki.voice.workflow.badge.glyph")
+        addSubview(contentLabel)
+
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 22),
+            heightAnchor.constraint(equalToConstant: 22),
+            contentLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            contentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+        update(number: number, state: .upcoming)
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(number: Int, state: State) {
+        contentLabel.stringValue = state == .complete ? "✓" : String(number)
+        switch state {
+        case .complete:
+            contentLabel.textColor = KikiPalette.accentText
+            layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+        case .current:
+            contentLabel.textColor = KikiPalette.onAccentText
+            layer?.backgroundColor = KikiPalette.accent.cgColor
+        case .upcoming:
+            contentLabel.textColor = KikiPalette.tertiaryText
+            layer?.backgroundColor = KikiPalette.elevatedSurface.cgColor
+        }
+        layer?.borderColor = KikiPalette.strongStroke.cgColor
     }
 }
 

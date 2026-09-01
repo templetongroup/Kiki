@@ -704,10 +704,10 @@ enum FeatureDiagnostics {
         let controller = VoiceStudioWindowController()
         guard let contentView = controller.window?.contentView,
               findView(in: contentView, identifier: "kiki.voice.workflow") is NSStackView,
-              findView(in: contentView, identifier: "kiki.voice.workflow.record") != nil,
-              findView(in: contentView, identifier: "kiki.voice.workflow.engine") != nil,
-              findView(in: contentView, identifier: "kiki.voice.workflow.create") != nil,
-              findView(in: contentView, identifier: "kiki.voice.workflow.output") != nil,
+              let recordStep = findView(in: contentView, identifier: "kiki.voice.workflow.record"),
+              let engineStep = findView(in: contentView, identifier: "kiki.voice.workflow.engine"),
+              let createStep = findView(in: contentView, identifier: "kiki.voice.workflow.create"),
+              let outputStep = findView(in: contentView, identifier: "kiki.voice.workflow.output"),
               findView(in: contentView, identifier: "kiki.voice.engine-card") != nil,
               findView(in: contentView, identifier: "kiki.voice.enrollment-mode") == nil,
               findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
@@ -720,6 +720,27 @@ enum FeatureDiagnostics {
               consent.title.localizedCaseInsensitiveContains("my own voice"),
               consent.title.localizedCaseInsensitiveContains("private on this Mac") else {
             throw failure("voice enrollment mode interface")
+        }
+
+        contentView.layoutSubtreeIfNeeded()
+        for step in [recordStep, engineStep, createStep, outputStep] {
+            let stepID = step.identifier?.rawValue ?? ""
+            guard let badge = findView(in: step, identifier: "\(stepID).badge"),
+                  let copy = findView(in: step, identifier: "\(stepID).copy"),
+                  let glyph = findView(in: badge, identifier: "kiki.voice.workflow.badge.glyph") else {
+                throw failure("Voice Studio workflow step structure")
+            }
+            let badgeFrame = badge.convert(badge.bounds, to: step)
+            let copyFrame = copy.convert(copy.bounds, to: step)
+            let glyphFrame = glyph.convert(glyph.bounds, to: badge)
+            guard abs(badge.bounds.width - 22) < 1,
+                  abs(badge.bounds.height - 22) < 1,
+                  abs(badgeFrame.midY - copyFrame.midY) < 1,
+                  abs(badgeFrame.midY - step.bounds.midY) < 1,
+                  abs(glyphFrame.midX - badge.bounds.midX) < 1,
+                  abs(glyphFrame.midY - badge.bounds.midY) < 1 else {
+                throw failure("Voice Studio workflow badges and copy must share a centered alignment")
+            }
         }
     }
 
@@ -1869,7 +1890,9 @@ enum FeatureDiagnostics {
               let selectedCard = findView(in: settingsContent, identifier: "kiki.model.card.parakeetEnglish"),
               let controlBay = findView(in: selectedCard, identifier: "kiki.model.control-bay"),
               let divider = findView(in: selectedCard, identifier: "kiki.model.divider"),
+              let controlStack = findView(in: selectedCard, identifier: "kiki.model.control-stack"),
               let dial = findView(in: selectedCard, identifier: "kiki.model.dial"),
+              let activeLabel = findView(in: selectedCard, identifier: "kiki.model.active-label"),
               let analogMeter = findView(in: selectedCard, identifier: "kiki.model.analog-meter"),
               let modelAction = findView(in: selectedCard, identifier: "kiki.model.action") as? KikiActionButton,
               abs(selectedCard.bounds.width - 440) < 1,
@@ -1878,6 +1901,11 @@ enum FeatureDiagnostics {
               abs(divider.bounds.width - 1) < 1,
               abs(dial.bounds.width - 42) < 1,
               abs(dial.bounds.height - 42) < 1,
+              abs(controlStack.convert(controlStack.bounds, to: controlBay).midX - controlBay.bounds.midX) < 1,
+              abs(controlStack.convert(controlStack.bounds, to: controlBay).midY - controlBay.bounds.midY) < 1,
+              abs(dial.convert(dial.bounds, to: controlStack).midX - controlStack.bounds.midX) < 1,
+              abs(activeLabel.convert(activeLabel.bounds, to: controlStack).midX - controlStack.bounds.midX) < 1,
+              !activeLabel.isHidden,
               abs(analogMeter.bounds.width - 100) < 1,
               abs(analogMeter.bounds.height - 34) < 1,
               abs(modelAction.bounds.width - 65) < 1,

@@ -834,6 +834,7 @@ private final class ModelCardView: KikiCardView {
         identifier = NSUserInterfaceItemIdentifier("kiki.model.card.\(model.rawValue)")
         dial.translatesAutoresizingMaskIntoConstraints = false
         activeLabel.translatesAutoresizingMaskIntoConstraints = false
+        activeLabel.identifier = NSUserInterfaceItemIdentifier("kiki.model.active-label")
         meter.translatesAutoresizingMaskIntoConstraints = false
 
         let title = kikiLabel(model.displayName, size: 15, weight: .regular)
@@ -876,13 +877,19 @@ private final class ModelCardView: KikiCardView {
         divider.identifier = NSUserInterfaceItemIdentifier("kiki.model.divider")
         divider.layer?.backgroundColor = KikiPalette.stroke.cgColor
 
+        let controlStack = NSStackView(views: [dial, activeLabel])
+        controlStack.orientation = .vertical
+        controlStack.alignment = .centerX
+        controlStack.spacing = 8
+        controlStack.translatesAutoresizingMaskIntoConstraints = false
+        controlStack.identifier = NSUserInterfaceItemIdentifier("kiki.model.control-stack")
+
         addSubview(bay)
         addSubview(divider)
         addSubview(labels)
         addSubview(button)
         addSubview(meter)
-        bay.addSubview(dial)
-        bay.addSubview(activeLabel)
+        bay.addSubview(controlStack)
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: model == .parakeetEnglish ? 109 : 99),
             bay.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -893,12 +900,10 @@ private final class ModelCardView: KikiCardView {
             divider.topAnchor.constraint(equalTo: topAnchor, constant: 1),
             divider.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
             divider.widthAnchor.constraint(equalToConstant: 1),
-            dial.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
-            dial.centerYAnchor.constraint(equalTo: bay.centerYAnchor, constant: -6),
+            controlStack.centerXAnchor.constraint(equalTo: bay.centerXAnchor),
+            controlStack.centerYAnchor.constraint(equalTo: bay.centerYAnchor),
             dial.widthAnchor.constraint(equalToConstant: 42),
             dial.heightAnchor.constraint(equalToConstant: 42),
-            activeLabel.centerXAnchor.constraint(equalTo: bay.centerXAnchor, constant: 7),
-            activeLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -14),
             labels.leadingAnchor.constraint(equalTo: divider.trailingAnchor, constant: 15),
             labels.trailingAnchor.constraint(equalTo: button.leadingAnchor, constant: -10),
             labels.widthAnchor.constraint(greaterThanOrEqualToConstant: 158),
