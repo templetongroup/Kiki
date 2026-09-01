@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.41</title>
+            <pubDate>Tue, 01 Sep 2026 13:08:36 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.41</link>
+            <sparkle:version>74</sparkle:version>
+            <sparkle:shortVersionString>0.6.41</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.41
+
+- Centers Voice Studio workflow badges and their labels as one consistent unit.
+- Centers the Models hardware icon and active-state label without one-off offsets.
+- Adds deterministic layout checks for both alignment systems.
+- Verifies the corrected layouts at minimum, default, and large Workbench sizes.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.41/Kiki-0.6.41-macOS.zip" length="53966835" type="application/octet-stream" sparkle:edSignature="rBUGOaXskZM1UlpdF3iVRhtKcfuXCctEq+69N4glifswzEEnz4gdT0Ie+COc1pK9n8bGKSHx6V1EbZ7YzrhpAw=="/>
+        </item>
+        <item>
             <title>0.6.40</title>
             <pubDate>Tue, 01 Sep 2026 12:28:53 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.40</link>
@@ -73,23 +90,6 @@
 - Opens templetontech.com when the Templeton Technologies wordmark is selected.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.37/Kiki-0.6.37-macOS.zip" length="53945906" type="application/octet-stream" sparkle:edSignature="tP0omUpBQngRhXCcZWv/i6MDQJvDjJE/i8qPiA9X0Ftimo5ikovj/7POi47OaYjdd7qNZ9fTR0TOsIO6OPVvDQ=="/>
-        </item>
-        <item>
-            <title>0.6.36</title>
-            <pubDate>Sat, 22 Aug 2026 21:58:54 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.36</link>
-            <sparkle:version>69</sparkle:version>
-            <sparkle:shortVersionString>0.6.36</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.36
-
-- Rebuilds the Templeton Technologies footer on About as responsive app content.
-- Inherits Kiki’s About canvas color instead of using the darker sidebar color.
-- Preserves the supplied footer proportions while scaling the lockup with the window.
-- Keeps the complete footer reachable at Kiki’s compact supported window size.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.36/Kiki-0.6.36-macOS.zip" length="54240033" type="application/octet-stream" sparkle:edSignature="hDn3FWEwZvj3S3EAwDKqkQXeWM0mtVlskpI9NktqKRF4nFtLQwgoUMBWfz4aNBI0muHG6oWhkrobGl1cyEbsCg=="/>
         </item>
     </channel>
 </rss>
