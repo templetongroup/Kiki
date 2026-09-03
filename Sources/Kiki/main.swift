@@ -175,13 +175,15 @@ if args.count >= 2, args[1] == "--preview-meeting" {
         app.finishLaunching()
         AppearanceController.apply()
         let segments = [
-            MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "Alex", text: "Let’s review the launch plan."),
-            MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Jordan", text: "I’ll send the final artwork this afternoon."),
+            MeetingTranscriptSegment(startTime: 0, endTime: 8, speaker: "Alex", text: "The purpose today is to finalize the launch plan."),
+            MeetingTranscriptSegment(startTime: 9, endTime: 18, speaker: "Jordan", text: "We agreed to launch on September fifteenth and use the final blue artwork."),
+            MeetingTranscriptSegment(startTime: 19, endTime: 28, speaker: "Alex", text: "I’ll send the final artwork this afternoon."),
+            MeetingTranscriptSegment(startTime: 29, endTime: 38, speaker: "Jordan", text: "Could you schedule the final review with the web team?"),
         ]
         let meeting = MeetingTranscript(
             title: "Launch Planning",
             createdAt: Date(),
-            duration: 18,
+            duration: 38,
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
@@ -412,6 +414,32 @@ if args.count >= 2, args[1] == "--preview-waveform" {
     }
 }
 
+if args.count >= 2, args[1] == "--preview-full-transcript" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        AppearanceController.apply()
+        let hud = HUDPanel()
+        let phrases = [
+            "Kiki is listening locally.",
+            "The live transcript follows your voice as you continue speaking.",
+            "Older words move beyond the left edge instead of hiding what you just said.",
+            "The newest words always remain visible here.",
+        ]
+        var transcript = ""
+        var phraseIndex = 0
+        hud.showListening()
+        Timer.scheduledTimer(withTimeInterval: 0.9, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                transcript += (transcript.isEmpty ? "" : " ") + phrases[phraseIndex]
+                phraseIndex = (phraseIndex + 1) % phrases.count
+                hud.showListening(transcript: transcript)
+            }
+        }
+        app.run()
+    }
+}
+
 if args.count >= 2, args[1] == "--preview-model-preparation" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
@@ -502,6 +530,17 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                 hud.showListening(transcript: "Live transcription window test")
                 guard hud.isVisibleOnScreen else {
                     fputs("Error: Kiki full transcription window is not visible on any screen.\n", stderr)
+                    exit(1)
+                }
+                let rollingTranscript = "Opening words that should leave the visible edge. "
+                    + String(repeating: "Ongoing speech keeps moving forward. ", count: 12)
+                    + "These are the newest words."
+                hud.showListening(transcript: rollingTranscript)
+                guard hud.diagnosticTranscriptText.hasPrefix("…"),
+                      !hud.diagnosticTranscriptText.contains("Opening words"),
+                      hud.diagnosticTranscriptText.hasSuffix("These are the newest words."),
+                      hud.diagnosticTranscriptLineBreakMode == .byTruncatingHead else {
+                    fputs("Error: Kiki full transcript does not keep the newest speech visible.\n", stderr)
                     exit(1)
                 }
                 hud.showWaveform(samples: [Float](repeating: 0.08, count: 760))

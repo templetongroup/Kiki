@@ -42,7 +42,7 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - Private-app zones and automatic secure-field protection that skip history, learning, and verification
 - Standard, disfluency-assist, verbatim, and soft-speech accessibility profiles
 - Optional background confidence verification using an installed Whisper model after the primary result is pasted
-- Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, chapters, action-item hints, and Markdown/TXT/SRT/WebVTT export
+- Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, an automatic local brief (summary, decisions, action items, and next steps), chapters, and Markdown/TXT/SRT/WebVTT export
 - Voice Studio with guided voice enrollment, a fully local Qwen3-TTS engine, on-device text-to-speech, playback, and WAV/M4A export
 - Kiki Checkup with microphone selection, a live input meter, permission/model readiness, shortcut verification, and a guided first dictation
 - Exact Undo Last Dictation plus Retry Last Dictation using only the most recent in-memory recording

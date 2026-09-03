@@ -877,6 +877,27 @@ enum FeatureDiagnostics {
             segments: segments,
             actionItems: MeetingTranscript.actionItems(from: segments)
         )
+        let briefingSegments = [
+            MeetingTranscriptSegment(startTime: 0, endTime: 6, speaker: "You", text: "The purpose today is to finalize the September launch plan."),
+            MeetingTranscriptSegment(startTime: 7, endTime: 14, speaker: "Alex", text: "We agreed to launch on September fifteenth and use the final blue artwork."),
+            MeetingTranscriptSegment(startTime: 15, endTime: 22, speaker: "You", text: "I will send the approved artwork to the web team tomorrow."),
+            MeetingTranscriptSegment(startTime: 23, endTime: 30, speaker: "Alex", text: "Could you schedule the final review with Jordan?"),
+            MeetingTranscriptSegment(startTime: 31, endTime: 38, speaker: "You", text: "The release checklist is otherwise complete."),
+        ]
+        let briefing = MeetingTranscript(
+            title: "September Launch",
+            createdAt: Date(timeIntervalSince1970: 0),
+            duration: 38,
+            segments: briefingSegments,
+            actionItems: MeetingTranscript.actionItems(from: briefingSegments)
+        )
+        let emptyBriefing = MeetingTranscript(
+            title: "Empty",
+            createdAt: Date(timeIntervalSince1970: 0),
+            duration: 0,
+            segments: [],
+            actionItems: []
+        )
         let renamed = meeting.renamingSpeaker(from: "Speaker 1", to: "Alex")
         let assigned = renamed.assigningSpeaker(
             "Jordan",
@@ -922,6 +943,22 @@ enum FeatureDiagnostics {
               permissionError.localizedDescription.contains("Zoom"),
               !MeetingCaptureStartError.microphoneUnavailable("test").requiresScreenRecordingSettings
         else { throw failure("meeting exports") }
+        guard briefing.summary.count == 3,
+              briefing.summary.first?.contains("purpose today") == true,
+              briefing.decisions.count == 1,
+              briefing.decisions.first?.contains("We agreed") == true,
+              briefing.actionItems.count == 2,
+              briefing.nextSteps.count == 2,
+              briefing.nextSteps.allSatisfy({ !$0.contains("00:00:") }),
+              briefing.markdown.contains("## Summary"),
+              briefing.markdown.contains("## Decisions"),
+              briefing.markdown.contains("## Next steps"),
+              briefing.markdown.contains("1. You — I will send the approved artwork"),
+              emptyBriefing.markdown.contains("No substantive discussion was captured."),
+              emptyBriefing.markdown.contains("No explicit decisions were detected."),
+              emptyBriefing.markdown.contains("No explicit action items were detected."),
+              emptyBriefing.markdown.contains("No explicit next steps were detected.")
+        else { throw failure("automatic local meeting brief") }
     }
 
     private static func checkFileTranscriptExports() throws {

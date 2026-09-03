@@ -58,7 +58,10 @@ final class HUDPanel {
         transcriptLabel = NSTextField(wrappingLabelWithString: "")
         transcriptLabel.font = .systemFont(ofSize: 13, weight: .medium)
         transcriptLabel.maximumNumberOfLines = 1
-        transcriptLabel.lineBreakMode = .byTruncatingTail
+        // Live transcription is cumulative. Keep the newest words visible as
+        // the line outgrows the HUD instead of freezing the display on its
+        // earliest text.
+        transcriptLabel.lineBreakMode = .byTruncatingHead
         transcriptLabel.isHidden = true
 
         modelProgress.style = .bar
@@ -135,6 +138,7 @@ final class HUDPanel {
 
     var diagnosticModelStatusText: String { statusLabel.stringValue }
     var diagnosticTranscriptText: String { transcriptLabel.stringValue }
+    var diagnosticTranscriptLineBreakMode: NSLineBreakMode { transcriptLabel.lineBreakMode }
     var diagnosticModelProgressValue: Double? {
         modelProgress.isHidden ? nil : modelProgress.doubleValue
     }

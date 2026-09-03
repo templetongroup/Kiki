@@ -52,6 +52,18 @@ struct MeetingTranscript: Codable, Sendable {
     let segments: [MeetingTranscriptSegment]
     let actionItems: [String]
 
+    var summary: [String] {
+        Self.summary(from: segments)
+    }
+
+    var decisions: [String] {
+        Self.decisions(from: segments)
+    }
+
+    var nextSteps: [String] {
+        Self.nextSteps(from: actionItems)
+    }
+
     var speakerNames: [String] {
         var seen = Set<String>()
         return segments.compactMap { seen.insert($0.speaker).inserted ? $0.speaker : nil }
@@ -105,10 +117,31 @@ struct MeetingTranscript: Codable, Sendable {
         result += "- Date: \(DateFormatter.localizedString(from: createdAt, dateStyle: .medium, timeStyle: .short))\n"
         result += "- Duration: \(Self.timestamp(duration))\n"
         result += "- Processing: Fully local\n\n"
-        if !actionItems.isEmpty {
-            result += "## Action items\n\n"
-            result += actionItems.map { "- [ ] \($0)" }.joined(separator: "\n") + "\n\n"
-        }
+
+        result += "## Summary\n\n"
+        result += Self.markdownList(
+            summary,
+            emptyMessage: "No substantive discussion was captured."
+        )
+
+        result += "## Decisions\n\n"
+        result += Self.markdownList(
+            decisions,
+            emptyMessage: "No explicit decisions were detected."
+        )
+
+        result += "## Action items\n\n"
+        result += Self.markdownChecklist(
+            actionItems,
+            emptyMessage: "No explicit action items were detected."
+        )
+
+        result += "## Next steps\n\n"
+        result += Self.markdownNumberedList(
+            nextSteps,
+            emptyMessage: "No explicit next steps were detected."
+        )
+
         result += "## Transcript\n\n"
         var lastChapter = -1
         for segment in segments {
@@ -120,6 +153,76 @@ struct MeetingTranscript: Codable, Sendable {
             result += "**\(Self.timestamp(segment.startTime)) — \(segment.speaker):** \(segment.text)\n\n"
         }
         return result
+    }
+
+    static func summary(from segments: [MeetingTranscriptSegment]) -> [String] {
+        let ordered = segments.sorted { $0.startTime < $1.startTime }
+        guard !ordered.isEmpty else { return [] }
+
+        let candidates = ordered.enumerated().compactMap { index, segment -> SummaryCandidate? in
+            let text = cleanActionText(segment.text)
+            let words = normalizedWords(text)
+            guard words.count >= 5,
+                  !isSummaryFiller(text),
+                  !isIncompleteAction(text) else { return nil }
+
+            var score = min(words.count, 24)
+            if isQuestion(text) { score -= 12 }
+            if isDecision(text) { score += 12 }
+            if isActionCommitment(text) { score += 5 }
+            if containsSummarySignal(text) { score += 7 }
+            if index == 0 { score += 3 }
+
+            return SummaryCandidate(
+                index: index,
+                speaker: segment.speaker,
+                text: text,
+                score: score
+            )
+        }
+
+        let ranked = candidates.sorted {
+            if $0.score == $1.score { return $0.index < $1.index }
+            return $0.score > $1.score
+        }
+        var selected: [SummaryCandidate] = []
+        for candidate in ranked {
+            guard !selected.contains(where: {
+                actionSimilarity($0.text, candidate.text) >= 0.68
+            }) else { continue }
+            selected.append(candidate)
+            if selected.count == 3 { break }
+        }
+
+        return selected.sorted { $0.index < $1.index }.map {
+            "\($0.speaker) — \($0.text)"
+        }
+    }
+
+    static func decisions(from segments: [MeetingTranscriptSegment]) -> [String] {
+        var decisions: [(speaker: String, startTime: TimeInterval, text: String)] = []
+        for segment in segments.sorted(by: { $0.startTime < $1.startTime }) {
+            let text = cleanActionText(segment.text)
+            guard isDecision(text), !isQuestion(text) else { continue }
+            guard !decisions.contains(where: {
+                $0.speaker == segment.speaker && actionSimilarity($0.text, text) >= 0.76
+            }) else { continue }
+            decisions.append((segment.speaker, segment.startTime, text))
+            if decisions.count == 8 { break }
+        }
+        return decisions.map {
+            "\($0.speaker) — \($0.text) (\(timestamp($0.startTime)))"
+        }
+    }
+
+    static func nextSteps(from actionItems: [String]) -> [String] {
+        actionItems.prefix(8).map { item in
+            item.replacingOccurrences(
+                of: #"\s+\((?:requested by .*? · )?\d{2}:\d{2}:\d{2}\)$"#,
+                with: "",
+                options: .regularExpression
+            )
+        }
     }
 
     var srt: String {
@@ -176,6 +279,63 @@ struct MeetingTranscript: Codable, Sendable {
             }
             return "\(candidate.speaker) — \(candidate.text) (\(timestamp(candidate.startTime)))"
         }
+    }
+
+    private struct SummaryCandidate {
+        let index: Int
+        let speaker: String
+        let text: String
+        let score: Int
+    }
+
+    private static func markdownList(_ values: [String], emptyMessage: String) -> String {
+        guard !values.isEmpty else { return "- \(emptyMessage)\n\n" }
+        return values.map { "- \($0)" }.joined(separator: "\n") + "\n\n"
+    }
+
+    private static func markdownChecklist(_ values: [String], emptyMessage: String) -> String {
+        guard !values.isEmpty else { return "- \(emptyMessage)\n\n" }
+        return values.map { "- [ ] \($0)" }.joined(separator: "\n") + "\n\n"
+    }
+
+    private static func markdownNumberedList(_ values: [String], emptyMessage: String) -> String {
+        guard !values.isEmpty else { return "1. \(emptyMessage)\n\n" }
+        return values.enumerated().map { "\($0.offset + 1). \($0.element)" }
+            .joined(separator: "\n") + "\n\n"
+    }
+
+    private static func containsSummarySignal(_ text: String) -> Bool {
+        let value = normalizedWords(text).joined(separator: " ")
+        let markers = [
+            "goal", "purpose", "plan", "status", "launch", "deadline", "schedule",
+            "priority", "problem", "result", "review", "complete", "ready", "risk",
+            "customer", "project", "proposal", "budget", "timeline",
+        ]
+        return markers.contains(where: { value.contains($0) })
+    }
+
+    private static func isSummaryFiller(_ text: String) -> Bool {
+        let value = normalizedWords(text).joined(separator: " ")
+        let fillers = [
+            "thanks everyone", "thank you everyone", "can you hear me", "i can hear you",
+            "you are on mute", "you re on mute", "let s get started", "lets get started",
+            "good morning", "good afternoon", "hello everyone",
+        ]
+        return fillers.contains(where: { value == $0 || value.hasPrefix("\($0) ") })
+    }
+
+    private static func isDecision(_ text: String) -> Bool {
+        let value = text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(of: "’", with: "'")
+        let markers = [
+            "we decided", "we've decided", "we have decided", "the decision is",
+            "we agreed", "we've agreed", "we have agreed", "we are going with",
+            "we're going with", "we will use", "we'll use", "let's use",
+            "we chose", "we've chosen", "we have chosen", "we settled on",
+            "we've settled on", "final decision", "is approved", "was approved",
+            "has been approved", "is confirmed", "was confirmed", "has been confirmed",
+        ]
+        return markers.contains(where: { value.contains($0) })
     }
 
     private static func cleanActionText(_ text: String) -> String {

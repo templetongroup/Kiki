@@ -112,7 +112,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         icon.layer?.masksToBounds = true
         let eyebrow = kikiLabel("MEETING INTELLIGENCE", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Capture the room. Keep it private.", size: 27, weight: .bold)
-        let subtitle = kikiLabel("Separate local audio tracks, source-labelled transcription, chapters, action-item hints, and caption exports. Headphones give the cleanest separation.", size: 12.5, color: KikiPalette.secondaryText)
+        let subtitle = kikiLabel("Separate local audio tracks, source-labelled transcription, and an automatic local brief with summary, decisions, action items, and next steps. Headphones give the cleanest separation.", size: 12.5, color: KikiPalette.secondaryText)
         subtitle.maximumNumberOfLines = 2
         subtitle.lineBreakMode = .byWordWrapping
         subtitle.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -349,7 +349,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 transcriptEmptyState.isHidden = true
                 exportButton.isEnabled = !result.segments.isEmpty
                 copyButton.isEnabled = !result.segments.isEmpty
-                statusLabel.stringValue = "Complete — \(result.segments.count) segments. Identify speakers before exporting.\(archiveMessage)"
+                statusLabel.stringValue = "Complete — local brief and \(result.segments.count) transcript segments are ready. Identify speakers before exporting.\(archiveMessage)"
             } catch {
                 statusLabel.stringValue = "Meeting transcription failed: \(error.localizedDescription)"
                 transcriptEmptyState.isHidden = true

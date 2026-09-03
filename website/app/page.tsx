@@ -39,7 +39,7 @@ export default function Home() {
             </a>
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
-          <p className="compatibility">Version 0.6.41 · macOS 14+ · Apple silicon</p>
+          <p className="compatibility">Version 0.6.42 · macOS 14+ · Apple silicon</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -119,7 +119,7 @@ export default function Home() {
           <article><p>Live feedback</p><h3>See what Kiki hears while you speak.</h3><span>A lightweight transcript follows your caret, then disappears after insertion.</span></article>
           <article><p>Private session</p><h3>Leave no trail when the work is sensitive.</h3><span>Pause history, learning, confidence review, and usage totals with one action.</span></article>
           <article><p>Recovery</p><h3>Undo or retry your exact last dictation.</h3><span>Recover quickly without Kiki saving the underlying recording to disk.</span></article>
-          <article><p>Model choice</p><h3>Choose the local engine that fits your Mac.</h3><span>Fast Parakeet models and compatible Whisper options are managed inside Kiki.</span></article>
+          <article><p>Meeting intelligence</p><h3>Leave every meeting with a usable brief.</h3><span>Kiki automatically organizes a local summary, explicit decisions, action items, and next steps.</span></article>
           <article><p>Checkup</p><h3>Know what’s ready before you start.</h3><span>Test your microphone, permissions, model, shortcut, and first insertion in one place.</span></article>
         </div>
       </section>
@@ -143,7 +143,7 @@ export default function Home() {
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
-            Download Kiki 0.6.41 <span className="button-arrow" aria-hidden="true">↘</span>
+            Download Kiki 0.6.42 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
           <small>62.8 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>
