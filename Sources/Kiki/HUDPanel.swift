@@ -381,18 +381,18 @@ final class KikiVoiceHaloView: NSView {
 
     private var model = VoiceHaloModel()
     private var animationTimer: Timer?
-    private let templetonMark: CGImage?
+    private let markView = KikiDecorativeImageView()
 
     override init(frame frameRect: NSRect) {
-        templetonMark = Self.loadTempletonMark()
         super.init(frame: frameRect)
         setAccessibilityElement(false)
+        configureMarkView()
     }
 
     required init?(coder: NSCoder) {
-        templetonMark = Self.loadTempletonMark()
         super.init(coder: coder)
         setAccessibilityElement(false)
+        configureMarkView()
     }
 
     func update(samples: [Float]) {
@@ -425,8 +425,6 @@ final class KikiVoiceHaloView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        guard let context = NSGraphicsContext.current?.cgContext else { return }
-
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let innerLevel = model.innerLevel
@@ -456,14 +454,7 @@ final class KikiVoiceHaloView: NSView {
             backingOutline.lineWidth = 1
             backingOutline.stroke()
 
-            if let templetonMark {
-                let markRect = CGRect(x: center.x - 13, y: center.y - 13, width: 26, height: 26)
-                context.saveGState()
-                context.clip(to: markRect, mask: templetonMark)
-                context.setFillColor(KikiPalette.accentText.cgColor)
-                context.fill(markRect)
-                context.restoreGState()
-            } else {
+            if markView.image == nil {
                 drawFallbackMark(centeredAt: center)
             }
         }
@@ -492,13 +483,37 @@ final class KikiVoiceHaloView: NSView {
         }
     }
 
-    private static func loadTempletonMark() -> CGImage? {
+    private func configureMarkView() {
+        markView.image = Self.loadTempletonMark()
+        markView.imageScaling = .scaleProportionallyUpOrDown
+        markView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(markView)
+        NSLayoutConstraint.activate([
+            markView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            markView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            markView.widthAnchor.constraint(equalToConstant: 26),
+            markView.heightAnchor.constraint(equalToConstant: 26),
+        ])
+    }
+
+    private static func loadTempletonMark() -> NSImage? {
         guard let url = Bundle.main.url(forResource: "TempletonTechnologies", withExtension: "png"),
-              let image = NSImage(contentsOf: url),
-              let fullImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+              let image = NSImage(contentsOf: url) else {
             return nil
         }
-        let side = min(fullImage.height, fullImage.width)
-        return fullImage.cropping(to: CGRect(x: 0, y: 0, width: side, height: side))
+        let side = min(image.size.height, image.size.width)
+        let sourceRect = NSRect(x: 0, y: 0, width: side, height: side)
+        let mark = NSImage(size: NSSize(width: side, height: side), flipped: false) { destinationRect in
+            image.draw(
+                in: destinationRect,
+                from: sourceRect,
+                operation: .copy,
+                fraction: 1,
+                respectFlipped: true,
+                hints: [.interpolation: NSImageInterpolation.high]
+            )
+            return true
+        }
+        return mark
     }
 }
