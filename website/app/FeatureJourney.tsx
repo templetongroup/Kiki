@@ -16,7 +16,7 @@ const features = [
     id: 'meetings',
     label: 'Meetings',
     title: 'Capture the room. Keep it private.',
-    copy: 'Record your microphone and Mac audio on separate tracks, then review source-labeled text, chapters, and action-item hints.',
+    copy: 'Record your microphone and Mac audio on separate tracks, then review a local brief with a summary, decisions, action items, and next steps.',
     proof: 'Export Markdown, text, SRT, or WebVTT without uploading the meeting.',
     image: '/product/kiki-meeting.png',
     alt: 'Kiki Meeting Intelligence with a local transcript and action item',

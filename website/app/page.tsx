@@ -145,7 +145,7 @@ export default function Home() {
           <a className="primary-button download-button" href={downloadUrl}>
             Download Kiki 0.6.42 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
-          <small>62.8 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
+          <small>63.1 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>
         <img src="/kiki-studio-hero.png" alt="Kiki wearing headphones beside a studio microphone" />
       </section>
