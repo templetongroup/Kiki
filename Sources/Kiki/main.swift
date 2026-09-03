@@ -379,7 +379,7 @@ if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, waveform, and Voice Studio")
+            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice halo, and Voice Studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
@@ -550,7 +550,7 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                         fputs("Error: Kiki listening display did not hide.\n", stderr)
                         exit(1)
                     }
-                    print("Kiki listening displays passed: model download, model loading, transcript, waveform, hidden")
+                    print("Kiki listening displays passed: model download, model loading, transcript, voice halo, hidden")
                     exit(0)
                 }
             }

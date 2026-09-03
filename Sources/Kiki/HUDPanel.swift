@@ -4,7 +4,7 @@ import CoreGraphics
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
 final class HUDPanel {
-    static let waveformUsesClearSurface = true
+    static let voiceHaloUsesClearSurface = true
 
     private let panel: NSPanel
     private let effect: NSView
@@ -12,7 +12,7 @@ final class HUDPanel {
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
     private let modelProgress = NSProgressIndicator()
-    private let waveformView = KikiWaveformView()
+    private let voiceHaloView = KikiVoiceHaloView()
     private let textStack = NSStackView()
     private var hasLogo = false
     private var presentation: Presentation?
@@ -78,8 +78,8 @@ final class HUDPanel {
         textStack.alignment = .leading
         textStack.spacing = 2
 
-        waveformView.isHidden = true
-        let content = NSStackView(views: [logoView, textStack, waveformView])
+        voiceHaloView.isHidden = true
+        let content = NSStackView(views: [logoView, textStack, voiceHaloView])
         content.orientation = .horizontal
         content.alignment = .centerY
         content.spacing = 10
@@ -89,8 +89,8 @@ final class HUDPanel {
             logoView.widthAnchor.constraint(equalToConstant: 34),
             logoView.heightAnchor.constraint(equalToConstant: 34),
             transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
-            waveformView.widthAnchor.constraint(equalToConstant: KikiWaveformView.preferredSize.width),
-            waveformView.heightAnchor.constraint(equalToConstant: KikiWaveformView.preferredSize.height),
+            voiceHaloView.widthAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.width),
+            voiceHaloView.heightAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.height),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
             content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -12),
             content.centerYAnchor.constraint(equalTo: effect.centerYAnchor),
@@ -104,8 +104,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        waveformView.isHidden = true
-        waveformView.reset()
+        voiceHaloView.isHidden = true
+        voiceHaloView.reset()
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -120,8 +120,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        waveformView.isHidden = true
-        waveformView.reset()
+        voiceHaloView.isHidden = true
+        voiceHaloView.reset()
         statusLabel.stringValue = status.compactTitle
         statusLabel.textColor = KikiPalette.primaryText
         transcriptLabel.isHidden = true
@@ -149,8 +149,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        waveformView.isHidden = true
-        waveformView.reset()
+        voiceHaloView.isHidden = true
+        voiceHaloView.reset()
         statusLabel.stringValue = "Listening"
         statusLabel.textColor = KikiPalette.accentText
         transcriptLabel.stringValue = displayText(transcript)
@@ -167,10 +167,10 @@ final class HUDPanel {
         logoView.isHidden = true
         textStack.isHidden = true
         modelProgress.isHidden = true
-        waveformView.isHidden = false
-        if reset { waveformView.reset() }
-        waveformView.update(samples: samples)
-        if needsPresentation { present(width: 252, height: 62) }
+        voiceHaloView.isHidden = false
+        if reset { voiceHaloView.reset() }
+        voiceHaloView.update(samples: samples)
+        if needsPresentation { present(width: 82, height: 82) }
     }
 
     func showTranscribing(transcript: String? = nil) {
@@ -178,8 +178,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        waveformView.isHidden = true
-        waveformView.reset()
+        voiceHaloView.isHidden = true
+        voiceHaloView.reset()
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -303,24 +303,24 @@ final class HUDPanel {
     private func applyAppearance() {
         panel.appearance = Settings.appearanceMode.appearance
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-            let isClearWaveform = presentation == .waveform && Self.waveformUsesClearSurface
-            panel.hasShadow = !isClearWaveform
-            effect.layer?.backgroundColor = isClearWaveform
+            let isClearHalo = presentation == .waveform && Self.voiceHaloUsesClearSurface
+            panel.hasShadow = !isClearHalo
+            effect.layer?.backgroundColor = isClearHalo
                 ? NSColor.clear.cgColor
                 : KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
-            effect.layer?.borderWidth = isClearWaveform ? 0 : 1
-            effect.layer?.borderColor = isClearWaveform
+            effect.layer?.borderWidth = isClearHalo ? 0 : 1
+            effect.layer?.borderColor = isClearHalo
                 ? NSColor.clear.cgColor
                 : KikiPalette.strongStroke.cgColor
             effect.layer?.shadowColor = NSColor.black.cgColor
-            effect.layer?.shadowOpacity = isClearWaveform ? 0 : 0.18
+            effect.layer?.shadowOpacity = isClearHalo ? 0 : 0.18
             effect.layer?.shadowRadius = 16
         }
     }
 
     func hide() {
         presentation = nil
-        waveformView.reset()
+        voiceHaloView.reset()
         panel.orderOut(nil)
     }
 
@@ -348,45 +348,52 @@ enum VoiceLevelMeter {
     }
 }
 
-struct VoiceWaveformModel {
+struct VoiceHaloModel {
     static let frameRate: TimeInterval = 30
 
-    let barCount: Int
-    private(set) var bars: [CGFloat]
+    private(set) var innerLevel: CGFloat = 0
+    private(set) var outerLevel: CGFloat = 0
     private var targetLevel: CGFloat = 0
-    private var displayedLevel: CGFloat = 0
-
-    init(barCount: Int) {
-        self.barCount = max(1, barCount)
-        bars = [CGFloat](repeating: 0, count: max(1, barCount))
-    }
 
     mutating func ingest(samples: [Float]) {
         targetLevel = VoiceLevelMeter.normalizedLevel(for: samples)
     }
 
     mutating func advanceFrame() {
-        let response: CGFloat = targetLevel > displayedLevel ? 0.45 : 0.22
-        displayedLevel += (targetLevel - displayedLevel) * response
-        bars.removeFirst()
-        bars.append(displayedLevel)
+        let innerResponse: CGFloat = targetLevel > innerLevel ? 0.45 : 0.22
+        let outerResponse: CGFloat = targetLevel > outerLevel ? 0.28 : 0.14
+        innerLevel += (targetLevel - innerLevel) * innerResponse
+        outerLevel += (targetLevel - outerLevel) * outerResponse
     }
 
     mutating func reset() {
         targetLevel = 0
-        displayedLevel = 0
-        bars = [CGFloat](repeating: 0, count: barCount)
+        innerLevel = 0
+        outerLevel = 0
     }
 }
 
 @MainActor
-final class KikiWaveformView: NSView {
-    static let preferredSize = NSSize(width: 220, height: 34)
-    static let barCount = 38
-    static let usesAdaptiveOutline = true
+final class KikiVoiceHaloView: NSView {
+    static let preferredSize = NSSize(width: 58, height: 58)
+    static let ringCount = 2
+    static let usesTempletonSwirl = true
 
-    private var model = VoiceWaveformModel(barCount: barCount)
+    private var model = VoiceHaloModel()
     private var animationTimer: Timer?
+    private let templetonMark: CGImage?
+
+    override init(frame frameRect: NSRect) {
+        templetonMark = Self.loadTempletonMark()
+        super.init(frame: frameRect)
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) {
+        templetonMark = Self.loadTempletonMark()
+        super.init(coder: coder)
+        setAccessibilityElement(false)
+    }
 
     func update(samples: [Float]) {
         model.ingest(samples: samples)
@@ -402,7 +409,7 @@ final class KikiWaveformView: NSView {
 
     private func startAnimating() {
         guard animationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1 / VoiceWaveformModel.frameRate, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1 / VoiceHaloModel.frameRate, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.model.advanceFrame()
@@ -418,37 +425,80 @@ final class KikiWaveformView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        let barWidth: CGFloat = 3
-        let spacing: CGFloat = 2.7
-        let totalWidth = CGFloat(Self.barCount) * barWidth + CGFloat(Self.barCount - 1) * spacing
-        let startX = (bounds.width - totalWidth) / 2
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let innerLevel = model.innerLevel
+        let outerLevel = model.outerLevel
+        let innerRadius: CGFloat = 20 + (reduceMotion ? 0 : innerLevel * 2.5)
+        let outerRadius: CGFloat = 25 + (reduceMotion ? 0 : outerLevel * 3)
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            for (index, sample) in model.bars.enumerated() {
-                let progress = CGFloat(index) / CGFloat(max(Self.barCount - 1, 1))
-                let amplitude = min(1, max(0, sample))
-                let height = 2.5 + amplitude * (bounds.height - 4.5)
-                let rect = NSRect(
-                    x: startX + CGFloat(index) * (barWidth + spacing),
-                    y: (bounds.height - height) / 2,
-                    width: barWidth,
-                    height: height
-                )
-                if Self.usesAdaptiveOutline {
-                    let outlineRect = rect.insetBy(dx: -0.8, dy: -1)
-                    KikiPalette.canvas.withAlphaComponent(0.82).setFill()
-                    NSBezierPath(
-                        roundedRect: outlineRect,
-                        xRadius: outlineRect.width / 2,
-                        yRadius: outlineRect.width / 2
-                    ).fill()
-                }
-                let headMix = max(0, (progress - 0.78) / 0.22) * 0.42
-                let color = KikiPalette.accentText.blended(withFraction: headMix, of: KikiPalette.khaki)
-                    ?? KikiPalette.accentText
-                color.withAlphaComponent(0.66 + progress * 0.34).setFill()
-                NSBezierPath(roundedRect: rect, xRadius: barWidth / 2, yRadius: barWidth / 2).fill()
+            drawRing(
+                centeredAt: center,
+                radius: outerRadius,
+                lineWidth: 1.2 + outerLevel * 0.9,
+                alpha: 0.16 + outerLevel * 0.46
+            )
+            drawRing(
+                centeredAt: center,
+                radius: innerRadius,
+                lineWidth: 1.4 + innerLevel,
+                alpha: 0.28 + innerLevel * 0.52
+            )
+
+            let backingRect = NSRect(x: center.x - 17, y: center.y - 17, width: 34, height: 34)
+            KikiPalette.canvas.withAlphaComponent(0.96).setFill()
+            NSBezierPath(ovalIn: backingRect).fill()
+            KikiPalette.strongStroke.withAlphaComponent(0.86).setStroke()
+            let backingOutline = NSBezierPath(ovalIn: backingRect.insetBy(dx: 0.5, dy: 0.5))
+            backingOutline.lineWidth = 1
+            backingOutline.stroke()
+
+            if let templetonMark {
+                let markRect = CGRect(x: center.x - 13, y: center.y - 13, width: 26, height: 26)
+                context.saveGState()
+                context.clip(to: markRect, mask: templetonMark)
+                context.setFillColor(KikiPalette.accentText.cgColor)
+                context.fill(markRect)
+                context.restoreGState()
+            } else {
+                drawFallbackMark(centeredAt: center)
             }
         }
+    }
+
+    private func drawRing(centeredAt center: CGPoint, radius: CGFloat, lineWidth: CGFloat, alpha: CGFloat) {
+        let rect = NSRect(
+            x: center.x - radius,
+            y: center.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        )
+        KikiPalette.accentText.withAlphaComponent(alpha).setStroke()
+        let ring = NSBezierPath(ovalIn: rect)
+        ring.lineWidth = lineWidth
+        ring.stroke()
+    }
+
+    private func drawFallbackMark(centeredAt center: CGPoint) {
+        KikiPalette.accentText.setStroke()
+        for inset in stride(from: CGFloat(0), through: 7, by: 3.5) {
+            let rect = NSRect(x: center.x - 11 + inset, y: center.y - 11 + inset, width: 22 - inset * 2, height: 22 - inset * 2)
+            let arc = NSBezierPath(ovalIn: rect)
+            arc.lineWidth = 2.2
+            arc.stroke()
+        }
+    }
+
+    private static func loadTempletonMark() -> CGImage? {
+        guard let url = Bundle.main.url(forResource: "TempletonTechnologies", withExtension: "png"),
+              let image = NSImage(contentsOf: url),
+              let fullImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+        let side = min(fullImage.height, fullImage.width)
+        return fullImage.cropping(to: CGRect(x: 0, y: 0, width: side, height: side))
     }
 }

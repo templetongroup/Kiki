@@ -747,14 +747,14 @@ enum FeatureDiagnostics {
     static func checkWaveformAudio(referenceURL: URL) throws {
         let samples = try AudioFileLoader.load16kMono(url: referenceURL)
         let chunkSize = 341
-        var waveformModel = VoiceWaveformModel(barCount: KikiWaveformView.barCount)
+        var haloModel = VoiceHaloModel()
         var renderedLevels: [CGFloat] = []
         let levels = stride(from: 0, through: max(0, samples.count - chunkSize), by: chunkSize)
             .map { start -> CGFloat in
                 let chunk = Array(samples[start..<(start + chunkSize)])
-                waveformModel.ingest(samples: chunk)
-                waveformModel.advanceFrame()
-                renderedLevels.append(waveformModel.bars.last ?? 0)
+                haloModel.ingest(samples: chunk)
+                haloModel.advanceFrame()
+                renderedLevels.append(haloModel.innerLevel)
                 return VoiceLevelMeter.normalizedLevel(for: chunk)
             }
             .filter { $0 > 0 }
@@ -1294,13 +1294,15 @@ enum FeatureDiagnostics {
         }
         let normalSpeechLevel = VoiceLevelMeter.normalizedLevel(for: normalSpeech)
         let forcefulSpeechLevel = VoiceLevelMeter.normalizedLevel(for: forcefulSpeech)
-        var waveformModel = VoiceWaveformModel(barCount: KikiWaveformView.barCount)
-        waveformModel.ingest(samples: normalSpeech)
-        waveformModel.advanceFrame()
-        let firstHistoryFrame = waveformModel.bars
-        waveformModel.ingest(samples: forcefulSpeech)
-        waveformModel.advanceFrame()
-        let secondHistoryFrame = waveformModel.bars
+        var haloModel = VoiceHaloModel()
+        haloModel.ingest(samples: normalSpeech)
+        haloModel.advanceFrame()
+        let firstInnerLevel = haloModel.innerLevel
+        let firstOuterLevel = haloModel.outerLevel
+        haloModel.ingest(samples: forcefulSpeech)
+        haloModel.advanceFrame()
+        let secondInnerLevel = haloModel.innerLevel
+        let secondOuterLevel = haloModel.outerLevel
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
@@ -1312,19 +1314,20 @@ enum FeatureDiagnostics {
               quietLevel > 0,
               conversationalLevel > quietLevel,
               speakingLevel > conversationalLevel,
-              firstHistoryFrame.dropLast().allSatisfy({ $0 == 0 }),
-              firstHistoryFrame.last ?? 0 > 0,
-              secondHistoryFrame[KikiWaveformView.barCount - 2] == firstHistoryFrame.last,
-              secondHistoryFrame.last ?? 0 > firstHistoryFrame.last ?? 0,
+              firstInnerLevel > 0,
+              firstOuterLevel > 0,
+              firstInnerLevel > firstOuterLevel,
+              secondInnerLevel > firstInnerLevel,
+              secondOuterLevel > firstOuterLevel,
               AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
-              VoiceWaveformModel.frameRate == 30,
+              VoiceHaloModel.frameRate == 30,
               normalSpeechLevel < 0.40,
               forcefulSpeechLevel > 0.65,
               forcefulSpeechLevel < 0.85,
-              HUDPanel.waveformUsesClearSurface,
-              KikiWaveformView.barCount == 38,
-              KikiWaveformView.usesAdaptiveOutline,
-              KikiWaveformView.preferredSize == NSSize(width: 220, height: 34)
+              HUDPanel.voiceHaloUsesClearSurface,
+              KikiVoiceHaloView.ringCount == 2,
+              KikiVoiceHaloView.usesTempletonSwirl,
+              KikiVoiceHaloView.preferredSize == NSSize(width: 58, height: 58)
         else { throw failure("listening display modes") }
     }
 

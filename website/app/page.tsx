@@ -39,7 +39,7 @@ export default function Home() {
             </a>
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
-          <p className="compatibility">Version 0.6.42 · macOS 14+ · Apple silicon</p>
+          <p className="compatibility">Version 0.6.43 · macOS 14+ · Apple silicon</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -143,7 +143,7 @@ export default function Home() {
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
-            Download Kiki 0.6.42 <span className="button-arrow" aria-hidden="true">↘</span>
+            Download Kiki 0.6.43 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
           <small>63.1 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>

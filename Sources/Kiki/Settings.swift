@@ -244,7 +244,7 @@ enum ListeningDisplayMode: String, CaseIterable {
     var title: String {
         switch self {
         case .fullTranscript: "Full Transcript"
-        case .waveform: "Waveform"
+        case .waveform: "Voice Halo"
         case .hidden: "Hidden"
         }
     }
@@ -254,7 +254,7 @@ enum ListeningDisplayMode: String, CaseIterable {
         case .fullTranscript:
             "Shows Kiki's live words and recording status while you speak."
         case .waveform:
-            "Shows only a compact sound wave that responds to your voice."
+            "Shows a compact Templeton halo that responds to your voice."
         case .hidden:
             "Keeps the screen completely clear while Kiki listens and transcribes."
         }
