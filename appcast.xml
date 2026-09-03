@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.44</title>
+            <pubDate>Thu, 03 Sep 2026 16:58:48 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.44</link>
+            <sparkle:version>77</sparkle:version>
+            <sparkle:shortVersionString>0.6.44</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.44
+
+- Replaces the scrolling waveform with a compact radial Voice Halo centered on the complete Templeton swirl.
+- The two sage rings respond directly to microphone level while preserving a calm, static presentation when Reduce Motion is enabled.
+- Renames the Listening Display option to Voice Halo so Settings matches the on-screen experience.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.44/Kiki-0.6.44-macOS.zip" length="53984495" type="application/octet-stream" sparkle:edSignature="Qved+6I5ArydLKIHby9YZSKw1IwITaFeWCFFpnb1yaFUg4BpjQVIWC2nKURvVOcXgL8tw6nwRvdWgEsaPFySDw=="/>
+        </item>
+        <item>
             <title>0.6.43</title>
             <pubDate>Thu, 03 Sep 2026 16:53:22 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.43</link>
@@ -72,22 +88,6 @@
 - Adds deterministic previews and diagnostics for the new visual states.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.40/Kiki-0.6.40-macOS.zip" length="53962697" type="application/octet-stream" sparkle:edSignature="836TleWfZa4L8cJeGYsXjK7DU6ft4NQ1K9sbIe7grzfVm/L3lraqqsRqMJ3NFGgn28yGs3zhc+IaDz6OdBP7CA=="/>
-        </item>
-        <item>
-            <title>0.6.39</title>
-            <pubDate>Thu, 27 Aug 2026 15:05:43 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.39</link>
-            <sparkle:version>72</sparkle:version>
-            <sparkle:shortVersionString>0.6.39</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.39
-
-- Fixes the paste-fallback popup remaining on screen after dictation finishes in another app.
-- Keeps transient messages dismissing after three seconds when Kiki returns from transcribing to idle.
-- Adds a deterministic HUD lifecycle check that reproduces and prevents this regression.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.39/Kiki-0.6.39-macOS.zip" length="53949229" type="application/octet-stream" sparkle:edSignature="OViQ/3OL9FPpYFFZAytPXrJcko/xvF7Koc5HKKTJzy7gCqI/k86X0Rlm09n2vhGDrmhOe3DZXeMFM4ZXl26FAw=="/>
         </item>
     </channel>
 </rss>
