@@ -6,6 +6,22 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.43</title>
+            <pubDate>Thu, 03 Sep 2026 16:53:22 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.43</link>
+            <sparkle:version>76</sparkle:version>
+            <sparkle:shortVersionString>0.6.43</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.43
+
+- Replaces the scrolling waveform with a compact radial Voice Halo centered on the Templeton swirl.
+- The two sage rings respond directly to microphone level while preserving a calm, static presentation when Reduce Motion is enabled.
+- Renames the Listening Display option to Voice Halo so Settings matches the on-screen experience.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.43/Kiki-0.6.43-macOS.zip" length="53983400" type="application/octet-stream" sparkle:edSignature="IASbgDduJqNEYtYW+JIn7YtMzwP+tsU+Nfa6XRoYVh3JQRr/D8AGXEofBl6qO5tw8xV7iqsYsbgf/mKoemfzAQ=="/>
+        </item>
+        <item>
             <title>0.6.42</title>
             <pubDate>Thu, 03 Sep 2026 16:13:04 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.42</link>
@@ -72,23 +88,6 @@
 - Adds a deterministic HUD lifecycle check that reproduces and prevents this regression.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.39/Kiki-0.6.39-macOS.zip" length="53949229" type="application/octet-stream" sparkle:edSignature="OViQ/3OL9FPpYFFZAytPXrJcko/xvF7Koc5HKKTJzy7gCqI/k86X0Rlm09n2vhGDrmhOe3DZXeMFM4ZXl26FAw=="/>
-        </item>
-        <item>
-            <title>0.6.38</title>
-            <pubDate>Wed, 26 Aug 2026 12:42:57 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.38</link>
-            <sparkle:version>71</sparkle:version>
-            <sparkle:shortVersionString>0.6.38</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.38
-
-- Adds the Templeton Technologies product footer to the bottom of the Workbench navigation rail.
-- Keeps navigation independently scrollable while the footer remains anchored at every supported window size.
-- Matches the supplied compact reference with a 138-point wordmark and restrained label spacing.
-- Opens templetontech.com when the Templeton Technologies wordmark is selected.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.38/Kiki-0.6.38-macOS.zip" length="53948118" type="application/octet-stream" sparkle:edSignature="jctGu4kOjEix0DDwJxA3/6FYS0hbL4BwmYCq0uVaH94gdJ/vEWK/487bPq3ZasE2L1e/Dp5AGNcpsKvDH47lDA=="/>
         </item>
     </channel>
 </rss>
