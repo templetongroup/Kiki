@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.46</title>
+            <pubDate>Thu, 03 Sep 2026 22:21:13 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.46</link>
+            <sparkle:version>79</sparkle:version>
+            <sparkle:shortVersionString>0.6.46</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.46
+
+- Strengthens both Voice Halo rings with clearer resting contrast, brighter active states, and a separation keyline that remains visible over other apps.
+- Makes Signal Meter substantially more responsive to conversational and loud speech.
+- Drives each meter bar from recent microphone input so the display changes shape with the voice instead of scaling one fixed silhouette.
+- Preserves a calm fixed-height presentation when Reduce Motion is enabled.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.46/Kiki-0.6.46-macOS.zip" length="53991240" type="application/octet-stream" sparkle:edSignature="Ye1kgfP1k7lf8C7gKed/7U0ZF8ujE8kCRCBikNEbdkAZ/oEUedPeO8sfVNKvJEur/lUarZlvLHwv7B07AxPTBQ=="/>
+        </item>
+        <item>
             <title>0.6.45</title>
             <pubDate>Thu, 03 Sep 2026 21:46:27 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.45</link>
@@ -71,23 +88,6 @@
 - Preserves speaker labels and timestamps so every extracted decision and task remains traceable to the transcript.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.42/Kiki-0.6.42-macOS.zip" length="53982315" type="application/octet-stream" sparkle:edSignature="r5wCeeIFtE0SVH5xseJS97wxpcKW19ptmWWpeuDi+w4s0R9qxqYq2S4ll+nQx4kVB0F4hgzhkYJfYQWaqf5WCg=="/>
-        </item>
-        <item>
-            <title>0.6.41</title>
-            <pubDate>Tue, 01 Sep 2026 13:08:36 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.41</link>
-            <sparkle:version>74</sparkle:version>
-            <sparkle:shortVersionString>0.6.41</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.41
-
-- Centers Voice Studio workflow badges and their labels as one consistent unit.
-- Centers the Models hardware icon and active-state label without one-off offsets.
-- Adds deterministic layout checks for both alignment systems.
-- Verifies the corrected layouts at minimum, default, and large Workbench sizes.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.41/Kiki-0.6.41-macOS.zip" length="53966835" type="application/octet-stream" sparkle:edSignature="rBUGOaXskZM1UlpdF3iVRhtKcfuXCctEq+69N4glifswzEEnz4gdT0Ie+COc1pK9n8bGKSHx6V1EbZ7YzrhpAw=="/>
         </item>
     </channel>
 </rss>
