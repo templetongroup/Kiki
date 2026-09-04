@@ -291,8 +291,9 @@ final class SettingsWindowController: NSWindowController {
         listeningDisplayControl.selectedSegmentBezelColor = KikiPalette.accent
         listeningDisplayControl.font = .systemFont(ofSize: 12.5, weight: .semibold)
         listeningDisplayControl.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        let listeningSegmentWidths: [CGFloat] = [104, 86, 100, 72]
         for index in 0..<listeningDisplayControl.segmentCount {
-            listeningDisplayControl.setWidth(150, forSegment: index)
+            listeningDisplayControl.setWidth(listeningSegmentWidths[index], forSegment: index)
         }
         listeningPositionPopup.addItems(withTitles: ListeningDisplayPosition.allCases.map(\.title))
         listeningPositionPopup.identifier = NSUserInterfaceItemIdentifier("kiki.listening-display-position")
@@ -666,6 +667,8 @@ final class SettingsWindowController: NSWindowController {
             page.topAnchor.constraint(equalTo: pageHost.topAnchor),
             page.bottomAnchor.constraint(equalTo: pageHost.bottomAnchor),
         ])
+        pageHost.layoutSubtreeIfNeeded()
+        KikiMotion.revealStateChange(page)
     }
 
     @objc private func beginCapture() {
@@ -776,6 +779,7 @@ final class SettingsWindowController: NSWindowController {
         guard ListeningDisplayMode.allCases.indices.contains(listeningDisplayControl.selectedSegment) else { return }
         Settings.listeningDisplayMode = ListeningDisplayMode.allCases[listeningDisplayControl.selectedSegment]
         refresh()
+        KikiMotion.revealStateChange(listeningDisplayDescriptionLabel)
     }
     @objc private func listeningPositionChanged() {
         guard ListeningDisplayPosition.allCases.indices.contains(listeningPositionPopup.indexOfSelectedItem) else { return }

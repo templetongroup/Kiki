@@ -485,6 +485,9 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             currentWrapper = scroll
         }
         contentHost.layoutSubtreeIfNeeded()
+        if let currentWrapper {
+            KikiMotion.revealStateChange(currentWrapper)
+        }
         updateRouteKeyViewBoundary(for: surface.view)
     }
 
@@ -812,9 +815,10 @@ final class WorkbenchWindow: NSWindow {
 
 @MainActor
 private final class WorkbenchNavigationButton: NSButton {
-    var isSelectedPage = false { didSet { updateStyle() } }
+    var isSelectedPage = false { didSet { updateStyle(animateSelection: oldValue != isSelectedPage) } }
     private var showsKeyboardFocus = false
     private let keyboardFocusLayer = CAShapeLayer()
+    private let selectionIndicator = CALayer()
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
@@ -839,6 +843,11 @@ private final class WorkbenchNavigationButton: NSButton {
         keyboardFocusLayer.isHidden = true
         keyboardFocusLayer.name = "kiki.workbench-nav.keyboard-focus"
         layer?.addSublayer(keyboardFocusLayer)
+        selectionIndicator.backgroundColor = KikiPalette.accentText.cgColor
+        selectionIndicator.cornerRadius = 1.5
+        selectionIndicator.opacity = 0
+        selectionIndicator.name = "kiki.workbench-navigation.selection-indicator"
+        layer?.addSublayer(selectionIndicator)
 
         symbolView.image = NSImage(systemSymbolName: section.symbol, accessibilityDescription: section.title)
         symbolView.imageScaling = .scaleProportionallyDown
@@ -897,9 +906,17 @@ private final class WorkbenchNavigationButton: NSButton {
             cornerHeight: 5,
             transform: nil
         )
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        selectionIndicator.frame = CGRect(x: 3, y: 12, width: 3, height: max(14, bounds.height - 24))
+        CATransaction.commit()
         updateKeyboardFocus()
     }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func highlight(_ flag: Bool) {
+        super.highlight(flag)
+        KikiMotion.setPointerPressed(flag, on: self, allowed: isEnabled && KikiMotion.currentEventUsesPointer)
+    }
     override func hitTest(_ point: NSPoint) -> NSView? {
         frame.contains(point) && !isHidden && isEnabled ? self : nil
     }
@@ -910,7 +927,7 @@ private final class WorkbenchNavigationButton: NSButton {
         keyboardFocusLayer.isHidden = !showsKeyboardFocus || window?.firstResponder !== self || !isEnabled
     }
 
-    private func updateStyle() {
+    private func updateStyle(animateSelection: Bool = false) {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage ? KikiPalette.selectionSurface.cgColor : NSColor.clear.cgColor
             layer?.borderWidth = 0
@@ -922,6 +939,8 @@ private final class WorkbenchNavigationButton: NSButton {
             symbolView.contentTintColor = accent
             chevronView.contentTintColor = accent
             chevronView.isHidden = true
+            selectionIndicator.backgroundColor = KikiPalette.accentText.cgColor
+            KikiMotion.setSelectionVisible(isSelectedPage, on: selectionIndicator, animated: animateSelection)
         }
     }
 }

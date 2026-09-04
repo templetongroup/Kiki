@@ -379,7 +379,7 @@ if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice halo, and Voice Studio")
+            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice halo, signal meter, and Voice Studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
@@ -408,6 +408,32 @@ if args.count >= 2, args[1] == "--preview-waveform" {
             MainActor.assumeIsolated {
                 previewIndex = (previewIndex + 1) % previewLevels.count
                 hud.showWaveform(samples: previewSamples(previewLevels[previewIndex]))
+            }
+        }
+        app.run()
+    }
+}
+
+if args.count >= 2, args[1] == "--preview-signal-meter" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        AppearanceController.apply()
+        let hud = HUDPanel()
+        let previewLevels: [CGFloat] = [0.10, 0.28, 0.62, 0.88, 0.46, 0.74, 0.22, 0.54]
+        let previewSamples: (CGFloat) -> [Float] = { level in
+            (0..<760).map { index in
+                let carrier = sin(Float(index) * 0.31)
+                let contour = 0.35 + 0.65 * abs(sin(Float(index) * 0.037))
+                return Float(level) * carrier * contour
+            }
+        }
+        var previewIndex = 0
+        hud.showSignalMeter(samples: previewSamples(previewLevels[previewIndex]), reset: true)
+        Timer.scheduledTimer(withTimeInterval: 0.11, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                previewIndex = (previewIndex + 1) % previewLevels.count
+                hud.showSignalMeter(samples: previewSamples(previewLevels[previewIndex]))
             }
         }
         app.run()
@@ -544,13 +570,14 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                     exit(1)
                 }
                 hud.showWaveform(samples: [Float](repeating: 0.08, count: 760))
+                hud.showSignalMeter(samples: [Float](repeating: 0.08, count: 760), reset: true)
                 hud.hide()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     guard !hud.isVisibleOnScreen else {
                         fputs("Error: Kiki listening display did not hide.\n", stderr)
                         exit(1)
                     }
-                    print("Kiki listening displays passed: model download, model loading, transcript, voice halo, hidden")
+                    print("Kiki listening displays passed: model download, model loading, transcript, voice halo, signal meter, hidden")
                     exit(0)
                 }
             }

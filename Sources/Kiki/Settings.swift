@@ -239,12 +239,14 @@ enum DictationShortcutGuidance {
 enum ListeningDisplayMode: String, CaseIterable {
     case fullTranscript
     case waveform
+    case signalMeter
     case hidden
 
     var title: String {
         switch self {
         case .fullTranscript: "Full Transcript"
         case .waveform: "Voice Halo"
+        case .signalMeter: "Signal Meter"
         case .hidden: "Hidden"
         }
     }
@@ -255,6 +257,8 @@ enum ListeningDisplayMode: String, CaseIterable {
             "Shows Kiki's live words and recording status while you speak."
         case .waveform:
             "Shows a compact Templeton halo that responds to your voice."
+        case .signalMeter:
+            "Shows seven bottom-anchored bars that reflect your microphone level."
         case .hidden:
             "Keeps the screen completely clear while Kiki listens and transcribes."
         }

@@ -19,6 +19,68 @@ enum KikiMetrics {
     static let tableHorizontalInset: CGFloat = 10
 }
 
+/// Shared motion tokens for Kiki's custom controls. Native AppKit menus and
+/// keyboard-triggered actions remain immediate; these transitions are pointer
+/// feedback and selection-state cues only.
+@MainActor
+enum KikiMotion {
+    static let pressDuration: CFTimeInterval = 0.10
+    static let releaseDuration: CFTimeInterval = 0.14
+    static let stateDuration: CFTimeInterval = 0.14
+    static let pressedScale: CGFloat = 0.985
+
+    private static let easeOut = CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
+
+    static var currentEventUsesPointer: Bool {
+        guard let type = NSApp.currentEvent?.type else { return false }
+        return type == .leftMouseDown || type == .leftMouseUp || type == .leftMouseDragged
+    }
+
+    static func setPointerPressed(_ pressed: Bool, on view: NSView, allowed: Bool) {
+        guard let layer = view.layer else { return }
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let shouldScale = allowed && !reduceMotion
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(shouldScale ? (pressed ? pressDuration : releaseDuration) : 0)
+        CATransaction.setAnimationTimingFunction(easeOut)
+        layer.setAffineTransform(pressed && shouldScale
+            ? CGAffineTransform(scaleX: pressedScale, y: pressedScale)
+            : .identity)
+        CATransaction.commit()
+    }
+
+    static func setSelectionVisible(_ visible: Bool, on indicator: CALayer, animated: Bool) {
+        let shouldAnimate = animated
+            && currentEventUsesPointer
+            && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(shouldAnimate ? stateDuration : 0)
+        CATransaction.setAnimationTimingFunction(easeOut)
+        indicator.opacity = visible ? 1 : 0
+        indicator.setAffineTransform(visible
+            ? .identity
+            : CGAffineTransform(scaleX: 1, y: 0.72))
+        CATransaction.commit()
+    }
+
+    static func revealStateChange(_ view: NSView) {
+        view.wantsLayer = true
+        guard currentEventUsesPointer,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
+              let layer = view.layer else {
+            view.alphaValue = 1
+            return
+        }
+        layer.removeAnimation(forKey: "kiki.state-reveal")
+        let reveal = CABasicAnimation(keyPath: "opacity")
+        reveal.fromValue = 0.42
+        reveal.toValue = 1
+        reveal.duration = stateDuration
+        reveal.timingFunction = easeOut
+        layer.add(reveal, forKey: "kiki.state-reveal")
+    }
+}
+
 enum KikiPalette {
     private static func adaptive(dark: NSColor, light _: NSColor) -> NSColor {
         // Kiki ships one Studio Hardware appearance. Returning the dark token
@@ -350,8 +412,9 @@ class KikiCardView: NSView {
 
 @MainActor
 final class KikiNavButton: NSButton {
-    var isSelectedPage = false { didSet { updateStyle() } }
+    var isSelectedPage = false { didSet { updateStyle(animateSelection: oldValue != isSelectedPage) } }
     private var showsKeyboardFocus = false
+    private let selectionIndicator = CALayer()
     private let symbolView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let chevronView = NSImageView()
@@ -387,6 +450,11 @@ final class KikiNavButton: NSButton {
         wantsLayer = true
         layer?.cornerRadius = KikiMetrics.controlRadius
         layer?.cornerCurve = .continuous
+        selectionIndicator.backgroundColor = KikiPalette.accentText.cgColor
+        selectionIndicator.cornerRadius = 1.5
+        selectionIndicator.opacity = 0
+        selectionIndicator.name = "kiki.navigation.selection-indicator"
+        layer?.addSublayer(selectionIndicator)
         heightAnchor.constraint(equalToConstant: KikiMetrics.navigationRowHeight).isActive = true
         NSLayoutConstraint.activate([
             contentStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
@@ -431,12 +499,25 @@ final class KikiNavButton: NSButton {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+    override func highlight(_ flag: Bool) {
+        super.highlight(flag)
+        KikiMotion.setPointerPressed(flag, on: self, allowed: isEnabled && KikiMotion.currentEventUsesPointer)
+    }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        selectionIndicator.frame = CGRect(x: 4, y: 9, width: 3, height: max(12, bounds.height - 18))
+        CATransaction.commit()
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         guard !isHidden, alphaValue > 0.01, frame.contains(point) else { return nil }
         return self
     }
 
-    private func updateStyle() {
+    private func updateStyle(animateSelection: Bool = false) {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = isSelectedPage
                 ? KikiPalette.selectionSurface.cgColor
@@ -451,6 +532,8 @@ final class KikiNavButton: NSButton {
             titleLabel.textColor = color
             chevronView.contentTintColor = color
             chevronView.isHidden = true
+            selectionIndicator.backgroundColor = KikiPalette.accentText.cgColor
+            KikiMotion.setSelectionVisible(isSelectedPage, on: selectionIndicator, animated: animateSelection)
         }
     }
 }
@@ -585,6 +668,11 @@ final class KikiActionButton: NSButton {
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func highlight(_ flag: Bool) {
+        super.highlight(flag)
+        KikiMotion.setPointerPressed(flag, on: self, allowed: isEnabled && KikiMotion.currentEventUsesPointer)
+    }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()

@@ -701,14 +701,18 @@ final class DictationController {
         livePreviewID = UUID()
         let currentID = livePreviewID
 
-        if mode == .waveform {
+        if mode == .waveform || mode == .signalMeter {
             recorder.setSamplesHandler { [weak self] samples in
                 DispatchQueue.main.async {
                     guard let self,
                           self.state == .recording,
                           self.livePreviewID == currentID
                     else { return }
-                    self.hud.showWaveform(samples: samples)
+                    if mode == .signalMeter {
+                        self.hud.showSignalMeter(samples: samples)
+                    } else {
+                        self.hud.showWaveform(samples: samples)
+                    }
                 }
             }
             return
@@ -735,6 +739,7 @@ final class DictationController {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showListening()
         case .waveform: hud.showWaveform(samples: [], reset: true)
+        case .signalMeter: hud.showSignalMeter(samples: [], reset: true)
         case .hidden: hud.hide()
         }
     }
@@ -743,6 +748,7 @@ final class DictationController {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showTranscribing(transcript: transcript)
         case .waveform: hud.showWaveform(samples: [], reset: true)
+        case .signalMeter: hud.showSignalMeter(samples: [], reset: true)
         case .hidden: hud.hide()
         }
     }

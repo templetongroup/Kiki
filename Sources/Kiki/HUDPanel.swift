@@ -13,11 +13,12 @@ final class HUDPanel {
     private let transcriptLabel: NSTextField
     private let modelProgress = NSProgressIndicator()
     private let voiceHaloView = KikiVoiceHaloView()
+    private let signalMeterView = KikiSignalMeterView()
     private let textStack = NSStackView()
     private var hasLogo = false
     private var presentation: Presentation?
 
-    private enum Presentation { case message, transcript, waveform }
+    private enum Presentation { case message, transcript, waveform, signalMeter }
 
     init() {
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 48),
@@ -79,7 +80,8 @@ final class HUDPanel {
         textStack.spacing = 2
 
         voiceHaloView.isHidden = true
-        let content = NSStackView(views: [logoView, textStack, voiceHaloView])
+        signalMeterView.isHidden = true
+        let content = NSStackView(views: [logoView, textStack, voiceHaloView, signalMeterView])
         content.orientation = .horizontal
         content.alignment = .centerY
         content.spacing = 10
@@ -91,6 +93,8 @@ final class HUDPanel {
             transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
             voiceHaloView.widthAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.width),
             voiceHaloView.heightAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.height),
+            signalMeterView.widthAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.width),
+            signalMeterView.heightAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.height),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
             content.trailingAnchor.constraint(lessThanOrEqualTo: effect.trailingAnchor, constant: -12),
             content.centerYAnchor.constraint(equalTo: effect.centerYAnchor),
@@ -106,6 +110,8 @@ final class HUDPanel {
         textStack.isHidden = false
         voiceHaloView.isHidden = true
         voiceHaloView.reset()
+        signalMeterView.isHidden = true
+        signalMeterView.reset()
         statusLabel.stringValue = text
         statusLabel.textColor = .labelColor
         transcriptLabel.isHidden = true
@@ -122,6 +128,8 @@ final class HUDPanel {
         textStack.isHidden = false
         voiceHaloView.isHidden = true
         voiceHaloView.reset()
+        signalMeterView.isHidden = true
+        signalMeterView.reset()
         statusLabel.stringValue = status.compactTitle
         statusLabel.textColor = KikiPalette.primaryText
         transcriptLabel.isHidden = true
@@ -151,6 +159,8 @@ final class HUDPanel {
         textStack.isHidden = false
         voiceHaloView.isHidden = true
         voiceHaloView.reset()
+        signalMeterView.isHidden = true
+        signalMeterView.reset()
         statusLabel.stringValue = "Listening"
         statusLabel.textColor = KikiPalette.accentText
         transcriptLabel.stringValue = displayText(transcript)
@@ -168,9 +178,26 @@ final class HUDPanel {
         textStack.isHidden = true
         modelProgress.isHidden = true
         voiceHaloView.isHidden = false
+        signalMeterView.isHidden = true
+        signalMeterView.reset()
         if reset { voiceHaloView.reset() }
         voiceHaloView.update(samples: samples)
         if needsPresentation { present(width: 82, height: 82) }
+    }
+
+    func showSignalMeter(samples: [Float], reset: Bool = false) {
+        let needsPresentation = presentation != .signalMeter || !panel.isVisible
+        presentation = .signalMeter
+        applyAppearance()
+        logoView.isHidden = true
+        textStack.isHidden = true
+        modelProgress.isHidden = true
+        voiceHaloView.isHidden = true
+        voiceHaloView.reset()
+        signalMeterView.isHidden = false
+        if reset { signalMeterView.reset() }
+        signalMeterView.update(samples: samples)
+        if needsPresentation { present(width: 118, height: 64) }
     }
 
     func showTranscribing(transcript: String? = nil) {
@@ -180,6 +207,8 @@ final class HUDPanel {
         textStack.isHidden = false
         voiceHaloView.isHidden = true
         voiceHaloView.reset()
+        signalMeterView.isHidden = true
+        signalMeterView.reset()
         statusLabel.stringValue = "Transcribing…"
         statusLabel.textColor = .secondaryLabelColor
         transcriptLabel.stringValue = displayText(transcript)
@@ -303,17 +332,17 @@ final class HUDPanel {
     private func applyAppearance() {
         panel.appearance = Settings.appearanceMode.appearance
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-            let isClearHalo = presentation == .waveform && Self.voiceHaloUsesClearSurface
-            panel.hasShadow = !isClearHalo
-            effect.layer?.backgroundColor = isClearHalo
+            let usesClearSurface = presentation == .waveform && Self.voiceHaloUsesClearSurface
+            panel.hasShadow = !usesClearSurface
+            effect.layer?.backgroundColor = usesClearSurface
                 ? NSColor.clear.cgColor
                 : KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
-            effect.layer?.borderWidth = isClearHalo ? 0 : 1
-            effect.layer?.borderColor = isClearHalo
+            effect.layer?.borderWidth = usesClearSurface ? 0 : 1
+            effect.layer?.borderColor = usesClearSurface
                 ? NSColor.clear.cgColor
                 : KikiPalette.strongStroke.cgColor
             effect.layer?.shadowColor = NSColor.black.cgColor
-            effect.layer?.shadowOpacity = isClearHalo ? 0 : 0.18
+            effect.layer?.shadowOpacity = usesClearSurface ? 0 : 0.18
             effect.layer?.shadowRadius = 16
         }
     }
@@ -321,6 +350,7 @@ final class HUDPanel {
     func hide() {
         presentation = nil
         voiceHaloView.reset()
+        signalMeterView.reset()
         panel.orderOut(nil)
     }
 
@@ -370,6 +400,134 @@ struct VoiceHaloModel {
         targetLevel = 0
         innerLevel = 0
         outerLevel = 0
+    }
+}
+
+struct SignalMeterModel {
+    static let frameRate: TimeInterval = 30
+    static let barCount = 7
+    static let barProfile: [CGFloat] = [0.56, 0.74, 0.90, 1.00, 0.86, 0.68, 0.52]
+
+    private(set) var level: CGFloat = 0
+    private var targetLevel: CGFloat = 0
+
+    mutating func ingest(samples: [Float]) {
+        targetLevel = VoiceLevelMeter.normalizedLevel(for: samples)
+    }
+
+    mutating func advanceFrame() {
+        let response: CGFloat = targetLevel > level ? 0.48 : 0.20
+        level += (targetLevel - level) * response
+    }
+
+    mutating func reset() {
+        level = 0
+        targetLevel = 0
+    }
+}
+
+/// A literal, bottom-anchored microphone meter. Its seven bars respond to the
+/// captured signal rather than running a decorative loop.
+@MainActor
+final class KikiSignalMeterView: NSView {
+    static let preferredSize = NSSize(width: 94, height: 40)
+    static let barCount = SignalMeterModel.barCount
+    static let usesBottomBaseline = true
+
+    private var model = SignalMeterModel()
+    private var animationTimer: Timer?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        setAccessibilityElement(false)
+    }
+
+    deinit { animationTimer?.invalidate() }
+
+    func update(samples: [Float]) {
+        model.ingest(samples: samples)
+        startAnimating()
+    }
+
+    func reset() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+        model.reset()
+        needsDisplay = true
+    }
+
+    private func startAnimating() {
+        guard animationTimer == nil else { return }
+        let timer = Timer(timeInterval: 1 / SignalMeterModel.frameRate, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.model.advanceFrame()
+                self.needsDisplay = true
+            }
+        }
+        timer.tolerance = 0.003
+        RunLoop.main.add(timer, forMode: .common)
+        animationTimer = timer
+    }
+
+    override var isFlipped: Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let baselineY = bounds.maxY - 3
+        let barWidth: CGFloat = 8
+        let gap: CGFloat = 5
+        let totalWidth = CGFloat(Self.barCount) * barWidth + CGFloat(Self.barCount - 1) * gap
+        let originX = bounds.midX - totalWidth / 2
+        let availableHeight = bounds.height - 8
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let baseline = NSBezierPath()
+            baseline.move(to: CGPoint(x: originX - 4, y: baselineY + 0.5))
+            baseline.line(to: CGPoint(x: originX + totalWidth + 4, y: baselineY + 0.5))
+            baseline.lineWidth = 1
+            KikiPalette.strongStroke.withAlphaComponent(0.72).setStroke()
+            baseline.stroke()
+
+            for (index, profile) in SignalMeterModel.barProfile.enumerated() {
+                let height: CGFloat
+                let alpha: CGFloat
+                if reduceMotion {
+                    height = availableHeight * profile
+                    let threshold = CGFloat(index + 1) / CGFloat(Self.barCount + 1)
+                    alpha = model.level >= threshold ? 0.98 : 0.18
+                } else {
+                    height = max(4, availableHeight * (0.12 + model.level * 0.88) * profile)
+                    alpha = 0.60 + model.level * 0.40
+                }
+                let rect = NSRect(
+                    x: originX + CGFloat(index) * (barWidth + gap),
+                    y: baselineY - height,
+                    width: barWidth,
+                    height: height
+                )
+                let bar = NSBezierPath(
+                    roundedRect: rect,
+                    xRadius: min(3.5, height / 2),
+                    yRadius: min(3.5, height / 2)
+                )
+                NSGraphicsContext.saveGraphicsState()
+                bar.addClip()
+                NSGradient(colors: [
+                    KikiPalette.accentText.withAlphaComponent(alpha),
+                    KikiPalette.accent.withAlphaComponent(alpha * 0.90),
+                ])?.draw(in: rect, angle: 90)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
     }
 }
 

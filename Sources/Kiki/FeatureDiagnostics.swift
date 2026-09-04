@@ -1303,10 +1303,17 @@ enum FeatureDiagnostics {
         haloModel.advanceFrame()
         let secondInnerLevel = haloModel.innerLevel
         let secondOuterLevel = haloModel.outerLevel
+        var signalMeterModel = SignalMeterModel()
+        signalMeterModel.ingest(samples: normalSpeech)
+        signalMeterModel.advanceFrame()
+        let firstMeterLevel = signalMeterModel.level
+        signalMeterModel.ingest(samples: forcefulSpeech)
+        signalMeterModel.advanceFrame()
+        let secondMeterLevel = signalMeterModel.level
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
-        guard ListeningDisplayMode.allCases == [.fullTranscript, .waveform, .hidden],
+        guard ListeningDisplayMode.allCases == [.fullTranscript, .waveform, .signalMeter, .hidden],
               ListeningDisplayPosition.allCases == [.bottom, .top, .topLeft, .topRight, .bottomLeft, .bottomRight, .nearTargetWindow],
               topRight.origin == NSPoint(x: 876, y: 908),
               bottomLeft.origin == NSPoint(x: 124, y: 232),
@@ -1319,15 +1326,21 @@ enum FeatureDiagnostics {
               firstInnerLevel > firstOuterLevel,
               secondInnerLevel > firstInnerLevel,
               secondOuterLevel > firstOuterLevel,
+              firstMeterLevel > 0,
+              secondMeterLevel > firstMeterLevel,
               AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
               VoiceHaloModel.frameRate == 30,
+              SignalMeterModel.frameRate == 30,
               normalSpeechLevel < 0.40,
               forcefulSpeechLevel > 0.65,
               forcefulSpeechLevel < 0.85,
               HUDPanel.voiceHaloUsesClearSurface,
               KikiVoiceHaloView.ringCount == 2,
               KikiVoiceHaloView.usesTempletonSwirl,
-              KikiVoiceHaloView.preferredSize == NSSize(width: 58, height: 58)
+              KikiVoiceHaloView.preferredSize == NSSize(width: 58, height: 58),
+              KikiSignalMeterView.barCount == 7,
+              KikiSignalMeterView.usesBottomBaseline,
+              KikiSignalMeterView.preferredSize == NSSize(width: 94, height: 40)
         else { throw failure("listening display modes") }
     }
 
@@ -1351,11 +1364,17 @@ enum FeatureDiagnostics {
         let clean = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.08, count: sampleCount))
         let quiet = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.001, count: sampleCount))
         let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
+        let highlightSelector = #selector(NSButton.highlight(_:))
         var methodCount: UInt32 = 0
         let methods = class_copyMethodList(KikiActionButton.self, &methodCount)
         let overridesMouseDown = methods.map { methods in
             UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
                 method_getName($0) == mouseDownSelector
+            }
+        } ?? false
+        let overridesHighlight = methods.map { methods in
+            UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
+                method_getName($0) == highlightSelector
             }
         } ?? false
         guard clean.canSave, !quiet.canSave, quiet.isTooQuiet else {
@@ -1368,8 +1387,13 @@ enum FeatureDiagnostics {
               VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
             throw failure("voice studio enrollment and model manifest")
         }
-        guard !overridesMouseDown else {
-            throw failure("action buttons must use native AppKit mouse tracking")
+        guard !overridesMouseDown,
+              overridesHighlight,
+              KikiMotion.pressDuration == 0.10,
+              KikiMotion.releaseDuration == 0.14,
+              KikiMotion.stateDuration == 0.14,
+              KikiMotion.pressedScale == 0.985 else {
+            throw failure("action buttons must keep native tracking with restrained shared motion")
         }
     }
 
