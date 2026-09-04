@@ -407,22 +407,43 @@ struct SignalMeterModel {
     static let frameRate: TimeInterval = 30
     static let barCount = 7
     static let barProfile: [CGFloat] = [0.56, 0.74, 0.90, 1.00, 0.86, 0.68, 0.52]
+    static let sensitivityExponent: CGFloat = 0.58
+    static let sensitivityGain: CGFloat = 1.18
+    static let attackResponse: CGFloat = 0.68
+    static let releaseResponse: CGFloat = 0.24
 
-    private(set) var level: CGFloat = 0
-    private var targetLevel: CGFloat = 0
+    private(set) var levels = [CGFloat](repeating: 0, count: barCount)
+    private var targetLevels = [CGFloat](repeating: 0, count: barCount)
+
+    var level: CGFloat { levels.max() ?? 0 }
 
     mutating func ingest(samples: [Float]) {
-        targetLevel = VoiceLevelMeter.normalizedLevel(for: samples)
+        guard !samples.isEmpty else {
+            targetLevels = [CGFloat](repeating: 0, count: Self.barCount)
+            return
+        }
+        let overall = Self.displayLevel(for: VoiceLevelMeter.normalizedLevel(for: samples))
+        targetLevels.removeFirst()
+        targetLevels.append(overall)
     }
 
     mutating func advanceFrame() {
-        let response: CGFloat = targetLevel > level ? 0.48 : 0.20
-        level += (targetLevel - level) * response
+        for index in levels.indices {
+            let response = targetLevels[index] > levels[index]
+                ? Self.attackResponse
+                : Self.releaseResponse
+            levels[index] += (targetLevels[index] - levels[index]) * response
+        }
+    }
+
+    static func displayLevel(for normalizedInput: CGFloat) -> CGFloat {
+        guard normalizedInput > 0 else { return 0 }
+        return min(1, pow(normalizedInput, sensitivityExponent) * sensitivityGain)
     }
 
     mutating func reset() {
-        level = 0
-        targetLevel = 0
+        levels = [CGFloat](repeating: 0, count: Self.barCount)
+        targetLevels = [CGFloat](repeating: 0, count: Self.barCount)
     }
 }
 
@@ -498,15 +519,16 @@ final class KikiSignalMeterView: NSView {
             baseline.stroke()
 
             for (index, profile) in SignalMeterModel.barProfile.enumerated() {
+                let level = model.levels[index]
                 let height: CGFloat
                 let alpha: CGFloat
                 if reduceMotion {
                     height = availableHeight * profile
                     let threshold = CGFloat(index + 1) / CGFloat(Self.barCount + 1)
-                    alpha = model.level >= threshold ? 0.98 : 0.18
+                    alpha = level >= threshold ? 0.98 : 0.18
                 } else {
-                    height = max(4, availableHeight * (0.12 + model.level * 0.88) * profile)
-                    alpha = 0.60 + model.level * 0.40
+                    height = max(4, availableHeight * (0.08 + level * 0.92) * profile)
+                    alpha = 0.52 + level * 0.48
                 }
                 let rect = NSRect(
                     x: originX + CGFloat(index) * (barWidth + gap),
@@ -536,6 +558,11 @@ final class KikiVoiceHaloView: NSView {
     static let preferredSize = NSSize(width: 58, height: 58)
     static let ringCount = 2
     static let usesTempletonSwirl = true
+    static let restingOuterRingAlpha: CGFloat = 0.36
+    static let restingInnerRingAlpha: CGFloat = 0.52
+    static let maximumOuterRingAlpha: CGFloat = 0.88
+    static let maximumInnerRingAlpha: CGFloat = 0.98
+    static let ringSeparationAlpha: CGFloat = 0.70
 
     private var model = VoiceHaloModel()
     private var animationTimer: Timer?
@@ -587,21 +614,23 @@ final class KikiVoiceHaloView: NSView {
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let innerLevel = model.innerLevel
         let outerLevel = model.outerLevel
-        let innerRadius: CGFloat = 20 + (reduceMotion ? 0 : innerLevel * 2.5)
-        let outerRadius: CGFloat = 25 + (reduceMotion ? 0 : outerLevel * 3)
+        let innerRadius: CGFloat = 19.5 + (reduceMotion ? 0 : innerLevel * 2.5)
+        let outerRadius: CGFloat = 24.5 + (reduceMotion ? 0 : outerLevel * 2)
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
             drawRing(
                 centeredAt: center,
                 radius: outerRadius,
-                lineWidth: 1.2 + outerLevel * 0.9,
-                alpha: 0.16 + outerLevel * 0.46
+                lineWidth: 1.7 + outerLevel,
+                alpha: Self.restingOuterRingAlpha
+                    + outerLevel * (Self.maximumOuterRingAlpha - Self.restingOuterRingAlpha)
             )
             drawRing(
                 centeredAt: center,
                 radius: innerRadius,
-                lineWidth: 1.4 + innerLevel,
-                alpha: 0.28 + innerLevel * 0.52
+                lineWidth: 2 + innerLevel,
+                alpha: Self.restingInnerRingAlpha
+                    + innerLevel * (Self.maximumInnerRingAlpha - Self.restingInnerRingAlpha)
             )
 
             let backingRect = NSRect(x: center.x - 17, y: center.y - 17, width: 34, height: 34)
@@ -625,8 +654,11 @@ final class KikiVoiceHaloView: NSView {
             width: radius * 2,
             height: radius * 2
         )
-        KikiPalette.accentText.withAlphaComponent(alpha).setStroke()
         let ring = NSBezierPath(ovalIn: rect)
+        KikiPalette.canvas.withAlphaComponent(Self.ringSeparationAlpha).setStroke()
+        ring.lineWidth = lineWidth + 1.5
+        ring.stroke()
+        KikiPalette.accentText.withAlphaComponent(alpha).setStroke()
         ring.lineWidth = lineWidth
         ring.stroke()
     }

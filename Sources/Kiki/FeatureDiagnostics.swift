@@ -1310,6 +1310,19 @@ enum FeatureDiagnostics {
         signalMeterModel.ingest(samples: forcefulSpeech)
         signalMeterModel.advanceFrame()
         let secondMeterLevel = signalMeterModel.level
+        let quietMeterDisplayLevel = SignalMeterModel.displayLevel(for: 0.10)
+        let loudMeterDisplayLevel = SignalMeterModel.displayLevel(for: 0.70)
+        var variedMeterModel = SignalMeterModel()
+        for segment in 0..<SignalMeterModel.barCount {
+            let amplitude: Float = segment.isMultiple(of: 2) ? 0.48 : 0.035
+            let samples = (0..<100).map { index in
+                amplitude * sin(Float(index) * 0.31)
+            }
+            variedMeterModel.ingest(samples: samples)
+            variedMeterModel.advanceFrame()
+        }
+        let variedMeterSpread = (variedMeterModel.levels.max() ?? 0)
+            - (variedMeterModel.levels.min() ?? 0)
         let visible = NSRect(x: 100, y: 200, width: 1_200, height: 800)
         let topRight = HUDPanel.fixedFrame(position: .topRight, visibleFrame: visible, width: 400, height: 60)
         let bottomLeft = HUDPanel.fixedFrame(position: .bottomLeft, visibleFrame: visible, width: 400, height: 60)
@@ -1328,6 +1341,12 @@ enum FeatureDiagnostics {
               secondOuterLevel > firstOuterLevel,
               firstMeterLevel > 0,
               secondMeterLevel > firstMeterLevel,
+              secondMeterLevel - firstMeterLevel > 0.30,
+              quietMeterDisplayLevel > 0.25,
+              loudMeterDisplayLevel > 0.90,
+              loudMeterDisplayLevel - quietMeterDisplayLevel > 0.55,
+              variedMeterModel.levels.count == SignalMeterModel.barCount,
+              variedMeterSpread > 0.25,
               AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
               VoiceHaloModel.frameRate == 30,
               SignalMeterModel.frameRate == 30,
@@ -1338,6 +1357,9 @@ enum FeatureDiagnostics {
               KikiVoiceHaloView.ringCount == 2,
               KikiVoiceHaloView.usesTempletonSwirl,
               KikiVoiceHaloView.preferredSize == NSSize(width: 58, height: 58),
+              KikiVoiceHaloView.restingOuterRingAlpha >= 0.35,
+              KikiVoiceHaloView.restingInnerRingAlpha >= 0.50,
+              KikiVoiceHaloView.ringSeparationAlpha >= 0.65,
               KikiSignalMeterView.barCount == 7,
               KikiSignalMeterView.usesBottomBaseline,
               KikiSignalMeterView.preferredSize == NSSize(width: 94, height: 40)
