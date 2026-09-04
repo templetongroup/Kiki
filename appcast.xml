@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.45</title>
+            <pubDate>Thu, 03 Sep 2026 21:46:27 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.45</link>
+            <sparkle:version>78</sparkle:version>
+            <sparkle:shortVersionString>0.6.45</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.45
+
+- Adds Signal Meter as a fourth Listening Display option alongside Full Transcript, Voice Halo, and Hidden.
+- Shows microphone strength through seven compact, bottom-anchored sage bars driven by the live input signal.
+- Uses a fixed-height, illumination-based meter when Reduce Motion is enabled.
+- Adds restrained pointer feedback to Kiki's custom buttons, a slim sage selection rail, and a brief destination reveal to navigation.
+- Keeps keyboard actions and native macOS menus immediate while using a brief state transition where explanatory copy changes.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.45/Kiki-0.6.45-macOS.zip" length="53990875" type="application/octet-stream" sparkle:edSignature="OhpJteGhUwONWG/ivGxb4SlXAyQqZzQwm0aS7ifYoaXLQRF4HHZuiVsMgZhIBv0AXBuXzpZPhlfFCEwH2hIPBQ=="/>
+        </item>
+        <item>
             <title>0.6.44</title>
             <pubDate>Thu, 03 Sep 2026 16:58:48 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.44</link>
@@ -70,24 +88,6 @@
 - Verifies the corrected layouts at minimum, default, and large Workbench sizes.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.41/Kiki-0.6.41-macOS.zip" length="53966835" type="application/octet-stream" sparkle:edSignature="rBUGOaXskZM1UlpdF3iVRhtKcfuXCctEq+69N4glifswzEEnz4gdT0Ie+COc1pK9n8bGKSHx6V1EbZ7YzrhpAw=="/>
-        </item>
-        <item>
-            <title>0.6.40</title>
-            <pubDate>Tue, 01 Sep 2026 12:28:53 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.40</link>
-            <sparkle:version>73</sparkle:version>
-            <sparkle:shortVersionString>0.6.40</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.40
-
-- Adds a responsive, state-aware native voice instrument for dictation.
-- Replaces generic Home workflow symbols with original Kiki hardware glyphs.
-- Adds layered audio-file drop artwork and a custom local processing indicator.
-- Preserves full shortcut guidance at compact window widths and honors Reduce Motion.
-- Adds deterministic previews and diagnostics for the new visual states.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.40/Kiki-0.6.40-macOS.zip" length="53962697" type="application/octet-stream" sparkle:edSignature="836TleWfZa4L8cJeGYsXjK7DU6ft4NQ1K9sbIe7grzfVm/L3lraqqsRqMJ3NFGgn28yGs3zhc+IaDz6OdBP7CA=="/>
         </item>
     </channel>
 </rss>
