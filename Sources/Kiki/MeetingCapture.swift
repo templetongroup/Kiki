@@ -35,6 +35,38 @@ struct MeetingAudioCapture: Sendable {
     let systemAudioAvailable: Bool
 }
 
+enum MeetingAutoExportResult {
+    case disabled
+    case saved(fileName: String)
+    case failed(String)
+}
+
+/// Writes a finished meeting's Markdown transcript straight to a
+/// user-chosen folder, so a meeting can be captured without an explicit
+/// Export click each time. Opt-in via Settings.meetingAutoExportEnabled;
+/// the folder is a plain path (Kiki is not sandboxed, so no security-scoped
+/// bookmark is required to keep write access across launches).
+enum MeetingTranscriptAutoExporter {
+    static func export(_ transcript: MeetingTranscript) -> MeetingAutoExportResult {
+        guard Settings.meetingAutoExportEnabled else { return .disabled }
+        guard let path = Settings.meetingAutoExportFolderPath, !path.isEmpty else {
+            return .failed("no export folder is selected")
+        }
+        let folder = URL(fileURLWithPath: path, isDirectory: true)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let safeTitle = kikiSafeFileComponent(transcript.title, fallback: "Meeting")
+        let url = folder.appendingPathComponent("\(formatter.string(from: transcript.createdAt))-\(safeTitle).md")
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try transcript.markdown.write(to: url, atomically: true, encoding: .utf8)
+            return .saved(fileName: url.lastPathComponent)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+}
+
 enum MeetingAudioArchiver {
     static func save(_ capture: MeetingAudioCapture, title: String) throws -> URL {
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -42,12 +74,8 @@ enum MeetingAudioArchiver {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        let safeTitle = title.replacingOccurrences(
-            of: "[^A-Za-z0-9._-]+",
-            with: "-",
-            options: .regularExpression
-        ).trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        let folder = root.appendingPathComponent("\(formatter.string(from: Date()))-\(safeTitle.isEmpty ? "Meeting" : safeTitle)", isDirectory: true)
+        let safeTitle = kikiSafeFileComponent(title, fallback: "Meeting")
+        let folder = root.appendingPathComponent("\(formatter.string(from: Date()))-\(safeTitle)", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try writeWAV(capture.microphoneSamples, to: folder.appendingPathComponent("microphone.wav"))
         if !capture.systemSamples.isEmpty {

@@ -18,6 +18,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private lazy var exportButton = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
     private lazy var copyButton = KikiActionButton("Copy", kind: .hardware, target: self, action: #selector(copyTranscript))
     private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
+    private let autoExportCheckbox = NSButton(checkboxWithTitle: "Automatically save a Markdown transcript to a folder", target: nil, action: nil)
+    private lazy var chooseAutoExportFolderButton = KikiActionButton("Choose Folder…", kind: .hardware, target: self, action: #selector(chooseAutoExportFolder))
+    private let autoExportFolderLabel = kikiLabel("No folder selected", size: 12, color: KikiPalette.secondaryText)
     private let transcriptEmptyState = KikiEmptyStateView(
         symbol: "person.2.wave.2",
         title: "Ready to capture the room",
@@ -63,6 +66,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             titleField.stringValue = "Meeting — \(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short))"
         }
         saveAudioCheckbox.state = Settings.saveMeetingAudio ? .on : .off
+        autoExportCheckbox.state = Settings.meetingAutoExportEnabled ? .on : .off
+        updateAutoExportFolderLabel()
+        chooseAutoExportFolderButton.isEnabled = autoExportCheckbox.state == .on
         if transcript == nil, !isRecording {
             transcriptEmptyState.isHidden = false
             exportButton.isEnabled = false
@@ -137,11 +143,22 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         saveAudioCheckbox.action = #selector(saveAudioChanged)
         saveAudioCheckbox.contentTintColor = KikiPalette.accentText
 
+        autoExportCheckbox.target = self
+        autoExportCheckbox.action = #selector(autoExportChanged)
+        autoExportCheckbox.contentTintColor = KikiPalette.accentText
+        autoExportFolderLabel.lineBreakMode = .byTruncatingMiddle
+        autoExportFolderLabel.maximumNumberOfLines = 1
+        autoExportFolderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         let controls = NSStackView(views: [recordButton, timerLabel, NSView(), saveAudioCheckbox])
         controls.orientation = .horizontal
         controls.alignment = .centerY
         controls.spacing = 12
-        let controlStack = NSStackView(views: [controls, statusLabel])
+        let autoExportRow = NSStackView(views: [autoExportCheckbox, chooseAutoExportFolderButton, autoExportFolderLabel])
+        autoExportRow.orientation = .horizontal
+        autoExportRow.alignment = .centerY
+        autoExportRow.spacing = 10
+        let controlStack = NSStackView(views: [controls, autoExportRow, statusLabel])
         controlStack.orientation = .vertical
         controlStack.alignment = .leading
         controlStack.spacing = 9
@@ -154,6 +171,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             controlStack.topAnchor.constraint(equalTo: controlCard.topAnchor, constant: 12),
             controlStack.bottomAnchor.constraint(equalTo: controlCard.bottomAnchor, constant: -12),
             controls.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
+            autoExportRow.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
         ])
 
@@ -349,7 +367,16 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 transcriptEmptyState.isHidden = true
                 exportButton.isEnabled = !result.segments.isEmpty
                 copyButton.isEnabled = !result.segments.isEmpty
-                statusLabel.stringValue = "Complete — local brief and \(result.segments.count) transcript segments are ready. Identify speakers before exporting.\(archiveMessage)"
+                var autoExportMessage = ""
+                switch MeetingTranscriptAutoExporter.export(result) {
+                case .disabled:
+                    break
+                case .saved(let fileName):
+                    autoExportMessage = " Auto-saved \(fileName)."
+                case .failed(let reason):
+                    autoExportMessage = " Auto-save failed: \(reason)."
+                }
+                statusLabel.stringValue = "Complete — local brief and \(result.segments.count) transcript segments are ready. Identify speakers before exporting.\(archiveMessage)\(autoExportMessage)"
             } catch {
                 statusLabel.stringValue = "Meeting transcription failed: \(error.localizedDescription)"
                 transcriptEmptyState.isHidden = true
@@ -383,6 +410,38 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func saveAudioChanged() {
         Settings.saveMeetingAudio = saveAudioCheckbox.state == .on
+    }
+
+    @objc private func autoExportChanged() {
+        Settings.meetingAutoExportEnabled = autoExportCheckbox.state == .on
+        chooseAutoExportFolderButton.isEnabled = autoExportCheckbox.state == .on
+        if autoExportCheckbox.state == .on, Settings.meetingAutoExportFolderPath == nil {
+            chooseAutoExportFolder()
+        }
+        updateAutoExportFolderLabel()
+    }
+
+    @objc private func chooseAutoExportFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Choose a folder where Kiki should save each meeting's Markdown transcript."
+        panel.prompt = "Choose"
+        if let existing = Settings.meetingAutoExportFolderPath {
+            panel.directoryURL = URL(fileURLWithPath: existing, isDirectory: true)
+        }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Settings.meetingAutoExportFolderPath = url.path
+        updateAutoExportFolderLabel()
+    }
+
+    private func updateAutoExportFolderLabel() {
+        if let path = Settings.meetingAutoExportFolderPath, !path.isEmpty {
+            autoExportFolderLabel.stringValue = path
+        } else {
+            autoExportFolderLabel.stringValue = "No folder selected"
+        }
     }
 
     @objc private func copyTranscript() {
@@ -442,8 +501,6 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func safeFileName(_ value: String) -> String {
-        let cleaned = value.replacingOccurrences(of: "[^A-Za-z0-9._-]+", with: "-", options: .regularExpression)
-        let result = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        return result.isEmpty ? "Kiki-Meeting" : result
+        kikiSafeFileComponent(value, fallback: "Kiki-Meeting")
     }
 }

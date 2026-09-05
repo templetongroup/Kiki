@@ -172,6 +172,19 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "saveMeetingAudio") }
     }
 
+    static var meetingAutoExportEnabled: Bool {
+        get { bool(forKey: "meetingAutoExportEnabled", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "meetingAutoExportEnabled") }
+    }
+
+    /// Absolute path to a folder Kiki should drop a Markdown transcript into
+    /// automatically once a meeting finishes transcribing, so a meeting can
+    /// be captured without an explicit Export step each time.
+    static var meetingAutoExportFolderPath: String? {
+        get { UserDefaults.standard.string(forKey: "meetingAutoExportFolderPath") }
+        set { UserDefaults.standard.set(newValue, forKey: "meetingAutoExportFolderPath") }
+    }
+
     static var microphoneDeviceUID: String? {
         get { UserDefaults.standard.string(forKey: "microphoneDeviceUID") }
         set { UserDefaults.standard.set(newValue, forKey: "microphoneDeviceUID") }
