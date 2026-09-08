@@ -726,7 +726,7 @@ final class DictationController {
     private func showListeningPresentation() {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showListening()
-        case .waveform: hud.showWaveform(samples: [], reset: true)
+        case .waveform: hud.showWaveform(samples: [], reset: true, state: .idle)
         case .signalMeter: hud.showSignalMeter(samples: [], reset: true)
         case .hidden: hud.hide()
         }
@@ -735,7 +735,7 @@ final class DictationController {
     private func showTranscribingPresentation(transcript: String? = nil) {
         switch Settings.listeningDisplayMode {
         case .fullTranscript: hud.showTranscribing(transcript: transcript)
-        case .waveform: hud.showWaveform(samples: [], reset: true)
+        case .waveform: hud.showWaveform(samples: [], reset: true, state: .thinking)
         case .signalMeter: hud.showSignalMeter(samples: [], reset: true)
         case .hidden: hud.hide()
         }

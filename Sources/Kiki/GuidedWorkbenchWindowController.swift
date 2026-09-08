@@ -1,28 +1,28 @@
 import AppKit
 
 enum GuidedWorkbenchSection: String, CaseIterable {
-    case library, voice, personalization, settings
+    case home, library, personalization, settings
 
     var title: String {
         switch self {
+        case .home: "Home"
         case .library: "Transcripts"
-        case .voice: "Voice Studio"
         case .personalization: "Words & Replacements"
         case .settings: "Settings"
         }
     }
     var subtitle: String {
         switch self {
+        case .home: "Setup and quick start"
         case .library: "Recent, record, and import"
-        case .voice: "Create audio in your voice"
         case .personalization: "Spellings and shortcuts"
         case .settings: "Input, privacy, and models"
         }
     }
     var symbol: String {
         switch self {
+        case .home: "house"
         case .library: "text.bubble"
-        case .voice: "waveform.badge.mic"
         case .personalization: "textformat.abc"
         case .settings: "gearshape"
         }
@@ -30,8 +30,8 @@ enum GuidedWorkbenchSection: String, CaseIterable {
     var group: String { "Kiki" }
     var subpages: [String] {
         switch self {
+        case .home: ["Overview"]
         case .library: ["Recent", "Record", "Import Audio"]
-        case .voice: ["Create Audio"]
         case .personalization: ["Replacements", "Vocabulary", "Snippets"]
         case .settings: ["General", "Dictation", "Models", "Privacy", "Private Apps", "Troubleshoot", "Support", "About"]
         }
@@ -76,7 +76,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private var shouldCenterOnFirstShow = true
     private var dictationState: DictationState = .noModel
     private var checkupSnapshot: KikiCheckupSnapshot?
-    private(set) var route = GuidedWorkbenchRoute(section: .library)
+    private(set) var route = GuidedWorkbenchRoute(section: .home)
 
     private static let compactMinimumSize = NSSize(width: 900, height: 650)
 
@@ -213,7 +213,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         let portrait = KikiCircularPortraitView()
         let brandTitle = kikiLabel("Kiki", size: 19, weight: .bold)
         let brandDetail = kikiLabel("VOICE INTELLIGENCE", size: 10, weight: .semibold, color: KikiPalette.tertiaryText)
-        let releaseDetail = kikiLabel("Private voice for Mac", size: 10, weight: .medium, color: KikiPalette.khaki)
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let releaseText = build.isEmpty ? version : "Release \(version) · Build \(build)"
+        let releaseDetail = kikiLabel(releaseText, size: 10, weight: .medium, color: KikiPalette.khaki)
         releaseDetail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.release")
         let brandCopy = NSStackView(views: [brandTitle, brandDetail, releaseDetail])
         brandCopy.orientation = .vertical
@@ -503,10 +506,10 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         guard let window else { return }
         let desired: NSSize
         switch section {
+        case .home:
+            desired = NSSize(width: 1_100, height: 780)
         case .settings:
             desired = Self.compactMinimumSize
-        case .voice:
-            desired = NSSize(width: 1_100, height: 780)
         case .library:
             desired = NSSize(width: 1_160, height: 720)
         case .personalization:

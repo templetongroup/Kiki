@@ -30,12 +30,12 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 - **Transcripts**: recent text history, meeting recording with microphone and Mac audio, and audio-file imports
 - Editable transcripts with copy and export, source labels, speaker editing, and optional meeting-folder auto-export
 - **Words & Replacements**: explicit spelling replacements, approved legacy rules, optional context vocabulary, and voice snippets
-- **Voice Studio**: private voice enrollment, local speech generation, playback, and WAV/M4A export
+- **Guided start**: an orientation home explains setup, the menu-bar workflow, the shortcut, and the first dictation
 - **Settings**: microphone, shortcuts, speech style, local engines, privacy, updates, and troubleshooting
 - Exact Undo Last Dictation, Retry Last Dictation from memory, Escape to cancel, and Private Session
 - Private-app exclusions, secure-field protection, signed automatic updates, and sanitized support bundles
 
-Kiki does not upload recordings, transcripts, dictionary entries, or history. Dictation audio is used in memory and is not added to history. Meeting audio is saved only when requested; Voice Studio keeps its reference sample locally.
+Kiki does not upload recordings, transcripts, dictionary entries, or history. Dictation audio is used in memory and is not added to history. Meeting audio is saved only when requested.
 
 ## Usage
 
@@ -45,12 +45,12 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Di
 - Open **Words & Replacements → Replacements** to enter an exact replacement. Existing dictionary entries and approved rules are shown together. Kiki does not monitor your edits or create a learning inbox.
 - **Vocabulary** imports names and terms only from sources you choose. **Snippets** insert saved text when a dictation exactly matches a trigger; templates support `{{date}}`, `{{time}}`, and `{{clipboard}}`.
 - Use **Start Private Session** in the menu bar to pause dictation history until you end the session or quit. Add private apps with the chooser in **Settings → Private Apps**.
-- **Voice Studio** records a private reference passage and generates speech from typed text after its optional local engine is installed. **Read Selection in My Voice** prefills the script and waits for Generate.
+- The listening orb uses a native Metal port of OrbKit's MIT-licensed SHDR-21 Nimbus renderer, recolored for Kiki and driven by idle, thinking, and speaking states.
 - Use **Help → Troubleshoot Dictation** to test microphone, permissions, model, shortcut, and insertion. **Help → Create Support Bundle…** exports allowlisted technical details without your content.
 
-### Simplified in 0.6.50
+### Focused in 0.6.51
 
-The permanent Home and Dictation pages, Pawprints usage tracking, background confidence comparisons, passive correction learning, and automatic heuristic meeting briefs have been removed. Models live in Settings. Meeting capture and file import share the Transcripts destination. Previously saved transcripts, voice recordings, dictionary entries, and approved rules are preserved; retired data files are not erased.
+Kiki opens to a concise Home guide so a new user knows how setup, the menu bar, the shortcut, dictation, meetings, and audio import fit together. Voice cloning, Pawprints usage tracking, background confidence comparisons, and passive correction learning are not part of the product. Models live in Settings; meeting capture and file import share Transcripts. Previously saved transcripts, dictionary entries, and approved rules are preserved; retired data files are not erased.
 
 ### Performance design
 

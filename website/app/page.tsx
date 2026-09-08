@@ -25,7 +25,7 @@ export default function Home() {
           <p className="eyebrow">Voice intelligence, on your Mac</p>
           <h1>Kiki<br /><em>Private Voice<br />Intelligence.</em></h1>
           <p className="hero-intro">
-            Dictate anywhere, capture meetings, transcribe recordings, and create audio in your own voice without sending a word off your Mac.
+            Dictate anywhere, capture meetings, and transcribe recordings without sending a word off your Mac.
           </p>
           <p className="hero-price"><span aria-hidden="true">✓</span> 100% free</p>
           <div className="hero-actions">
@@ -39,7 +39,7 @@ export default function Home() {
             </a>
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
-          <p className="compatibility">Version 0.6.50 · macOS 14+ · Apple silicon</p>
+          <p className="compatibility">Version 0.6.51 · macOS 14+ · Apple silicon</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -143,7 +143,7 @@ export default function Home() {
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
-            Download Kiki 0.6.50 <span className="button-arrow" aria-hidden="true">↘</span>
+            Download Kiki 0.6.51 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
           <small>63.1 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>

@@ -1,17 +1,13 @@
 # Third-Party Notices
 
-Kiki can download and run third-party speech-recognition and speech-generation models entirely on the user's device.
+Kiki can download and run third-party speech-recognition models entirely on the user's device.
 
-## MLX Audio Swift and MLX Swift
+## OrbKit SHDR-21 Nimbus
 
-Kiki uses [MLX Audio Swift](https://github.com/Blaizzy/mlx-audio-swift) and [MLX Swift](https://github.com/ml-explore/mlx-swift) for local Apple-silicon speech generation. Both projects are distributed under the MIT License.
+Kiki's listening orb is a native Metal port of OrbKit's SHDR-21 Nimbus renderer, recolored for Kiki. OrbKit is copyright Shawn Zhu and is distributed under the MIT License.
 
-## Qwen3-TTS
-
-Kiki Voice Studio can download the `Qwen3-TTS-12Hz-0.6B-Base-8bit` model conversion from the MLX community. Qwen3-TTS is developed by the Qwen team at Alibaba Cloud and distributed under the Apache License 2.0.
-
-- [Qwen3-TTS project and license](https://github.com/QwenLM/Qwen3-TTS)
-- [Kiki's MLX model conversion](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit)
+- [OrbKit state and rendering guide](https://orbkit.zzzzshawn.cloud/llms.txt)
+- [SHDR-21 source](https://orbkit.zzzzshawn.cloud/r/shdr-21.json)
 
 ## FluidAudio
 

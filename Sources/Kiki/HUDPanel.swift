@@ -172,7 +172,7 @@ final class HUDPanel {
         if needsPresentation { showExpanded() }
     }
 
-    func showWaveform(samples: [Float], reset: Bool = false) {
+    func showWaveform(samples: [Float], reset: Bool = false, state: VoiceOrbState? = nil) {
         let needsPresentation = presentation != .waveform || !panel.isVisible
         presentation = .waveform
         applyAppearance()
@@ -183,7 +183,8 @@ final class HUDPanel {
         signalMeterView.isHidden = true
         signalMeterView.reset()
         if reset { voiceOrbView.reset() }
-        voiceOrbView.update(samples: samples)
+        if let state { voiceOrbView.setState(state) }
+        else { voiceOrbView.update(samples: samples) }
         if needsPresentation { present(width: 136, height: 136) }
     }
 
@@ -380,33 +381,153 @@ enum VoiceLevelMeter {
     }
 }
 
+enum VoiceOrbState: String, CaseIterable {
+    case idle
+    case thinking
+    case speaking
+}
+
+/// Native state driver for OrbKit's idle / thinking / speaking contract.
+/// It preserves OrbKit's synthesized baseline motion, critically damped state
+/// transitions, and integrated clock so changing states never jumps the phase.
 struct VoiceOrbModel {
     static let frameRate: TimeInterval = 60
     static let sensitivityExponent: CGFloat = 0.56
     static let sensitivityGain: CGFloat = 1.25
 
-    private(set) var innerLevel: CGFloat = 0
-    private(set) var outerLevel: CGFloat = 0
-    private var targetLevel: CGFloat = 0
+    private(set) var state: VoiceOrbState = .idle
+    private(set) var inputLevel: Float = 0
+    private(set) var outputLevel: Float = 0.3
+    private(set) var ambient: Float = 0.12
+    private(set) var power: Float = 1.9
+    private(set) var shadowLift: Float = 0.55
+    private(set) var lightColor = SIMD3<Float>(0.906, 0.871, 0.784)
+    private(set) var shadowColor = SIMD3<Float>(0.322, 0.400, 0.239)
+    private(set) var ambientTime: Float = 0
+    private(set) var animationClock: Float = 0
+
+    private var targetInput: Float = 0
+    private var elapsed: Float = 0
+    private var speed: Float = 0.1
+    private var speedVelocity: Float = 0
+    private var ambientVelocity: Float = 0
+    private var powerVelocity: Float = 0
+    private var shadowLiftVelocity: Float = 0
+    private var lightVelocity = SIMD3<Float>(repeating: 0)
+    private var shadowVelocity = SIMD3<Float>(repeating: 0)
+
+    // Kept for the existing real-microphone calibration diagnostics.
+    var innerLevel: CGFloat { CGFloat(inputLevel) }
+    var outerLevel: CGFloat { CGFloat(outputLevel) }
 
     mutating func ingest(samples: [Float]) {
-        let capturedLevel = VoiceLevelMeter.normalizedLevel(for: samples)
-        targetLevel = capturedLevel > 0
-            ? min(1, pow(capturedLevel, Self.sensitivityExponent) * Self.sensitivityGain)
+        let captured = VoiceLevelMeter.normalizedLevel(for: samples)
+        targetInput = captured > 0
+            ? Float(min(1, pow(captured, Self.sensitivityExponent) * Self.sensitivityGain))
             : 0
+        if state != .thinking {
+            state = targetInput > 0.075 ? .speaking : .idle
+        }
     }
 
-    mutating func advanceFrame() {
-        let innerResponse: CGFloat = targetLevel > innerLevel ? 0.30 : 0.12
-        let outerResponse: CGFloat = targetLevel > outerLevel ? 0.18 : 0.075
-        innerLevel += (targetLevel - innerLevel) * innerResponse
-        outerLevel += (targetLevel - outerLevel) * outerResponse
+    mutating func setState(_ state: VoiceOrbState) {
+        self.state = state
+        if state == .thinking { targetInput = 0 }
+    }
+
+    mutating func advanceFrame(dt: Float = Float(1 / frameRate)) {
+        elapsed += dt
+        let targets = targetVolumes(at: elapsed)
+        let volumeEase = 1 - exp(-dt * 12)
+        inputLevel += (targets.input - inputLevel) * volumeEase
+        outputLevel += (targets.output - outputLevel) * volumeEase
+
+        let preset = statePreset
+        (ambient, ambientVelocity) = Self.springStep(ambient, ambientVelocity, preset.ambient, dt)
+        (power, powerVelocity) = Self.springStep(power, powerVelocity, preset.power, dt)
+        (shadowLift, shadowLiftVelocity) = Self.springStep(shadowLift, shadowLiftVelocity, preset.shadowLift, dt)
+        for index in 0..<3 {
+            let lightStep = Self.springStep(
+                lightColor[index], lightVelocity[index], preset.light[index], dt
+            )
+            lightColor[index] = lightStep.0
+            lightVelocity[index] = lightStep.1
+            let shadowStep = Self.springStep(
+                shadowColor[index], shadowVelocity[index], preset.shadow[index], dt
+            )
+            shadowColor[index] = shadowStep.0
+            shadowVelocity[index] = shadowStep.1
+        }
+
+        let targetSpeed = 0.1 + (1 - pow(outputLevel - 1, 2)) * 0.9
+        (speed, speedVelocity) = Self.springStep(speed, speedVelocity, targetSpeed, dt)
+        // SHDR-21 declares speed=10 as an integrated parameter.
+        animationClock += dt * speed * 10
+        ambientTime += dt * 0.5
     }
 
     mutating func reset() {
-        targetLevel = 0
-        innerLevel = 0
-        outerLevel = 0
+        self = VoiceOrbModel()
+    }
+
+    mutating func setDiagnosticClock(_ value: Float) {
+        animationClock = value
+        ambientTime = value * 0.5
+    }
+
+    private func targetVolumes(at time: Float) -> (input: Float, output: Float) {
+        switch state {
+        case .idle:
+            return (targetInput, 0.3)
+        case .thinking:
+            let base = 0.38 + 0.07 * sin(time * 0.7)
+            let wander = 0.05 * sin(time * 2.1) * sin(time * 0.37 + 1.2)
+            return (Self.clamp01(base + wander), Self.clamp01(0.48 + 0.12 * sin(time * 1.05 + 0.6)))
+        case .speaking:
+            let synthesizedInput = Self.clamp01(0.65 + sin(time * 4.8) * 0.22)
+            return (max(targetInput, synthesizedInput), Self.clamp01(0.75 + sin(time * 3.6) * 0.22))
+        }
+    }
+
+    private var statePreset: (
+        ambient: Float,
+        power: Float,
+        shadowLift: Float,
+        light: SIMD3<Float>,
+        shadow: SIMD3<Float>
+    ) {
+        // OrbKit's SHDR-21 numeric presets, recolored with Templeton's bone,
+        // khaki, sage, mineral, and moss palette.
+        switch state {
+        case .idle:
+            return (0.12, 1.9, 0.55, SIMD3(0.906, 0.871, 0.784), SIMD3(0.322, 0.400, 0.239))
+        case .thinking:
+            return (0.22, 2.15, 0.65, SIMD3(0.655, 0.753, 0.502), SIMD3(0.337, 0.380, 0.337))
+        case .speaking:
+            return (0.46, 3.1, 0.95, SIMD3(0.906, 0.871, 0.784), SIMD3(0.420, 0.405, 0.270))
+        }
+    }
+
+    private static func springStep(
+        _ value: Float,
+        _ velocity: Float,
+        _ target: Float,
+        _ dt: Float,
+        omega: Float = 4
+    ) -> (Float, Float) {
+        let f = 1 + 2 * dt * omega
+        let omegaSquared = omega * omega
+        let hOmegaSquared = dt * omegaSquared
+        let hhOmegaSquared = dt * hOmegaSquared
+        let inverseDeterminant = 1 / (f + hhOmegaSquared)
+        return (
+            (f * value + dt * velocity + hhOmegaSquared * target) * inverseDeterminant,
+            (velocity + hOmegaSquared * (target - value)) * inverseDeterminant
+        )
+    }
+
+    private static func clamp01(_ value: Float) -> Float {
+        min(1, max(0, value))
     }
 }
 
@@ -561,8 +682,8 @@ final class KikiSignalMeterView: NSView {
 }
 
 @MainActor
-/// A native Metal interpretation of OrbKit's MIT-licensed Hydrogen direction.
-/// Kiki draws its own Templeton-colored material and never embeds the web runtime.
+/// A native Metal port of OrbKit's MIT-licensed SHDR-21 Nimbus renderer.
+/// Source: https://orbkit.zzzzshawn.cloud/r/shdr-21.json
 final class KikiVoiceOrbView: NSView {
     static let preferredSize = NSSize(width: 112, height: 112)
     static let usesTempletonMaterialPalette = true
@@ -571,7 +692,6 @@ final class KikiVoiceOrbView: NSView {
 
     private var model = VoiceOrbModel()
     private var animationTimer: Timer?
-    private var phase: Float = 0
     private var metalDevice: MTLDevice?
     private var commandQueue: MTLCommandQueue?
     private var pipelineState: MTLRenderPipelineState?
@@ -581,12 +701,15 @@ final class KikiVoiceOrbView: NSView {
 
     private struct OrbUniforms {
         var resolution: SIMD2<Float>
-        var time: Float
-        var innerLevel: Float
-        var outerLevel: Float
+        var animationClock: Float
+        var inputLevel: Float
+        var outputLevel: Float
+        var ambient: Float
+        var power: Float
+        var shadowLift: Float
         var motionAmount: Float
-        var paddingA: Float = 0
-        var paddingB: Float = 0
+        var lightColor: SIMD4<Float>
+        var shadowColor: SIMD4<Float>
     }
 
     private static let shaderSource = #"""
@@ -595,12 +718,15 @@ final class KikiVoiceOrbView: NSView {
 
     struct OrbUniforms {
         float2 resolution;
-        float time;
-        float innerLevel;
-        float outerLevel;
+        float animationClock;
+        float inputLevel;
+        float outputLevel;
+        float ambient;
+        float power;
+        float shadowLift;
         float motionAmount;
-        float paddingA;
-        float paddingB;
+        float4 lightColor;
+        float4 shadowColor;
     };
 
     struct RasterData { float4 position [[position]]; };
@@ -614,99 +740,63 @@ final class KikiVoiceOrbView: NSView {
         return out;
     }
 
-    float orbHash(float2 p) {
-        return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
-    }
-
-    float orbNoise(float2 p) {
-        float2 i = floor(p);
-        float2 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        return mix(mix(orbHash(i), orbHash(i + float2(1, 0)), f.x),
-                   mix(orbHash(i + float2(0, 1)), orbHash(i + float2(1, 1)), f.x), f.y);
-    }
-
-    float orbFBM(float2 p) {
-        float value = 0.0;
-        float amplitude = 0.52;
-        for (int octave = 0; octave < 5; octave++) {
-            value += amplitude * orbNoise(p);
-            p = float2(1.62 * p.x - 1.18 * p.y, 1.18 * p.x + 1.62 * p.y) + 0.17;
-            amplitude *= 0.50;
+    float nimbusDensity(float3 p, float animTime, float reactiveDensity) {
+        const float radius = 2.0;
+        float shell = 1.0 - length(p) / radius;
+        if (shell <= 0.0) return 0.0;
+        float3 q = p * 0.8;
+        float f = 1.0;
+        for (int k = 0; k < 4; k++) {
+            q += cos(q.yzx * f + animTime * 0.3) / f;
+            f *= 1.8;
         }
-        return value;
+        float n = (sin(q.x) + sin(q.y) + sin(q.z)) / 3.0 * 0.5 + 0.5;
+        float clump = smoothstep(0.075, 1.0, n);
+        return clump * pow(shell, 0.8) * reactiveDensity;
+    }
+
+    float phaseHG(float c, float g) {
+        float g2 = g * g;
+        return (1.0 - g2) / pow(max(1.0 + g2 - 2.0 * g * c, 0.0001), 1.5);
     }
 
     fragment float4 orbFragment(RasterData in [[stage_in]],
                                 constant OrbUniforms &u [[buffer(0)]]) {
-        float minSide = max(min(u.resolution.x, u.resolution.y), 1.0);
-        float2 uv = (in.position.xy * 2.0 - u.resolution) / minSide;
-        uv.y *= -1.0;
-        float radius = 0.79 + u.outerLevel * 0.12;
-        float distanceFromCenter = length(uv);
-        float pixel = 2.0 / minSide;
-        float sphereMask = 1.0 - smoothstep(radius - pixel * 1.7, radius + pixel * 1.7, distanceFromCenter);
-        float outside = max(distanceFromCenter - radius, 0.0);
-        float auraEdge = 1.0 - smoothstep(radius + 0.02, 1.0, distanceFromCenter);
-        float aura = exp(-outside * outside * 105.0) * auraEdge * (0.18 + u.outerLevel * 0.26);
-
-        if (sphereMask <= 0.001) {
-            float3 auraColor = float3(0.322, 0.400, 0.239) * aura;
-            return float4(auraColor, aura * 0.72);
+        float animTime = u.motionAmount > 0.5 ? u.animationClock : 1.75;
+        float2 uv = (2.0 * in.position.xy - u.resolution) / min(u.resolution.x, u.resolution.y);
+        float3 ro = float3(0.0, 0.0, -4.4);
+        float3 rd = normalize(float3(uv, 1.8));
+        float3 light = normalize(float3(cos(animTime * 0.12) * 0.7, 0.45,
+                                        sin(animTime * 0.12) * 0.35 + 0.65));
+        float phase = phaseHG(dot(rd, light), 0.45);
+        float reactiveDensity = 3.2 * (1.0 + 0.35 * u.inputLevel);
+        float reactivePower = u.power * (0.7 + 0.9 * u.outputLevel);
+        float tStart = 2.4;
+        float dt = 4.0 / 56.0;
+        float transmittance = 1.0;
+        float3 scattered = float3(0.0);
+        for (int i = 0; i < 56; i++) {
+            float t = tStart + (float(i) + 0.5) * dt;
+            float3 p = ro + rd * t;
+            float density = nimbusDensity(p, animTime, reactiveDensity);
+            if (density > 0.001) {
+                float shadow = 1.0;
+                float lightStep = 0.5;
+                for (int k = 1; k <= 4; k++) {
+                    float3 lp = p + light * (float(k) - 0.5) * lightStep;
+                    shadow *= exp(-nimbusDensity(lp, animTime, reactiveDensity) * lightStep * 2.4);
+                }
+                float3 lit = mix(u.shadowColor.rgb * u.shadowLift, u.lightColor.rgb, shadow);
+                scattered += transmittance * density * dt * lit * phase * reactivePower;
+                transmittance *= exp(-density * dt * 1.4);
+                if (transmittance < 0.01) break;
+            }
         }
-
-        float2 dome = uv / radius;
-        float z = sqrt(max(1.0 - dot(dome, dome), 0.0));
-        float3 point = float3(dome.x, dome.y, z);
-        float time = u.time;
-
-        float yaw = time * (0.44 + u.innerLevel * 0.26);
-        float cy = cos(yaw), sy = sin(yaw);
-        point = float3(point.x * cy - point.z * sy, point.y, point.x * sy + point.z * cy);
-        float tilt = sin(time * 0.31) * (0.32 + u.innerLevel * 0.24);
-        float ct = cos(tilt), st = sin(tilt);
-        point = float3(point.x, point.y * ct - point.z * st, point.y * st + point.z * ct);
-
-        float flow = 0.52 + u.innerLevel * 0.82;
-        float n1 = orbFBM(point.xy * (2.2 + u.innerLevel * 0.9) + float2(time * 0.26, -time * 0.19));
-        float n2 = orbFBM(point.yz * 2.5 + float2(-time * 0.21, time * 0.29) + 4.1);
-        float n3 = orbFBM(point.zx * 2.1 + float2(time * 0.17, time * 0.24) + 8.7);
-        float3 warped = point + (float3(n1, n2, n3) - 0.5) * flow;
-
-        float theta = atan2(warped.y, warped.x);
-        float radial = length(warped.xy);
-        float travelling = theta * 3.0 + warped.z * 7.0 + radial * 5.0;
-        float ribbonA = 0.5 + 0.5 * sin(travelling + n1 * 5.2 - time * 1.42);
-        float ribbonB = 0.5 + 0.5 * sin(travelling * 1.37 - n2 * 4.4 + time * 0.93);
-        float ribbonC = 0.5 + 0.5 * sin(theta * 5.0 + n3 * 6.1 - time * 0.67);
-        float probability = smoothstep(0.30, 0.94, ribbonA * 0.48 + ribbonB * 0.34 + ribbonC * 0.18);
-        probability = pow(probability, 0.70 - u.innerLevel * 0.20);
-
-        const float3 charcoal = float3(0.070, 0.076, 0.070);
-        const float3 moss = float3(0.322, 0.400, 0.239);
-        const float3 sage = float3(0.655, 0.753, 0.502);
-        const float3 khaki = float3(0.671, 0.648, 0.502);
-        const float3 bone = float3(0.906, 0.871, 0.784);
-        const float3 mineral = float3(0.565, 0.606, 0.520);
-
-        float palettePhase = 0.5 + 0.5 * sin(travelling * 0.62 + n2 * 3.0 + time * 0.34);
-        float3 flowingColor = mix(moss, sage, palettePhase);
-        flowingColor = mix(flowingColor, khaki, smoothstep(0.58, 0.92, ribbonB));
-        flowingColor = mix(flowingColor, mineral, smoothstep(0.64, 0.96, ribbonC) * 0.52);
-        float3 color = mix(charcoal, moss, 0.30 + n3 * 0.12);
-        color = mix(color, flowingColor, 0.28 + probability * (0.58 + u.innerLevel * 0.12));
-
-        float3 normal = normalize(float3(dome, z));
-        float diffuse = 0.34 + 0.66 * max(dot(normal, normalize(float3(-0.44, 0.62, 0.74))), 0.0);
-        float fresnel = pow(1.0 - z, 2.1);
-        float specular = pow(max(dot(normal, normalize(float3(-0.36, 0.48, 0.80))), 0.0), 24.0);
-        color *= diffuse;
-        color += sage * fresnel * (0.30 + u.outerLevel * 0.28);
-        color += bone * specular * (0.72 + u.innerLevel * 0.38);
-        color += flowingColor * probability * u.innerLevel * 0.24;
-
-        float alpha = sphereMask * (0.92 + probability * 0.08);
-        return float4(color * alpha, alpha);
+        float body = 1.0 - transmittance;
+        scattered += u.shadowColor.rgb * body * u.ambient;
+        float3 color = tanh(scattered);
+        float alpha = clamp(body * 1.5, 0.0, 1.0);
+        return float4(color, alpha);
     }
     """#
 
@@ -728,11 +818,16 @@ final class KikiVoiceOrbView: NSView {
         if layer?.contents == nil { renderFrame() }
     }
 
+    func setState(_ state: VoiceOrbState) {
+        model.setState(state)
+        startAnimating()
+        renderFrame()
+    }
+
     func reset() {
         animationTimer?.invalidate()
         animationTimer = nil
         model.reset()
-        phase = 0
         lastRenderedImage = nil
         layer?.contents = nil
     }
@@ -742,12 +837,7 @@ final class KikiVoiceOrbView: NSView {
         let timer = Timer(timeInterval: 1 / VoiceOrbModel.frameRate, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.model.advanceFrame()
-                if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                    // Keep the surface drift calm and ambient. Voice energy is expressed
-                    // primarily through scale, deformation, and light—not rapid rotation.
-                    self.phase += Float((0.06 + self.model.innerLevel * 0.12) / CGFloat(VoiceOrbModel.frameRate))
-                }
+                if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { self.model.advanceFrame() }
                 self.renderFrame()
             }
         }
@@ -792,10 +882,15 @@ final class KikiVoiceOrbView: NSView {
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else { return nil }
         var uniforms = OrbUniforms(
             resolution: SIMD2(Float(texture.width), Float(texture.height)),
-            time: phase,
-            innerLevel: Float(model.innerLevel),
-            outerLevel: Float(model.outerLevel),
-            motionAmount: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 1
+            animationClock: model.animationClock,
+            inputLevel: model.inputLevel,
+            outputLevel: model.outputLevel,
+            ambient: model.ambient,
+            power: model.power,
+            shadowLift: model.shadowLift,
+            motionAmount: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 1,
+            lightColor: SIMD4(model.lightColor, 1),
+            shadowColor: SIMD4(model.shadowColor, 1)
         )
         encoder.setRenderPipelineState(pipelineState)
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<OrbUniforms>.stride, index: 0)
@@ -857,6 +952,6 @@ final class KikiVoiceOrbView: NSView {
     }
 
     func setDiagnosticPhase(_ value: Float) {
-        phase = value
+        model.setDiagnosticClock(value)
     }
 }

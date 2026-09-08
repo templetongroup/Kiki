@@ -13,7 +13,7 @@ final class GuidedWorkbenchSupportView: NSView {
         addSubview(backdrop)
         let header = headerView(eyebrow: "SUPPORT", title: "Diagnostics without guesswork.", detail: "Create a private support bundle or inspect the local files Kiki manages.")
         let bundle = card(symbol: "shippingbox", title: "Support Bundle", detail: "Collect logs and configuration without transcript text or recordings.", button: "Create Support Bundle", action: #selector(createBundle))
-        let models = card(symbol: "folder", title: "Models Folder", detail: "Reveal downloaded transcription and voice-engine files in Finder.", button: "Open Models Folder", action: #selector(openModels))
+        let models = card(symbol: "folder", title: "Models Folder", detail: "Reveal downloaded local transcription models in Finder.", button: "Open Models Folder", action: #selector(openModels))
         let updates = card(symbol: "arrow.triangle.2.circlepath", title: "Signed Updates", detail: "Check Kiki’s verified Sparkle release feed.", button: "Check for Updates", action: #selector(checkUpdates))
         let cards = NSStackView(views: [bundle, models, updates])
         cards.orientation = .horizontal
@@ -88,7 +88,7 @@ final class GuidedWorkbenchAboutView: NSView {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         let eyebrow = kikiLabel("ABOUT KIKI", size: 10, weight: .bold, color: KikiPalette.accentText)
         let title = kikiLabel("Voice intelligence that stays yours.", size: 30, weight: .bold)
-        let detail = kikiLabel("Private dictation, transcripts, and voice creation for macOS.", size: 14, color: KikiPalette.secondaryText)
+        let detail = kikiLabel("Private dictation, meeting intelligence, and local transcription for macOS.", size: 14, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 0
         let versionLabel = kikiLabel("Version \(version) · Build \(build) · Fully local", size: 12, weight: .semibold, color: KikiPalette.khaki)
         let checkup = KikiActionButton("Troubleshoot Dictation", kind: .primary, target: self, action: #selector(runCheckup))
@@ -120,7 +120,7 @@ final class GuidedWorkbenchAboutView: NSView {
         ])
         let changes = KikiCardView()
         let changesTitle = kikiLabel("Built for the real world", size: 18, weight: .semibold)
-        let changesCopy = kikiLabel("Four destinations keep Kiki focused: Transcripts, Voice Studio, Words & Replacements, and Settings. Dictate in any app with your shortcut; record or import audio when you need a transcript.", size: 13, color: KikiPalette.secondaryText)
+        let changesCopy = kikiLabel("Home guides setup and daily use. Transcripts handles recordings and meetings; Words & Replacements improves results; Settings controls input, privacy, and local models.", size: 13, color: KikiPalette.secondaryText)
         changesCopy.maximumNumberOfLines = 0
         let changeStack = NSStackView(views: [changesTitle, changesCopy])
         changeStack.orientation = .vertical

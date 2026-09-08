@@ -30,15 +30,6 @@ const features = [
     image: '/product/kiki-file-transcription.png',
     alt: 'Kiki converting a local audio recording into editable text',
   },
-  {
-    id: 'voice',
-    label: 'Voice Studio',
-    title: 'Write it. Hear it in your voice.',
-    copy: 'Record one private reference passage, type your script, and create polished speech with Kiki’s optional on-device voice engine.',
-    proof: 'Your reference voice, text, and generated audio stay on your Mac.',
-    image: '/product/kiki-voice-studio.png',
-    alt: 'Kiki Voice Studio with local voice recording and audio creation controls',
-  },
 ];
 
 export default function FeatureJourney() {

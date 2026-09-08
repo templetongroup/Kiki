@@ -19,7 +19,6 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
 fi
 
 swift build -c release
-./scripts/fetch-mlx-metallib.sh
 
 APP="build/Kiki.app"
 BIN=".build/release/Kiki"
@@ -27,7 +26,6 @@ BIN=".build/release/Kiki"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN" "$APP/Contents/MacOS/Kiki"
-cp build/MLX/mlx.metallib "$APP/Contents/MacOS/mlx.metallib"
 
 if [[ -d ".build/release/Sparkle.framework" ]]; then
     ditto ".build/release/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
@@ -41,7 +39,6 @@ fi
 cp Resources/Kiki.icns "$APP/Contents/Resources/Kiki.icns"
 cp Resources/MenuBarIcon.png "$APP/Contents/Resources/MenuBarIcon.png"
 cp Assets/kiki-portrait.png "$APP/Contents/Resources/SplashArtwork.png"
-cp Assets/kiki-studio-hero.png "$APP/Contents/Resources/VoiceStudioHero.png"
 cp Assets/templeton-technologies-logo.png "$APP/Contents/Resources/TempletonTechnologies.png"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
@@ -153,17 +150,6 @@ if [[ "$RELEASE_BUILD" == "1" ]]; then
         exit 1
     fi
 
-    # Secure timestamping rejects a generic file when its copied mtime is stale.
-    # Refresh the packaged metallib immediately before applying its signature.
-    touch "$APP/Contents/MacOS/mlx.metallib"
-
-    codesign \
-        --force \
-        --sign "$SIGNING_IDENTITY" \
-        --options runtime \
-        --timestamp \
-        "$APP/Contents/MacOS/mlx.metallib"
-
     codesign \
         --force \
         --deep \
@@ -185,12 +171,6 @@ else
         echo "warning: no local signing identity found; using an ad-hoc signature" >&2
         echo "Run ./scripts/setup-local-signing.sh once for stable permission grants." >&2
     fi
-
-    codesign \
-        --force \
-        --sign "$SIGNING_IDENTITY" \
-        --timestamp=none \
-        "$APP/Contents/MacOS/mlx.metallib"
 
     codesign \
         --force \

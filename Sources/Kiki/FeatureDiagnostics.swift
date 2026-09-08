@@ -23,27 +23,9 @@ enum FeatureDiagnostics {
         try checkPhraseBoundaries()
         try checkGuidedWorkbench()
         try checkWindowInteractions()
-        try checkVoiceStudio()
         try checkModelFileIntegrity()
-        try checkVoiceSectionJoining()
     }
 
-    private static func checkVoiceSectionJoining() throws {
-        let first = Array(repeating: Float(0.08), count: 1_000)
-        let second = Array(repeating: Float(0.24), count: 1_000)
-        let joined = VoiceSectionJoiner.joinForDiagnostics([first, second], sampleRate: 1_000)
-        let firstRMS = rms(Array(joined.prefix(700)))
-        let secondRMS = rms(Array(joined.suffix(700)))
-        let loudnessRatio = max(firstRMS, secondRMS) / max(0.000_001, min(firstRMS, secondRMS))
-        let maximumJump = zip(joined, joined.dropFirst()).map { abs($1 - $0) }.max() ?? 0
-        guard loudnessRatio <= 1.25,
-              maximumJump <= 0.04,
-              joined.count < first.count + second.count else {
-            throw failure(
-                "Voice sections must join without loudness jumps ratio=\(loudnessRatio) jump=\(maximumJump) samples=\(joined.count)"
-            )
-        }
-    }
 
     private static func checkModelFileIntegrity() throws {
         let url = temporaryFile("same-size-corrupt-model.bin")
@@ -87,8 +69,8 @@ enum FeatureDiagnostics {
 
     private static func checkGuidedWorkbench() throws {
         let controller = GuidedWorkbenchWindowController()
-        guard controller.route.section == .library,
-              GuidedWorkbenchSection.allCases.count == 4 else { throw failure("transcript-first navigation") }
+        guard controller.route.section == .home,
+              GuidedWorkbenchSection.allCases.count == 4 else { throw failure("orientation-first navigation") }
         controller.onRouteChange = { _ in
             GuidedWorkbenchSurface(view: NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 620)), sizing: .fill)
         }
@@ -155,87 +137,6 @@ enum FeatureDiagnostics {
         }
     }
 
-    static func checkVoiceEnrollment(fullScriptReferenceURL: URL) throws {
-        let expected = try String(contentsOf: fullScriptReferenceURL, encoding: .utf8)
-            .trimmingCharacters(in: .newlines)
-        guard VoiceProfileStore.fullEnrollmentScript == expected,
-              VoiceEnrollmentMode.quick.script == VoiceProfileStore.quickEnrollmentScript,
-              VoiceEnrollmentMode.full.script == expected,
-              VoiceEnrollmentMode.full.minimumDuration > VoiceEnrollmentMode.quick.maximumDuration,
-              VoiceProfileStore.quickEnrollmentScript == "This is my voice, recorded for my private Kiki voice model. On a bright morning, I might speak quickly with excitement. Later, I may slow down to explain a thoughtful idea." else {
-            throw failure("full voice enrollment script")
-        }
-
-        let compatibleProfile = KikiVoiceProfile(
-            name: "Test Voice",
-            transcript: VoiceProfileStore.quickEnrollmentScript,
-            duration: 14,
-            createdAt: Date(),
-            consentVersion: 1,
-            enrollmentMode: .quick
-        )
-        let incompatibleProfile = KikiVoiceProfile(
-            name: "Legacy Voice",
-            transcript: VoiceProfileStore.fullEnrollmentScript,
-            duration: 360,
-            createdAt: Date(),
-            consentVersion: 1,
-            enrollmentMode: .full
-        )
-        guard compatibleProfile.isGenerationCompatible,
-              !incompatibleProfile.isGenerationCompatible else {
-            throw failure("voice generation compatibility")
-        }
-        let normalScript = String(repeating: "A natural sentence should remain in one continuous take. ", count: 16)
-        let longScript = String(repeating: "A much longer script still needs safe processing sections. ", count: 50)
-        guard normalScript.count > 800,
-              LocalVoiceSynthesisEngine.sectionCountForDiagnostics(normalScript) == 1,
-              LocalVoiceSynthesisEngine.sectionCountForDiagnostics(longScript) >= 2 else {
-            throw failure("voice generation section continuity")
-        }
-
-        let controller = VoiceStudioWindowController()
-        guard let contentView = controller.window?.contentView,
-              findView(in: contentView, identifier: "kiki.voice.workflow") is NSStackView,
-              let recordStep = findView(in: contentView, identifier: "kiki.voice.workflow.record"),
-              let engineStep = findView(in: contentView, identifier: "kiki.voice.workflow.engine"),
-              let createStep = findView(in: contentView, identifier: "kiki.voice.workflow.create"),
-              let outputStep = findView(in: contentView, identifier: "kiki.voice.workflow.output"),
-              findView(in: contentView, identifier: "kiki.voice.engine-card") != nil,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-mode") == nil,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-explanation") is NSTextField,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-script") is NSTextView,
-              findView(in: contentView, identifier: "kiki.voice.enrollment-panel") is KikiInsetPanelView,
-              let consent = findView(in: contentView, identifier: "kiki.voice.consent") as? NSButton,
-              let deleteVoice = findButton(in: contentView, title: "Delete Voice"),
-              deleteVoice.layer?.borderWidth == 1,
-              !consent.title.localizedCaseInsensitiveContains("consent"),
-              consent.title.localizedCaseInsensitiveContains("my own voice"),
-              consent.title.localizedCaseInsensitiveContains("private on this Mac") else {
-            throw failure("voice enrollment mode interface")
-        }
-
-        contentView.layoutSubtreeIfNeeded()
-        for step in [recordStep, engineStep, createStep, outputStep] {
-            let stepID = step.identifier?.rawValue ?? ""
-            guard let badge = findView(in: step, identifier: "\(stepID).badge"),
-                  let copy = findView(in: step, identifier: "\(stepID).copy"),
-                  let glyph = findView(in: badge, identifier: "kiki.voice.workflow.badge.glyph") else {
-                throw failure("Voice Studio workflow step structure")
-            }
-            let badgeFrame = badge.convert(badge.bounds, to: step)
-            let copyFrame = copy.convert(copy.bounds, to: step)
-            let glyphFrame = glyph.convert(glyph.bounds, to: badge)
-            guard abs(badge.bounds.width - 22) < 1,
-                  abs(badge.bounds.height - 22) < 1,
-                  abs(badgeFrame.midY - copyFrame.midY) < 1,
-                  abs(badgeFrame.midY - step.bounds.midY) < 1,
-                  abs(glyphFrame.midX - badge.bounds.midX) < 1,
-                  abs(glyphFrame.midY - badge.bounds.midY) < 1 else {
-                throw failure("Voice Studio workflow badges and copy must share a centered alignment")
-            }
-        }
-    }
 
     static func checkWaveformAudio(referenceURL: URL) throws {
         let samples = try AudioFileLoader.load16kMono(url: referenceURL)
@@ -264,41 +165,6 @@ enum FeatureDiagnostics {
         else { throw failure("waveform real-voice headroom") }
     }
 
-    static func checkVoiceStudioHero(referenceURL: URL) throws {
-        guard let referenceImage = NSImage(contentsOf: referenceURL),
-              let referenceData = referenceImage.tiffRepresentation else {
-            throw failure("voice studio hero reference")
-        }
-
-        let controller = VoiceStudioWindowController()
-        guard let contentView = controller.window?.contentView,
-              let heroView = findView(in: contentView, identifier: "kiki.voice.studio-hero"),
-              let artworkView = findView(
-                  in: contentView,
-                  identifier: "kiki.voice.studio-hero-artwork"
-              ) as? KikiDecorativeImageView,
-              !artworkView.isAccessibilityElement(),
-              let copyView = findView(in: contentView, identifier: "kiki.voice.studio-hero-copy"),
-              let renderedData = artworkView.image?.tiffRepresentation,
-              renderedData == referenceData else {
-            throw failure("voice studio hero artwork")
-        }
-
-        contentView.layoutSubtreeIfNeeded()
-        let heroFrame = heroView.convert(heroView.bounds, to: contentView)
-        let artworkFrame = artworkView.convert(artworkView.bounds, to: contentView)
-        let copyFrame = copyView.convert(copyView.bounds, to: contentView)
-        let artworkRatio = referenceImage.size.width / referenceImage.size.height
-        guard heroFrame.width >= 1_000,
-              heroFrame.height >= 225,
-              artworkRatio >= 2.5,
-              artworkFrame.width >= 610,
-              artworkFrame.height >= 225,
-              copyFrame.minX >= heroFrame.minX,
-              copyFrame.maxX <= heroFrame.midX else {
-            throw failure("voice studio hero layout")
-        }
-    }
 
     private static func checkCorrectionMemory() throws {
         // Older approved app-scoped rules remain readable and retain their scope.
@@ -647,6 +513,7 @@ enum FeatureDiagnostics {
         orbModel.advanceFrame()
         let firstInnerLevel = orbModel.innerLevel
         let firstOuterLevel = orbModel.outerLevel
+        let firstClock = orbModel.animationClock
         orbModel.ingest(samples: forcefulSpeech)
         orbModel.advanceFrame()
         let secondInnerLevel = orbModel.innerLevel
@@ -684,9 +551,10 @@ enum FeatureDiagnostics {
               speakingLevel > conversationalLevel,
               firstInnerLevel > 0,
               firstOuterLevel > 0,
-              firstInnerLevel > firstOuterLevel,
               secondInnerLevel > firstInnerLevel,
               secondOuterLevel > firstOuterLevel,
+              orbModel.state == .speaking,
+              orbModel.animationClock > firstClock,
               firstMeterLevel > 0,
               secondMeterLevel > firstMeterLevel,
               secondMeterLevel - firstMeterLevel > 0.30,
@@ -712,58 +580,6 @@ enum FeatureDiagnostics {
         else { throw failure("listening display modes") }
     }
 
-    private static func checkVoiceStudio() throws {
-        let selectionController = VoiceStudioWindowController()
-        selectionController.prefillForDiagnostics("Read this selection")
-        guard let selectionContent = selectionController.window?.contentView,
-              let selectionEditor = findView(
-                in: selectionContent,
-                identifier: "kiki.voice.generation-editor"
-              ) as? NSTextView,
-              selectionEditor.string == "Read this selection",
-              let consent = findView(
-                in: selectionContent,
-                identifier: "kiki.voice.consent"
-              ) as? NSButton,
-              consent.contentTintColor?.isEqual(KikiPalette.accentText) == true else {
-            throw failure("Read Selection Voice Studio prefill")
-        }
-        let sampleCount = Int(21 * AudioRecorder.sampleRate)
-        let clean = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.08, count: sampleCount))
-        let quiet = VoiceProfileStore.recordingQuality(samples: [Float](repeating: 0.001, count: sampleCount))
-        let mouseDownSelector = #selector(NSResponder.mouseDown(with:))
-        let highlightSelector = #selector(NSButton.highlight(_:))
-        var methodCount: UInt32 = 0
-        let methods = class_copyMethodList(KikiActionButton.self, &methodCount)
-        let overridesMouseDown = methods.map { methods in
-            UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
-                method_getName($0) == mouseDownSelector
-            }
-        } ?? false
-        let overridesHighlight = methods.map { methods in
-            UnsafeBufferPointer(start: methods, count: Int(methodCount)).contains {
-                method_getName($0) == highlightSelector
-            }
-        } ?? false
-        guard clean.canSave, !quiet.canSave, quiet.isTooQuiet else {
-            throw failure("voice studio recording quality")
-        }
-        guard VoiceProfileStore.enrollmentScript.count < 200,
-              !VoiceProfileStore.quickEnrollmentScript.contains("I consent"),
-              VoiceProfileStore.quickEnrollmentScript.contains("private Kiki voice model"),
-              VoiceProfileStore.fullEnrollmentScript.count > VoiceProfileStore.quickEnrollmentScript.count * 8,
-              VoiceModelStore.manifestSize == VoiceModelStore.downloadSize else {
-            throw failure("voice studio enrollment and model manifest")
-        }
-        guard !overridesMouseDown,
-              overridesHighlight,
-              KikiMotion.pressDuration == 0.10,
-              KikiMotion.releaseDuration == 0.14,
-              KikiMotion.stateDuration == 0.14,
-              KikiMotion.pressedScale == 0.985 else {
-            throw failure("action buttons must keep native tracking with restrained shared motion")
-        }
-    }
 
     private static func checkWindowInteractions() throws {
         guard WorkbenchTabTraversal.direction(for: []) == .forward,
@@ -1101,7 +917,6 @@ enum FeatureDiagnostics {
             checkboxSettings,
             checkup,
             WhatsNewWindowController(),
-            VoiceStudioWindowController(),
             meetingWindow,
             speakerEditor,
             personalization,

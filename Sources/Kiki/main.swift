@@ -1,8 +1,5 @@
 import AppKit
 import AVFoundation
-import MLX
-import MLXAudioCore
-import MLXAudioTTS
 
 MetalResources.configure()
 
@@ -15,65 +12,6 @@ MainActor.assumeIsolated {
     ApplicationMenu.install()
 }
 
-if args.count >= 5, args[1] == "--analyze-voice-consistency" {
-    let audioURL = URL(fileURLWithPath: args[2])
-    let boundaries = args[3...].compactMap(Double.init)
-    Task {
-        do {
-            let model = try await Qwen3TTSModel.fromModelDirectory(VoiceModelStore.directory)
-            let (_, audio) = try loadAudioArray(from: audioURL, sampleRate: model.sampleRate)
-            let totalFrames = audio.dim(0)
-            let frameBoundaries = [0]
-                + boundaries.map { min(totalFrames, max(0, Int($0 * Double(model.sampleRate)))) }
-                + [totalFrames]
-            var embeddings: [[Float]] = []
-            var levels: [Double] = []
-            for index in 0..<(frameBoundaries.count - 1) {
-                let section = audio[frameBoundaries[index]..<frameBoundaries[index + 1]]
-                let samples = section.asArray(Float.self)
-                let meanSquare = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(max(1, samples.count))
-                levels.append(20 * log10(max(1e-12, sqrt(meanSquare))))
-                let conditioning = try model.prepareReferenceConditioning(
-                    refAudio: section,
-                    refText: "Voice consistency diagnostic.",
-                    language: "English"
-                )
-                guard let embedding = conditioning.speakerEmbedding else {
-                    throw KikiError("The voice model did not produce a speaker embedding.")
-                }
-                embeddings.append(embedding.asArray(Float.self))
-            }
-            func cosine(_ lhs: [Float], _ rhs: [Float]) -> Double {
-                let dot = zip(lhs, rhs).reduce(0.0) { $0 + Double($1.0 * $1.1) }
-                let leftNorm = sqrt(lhs.reduce(0.0) { $0 + Double($1 * $1) })
-                let rightNorm = sqrt(rhs.reduce(0.0) { $0 + Double($1 * $1) })
-                return dot / max(1e-12, leftNorm * rightNorm)
-            }
-            for index in levels.indices {
-                print("section \(index + 1): \(String(format: "%.2f", levels[index])) dBFS")
-            }
-            var similarities: [Double] = []
-            for index in 0..<(embeddings.count - 1) {
-                let value = cosine(embeddings[index], embeddings[index + 1])
-                similarities.append(value)
-                print("voice \(index + 1)-\(index + 2): \(String(format: "%.4f", value))")
-            }
-            let levelSpread = (levels.max() ?? 0) - (levels.min() ?? 0)
-            let minimumSimilarity = similarities.min() ?? 1
-            print("level spread: \(String(format: "%.2f", levelSpread)) dB")
-            if levelSpread > 1 || minimumSimilarity < 0.95 {
-                fputs("FAIL: generated sections are acoustically inconsistent\n", stderr)
-                exit(1)
-            }
-            print("PASS: generated sections are acoustically consistent")
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-    RunLoop.main.run()
-}
 if args.count >= 3, args[1] == "--render-product-screens" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
@@ -116,17 +54,6 @@ if args.count >= 3, args[1] == "--render-product-screens" {
     }
 }
 
-if args.count >= 2, args[1] == "--preview-voice-studio" {
-    MainActor.assumeIsolated {
-        let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
-        app.finishLaunching()
-        AppearanceController.apply()
-        let controller = VoiceStudioWindowController()
-        controller.show()
-        app.run()
-    }
-}
 
 if args.count >= 2, args[1] == "--preview-file-transcription" {
     MainActor.assumeIsolated {
@@ -248,37 +175,6 @@ if args.count >= 3, args[1] == "--self-test-splash-artwork" {
     }
 }
 
-if args.count >= 3, args[1] == "--self-test-voice-studio-hero" {
-    MainActor.assumeIsolated {
-        do {
-            _ = NSApplication.shared
-            try FeatureDiagnostics.checkVoiceStudioHero(
-                referenceURL: URL(fileURLWithPath: args[2])
-            )
-            print("Kiki Voice Studio hero diagnostic passed")
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-}
-
-if args.count >= 3, args[1] == "--self-test-voice-enrollment" {
-    MainActor.assumeIsolated {
-        do {
-            _ = NSApplication.shared
-            try FeatureDiagnostics.checkVoiceEnrollment(
-                fullScriptReferenceURL: URL(fileURLWithPath: args[2])
-            )
-            print("Kiki voice enrollment diagnostic passed")
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-}
 
 if args.count >= 3, args[1] == "--self-test-waveform-audio" {
     MainActor.assumeIsolated {
@@ -295,67 +191,12 @@ if args.count >= 3, args[1] == "--self-test-waveform-audio" {
     }
 }
 
-if args.count >= 3, args[1] == "--create-local-voice-profile" {
-    do {
-        let source = URL(fileURLWithPath: args[2])
-        let samples = try AudioFileLoader.load16kMono(url: source)
-        let quality = VoiceProfileStore.recordingQuality(samples: samples)
-        guard quality.canSave else { throw KikiError(quality.message) }
-        let profile = try VoiceProfileStore.save(samples: samples, name: args.count >= 4 ? args[3] : "My Voice")
-        print("Saved \(profile.name) at \(VoiceProfileStore.referenceAudioURL.path)")
-        exit(0)
-    } catch {
-        fputs("Error: \(error)\n", stderr)
-        exit(1)
-    }
-}
-
-if args.count >= 2, args[1] == "--download-local-voice-model" {
-    Task { @MainActor in
-        do {
-            var lastPercent = -1
-            try await VoiceModelStore.download { progress in
-                let percent = Int((progress.fraction * 100).rounded())
-                if percent >= lastPercent + 5 || (percent == 100 && lastPercent != 100) {
-                    lastPercent = percent
-                    print("Local voice model: \(percent)%")
-                }
-            }
-            print("Local voice model ready at \(VoiceModelStore.directory.path)")
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-    RunLoop.main.run()
-}
-
-if args.count >= 3, args[1] == "--synthesize-local-voice" {
-    Task { @MainActor in
-        do {
-            guard let profile = VoiceProfileStore.load() else {
-                throw KikiError("No local Kiki voice profile is installed.")
-            }
-            let engine = LocalVoiceSynthesisEngine()
-            let output = try await engine.synthesize(text: args[2], profile: profile) { progress in
-                print("Generated section \(progress.completedChunks)/\(progress.totalChunks)")
-            }
-            print(output.path)
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-    RunLoop.main.run()
-}
 
 if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, selection, replacements, meetings, voice orb, signal meter, and Voice Studio")
+            print("Kiki feature diagnostics passed: onboarding, checkup, undo/retry, privacy, support, selection, replacements, meetings, voice orb, and signal meter")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
@@ -400,8 +241,11 @@ if args.count >= 3, args[1] == "--render-voice-orb" {
             let contour = 0.45 + 0.55 * abs(sin(Float(index) * 0.037))
             return Float(0.72) * carrier * contour
         }
-        view.update(samples: samples)
-        if args.count >= 4, let diagnosticPhase = Float(args[3]) {
+        let requestedState = args.count >= 4 ? VoiceOrbState(rawValue: args[3]) : nil
+        if requestedState == .speaking { view.update(samples: samples) }
+        else { view.setState(requestedState ?? .idle) }
+        let phaseArgument = requestedState == nil ? 3 : 4
+        if args.count > phaseArgument, let diagnosticPhase = Float(args[phaseArgument]) {
             view.setDiagnosticPhase(diagnosticPhase)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
@@ -489,28 +333,6 @@ if args.count >= 2, args[1] == "--preview-model-preparation" {
     }
 }
 
-if args.count >= 3, args[1] == "--self-test-voice-generation-routing" {
-    let requestedText = args[2]
-    Task {
-        do {
-            guard let profile = VoiceProfileStore.load() else {
-                throw KikiError("No saved voice profile is available for the routing diagnostic.")
-            }
-            let engine = LocalVoiceSynthesisEngine()
-            let startedAt = Date()
-            let output = try await engine.synthesize(text: requestedText, profile: profile) { progress in
-                fputs("Progress \(progress.completedChunks)/\(progress.totalChunks)\n", stderr)
-            }
-            fputs("Elapsed: \(Date().timeIntervalSince(startedAt))s\n", stderr)
-            print(output.path)
-            exit(0)
-        } catch {
-            fputs("Error: \(error)\n", stderr)
-            exit(1)
-        }
-    }
-    RunLoop.main.run()
-}
 
 if args.count >= 2, args[1] == "--preview-checkup-model-preparation" {
     MainActor.assumeIsolated {

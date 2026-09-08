@@ -28,7 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkupShortcutArmed = false
     private var checkupPracticeArmed = false
     private var embeddedViews: [ObjectIdentifier: NSView] = [:]
-    private var pendingVoicePrefill: String?
     private var settingsWindowHasLoaded = false
     private lazy var settingsWindow: SettingsWindowController = {
         settingsWindowHasLoaded = true
@@ -84,12 +83,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         return window
     }()
-    private lazy var voiceStudioWindow: VoiceStudioWindowController = {
-        let window = VoiceStudioWindowController()
-        window.onCaptureStateChange = { [weak self] active in
-            self?.controller.setMeetingCaptureActive(active)
-        }
-        return window
+    private lazy var workbenchHomeView: GuidedWorkbenchHomeView = {
+        let view = GuidedWorkbenchHomeView()
+        view.onRunSetup = { [weak self] in self?.openCheckup() }
+        view.onStartDictation = { [weak self] in self?.toggleDictation() }
+        view.onOpenMeeting = { [weak self] in self?.openMeetingMode() }
+        view.onOpenAudioFile = { [weak self] in self?.openFileTranscription() }
+        return view
     }()
     private lazy var fileTranscriptionWindow: FileTranscriptionWindowController = {
         let window = FileTranscriptionWindowController()
@@ -230,12 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             || NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier
         if shouldOpenWorkbench {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                self?.openWorkbench(section: .library)
-            }
-        }
-        if ProcessInfo.processInfo.environment["KIKI_OPEN_VOICE_STUDIO"] == "1" {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                self?.openVoiceStudio()
+                self?.openWorkbench(section: .home)
             }
         }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_CHECKUP"] == "1" {
@@ -272,6 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(stateMenuItem)
         menu.addItem(modelMenuItem)
         menu.addItem(.separator())
+        menu.addItem(menuItem("Open Kiki", symbol: "house", action: #selector(openHome)))
         menu.addItem(menuItem("Open Transcripts", symbol: "rectangle.split.3x1", action: #selector(openTranscripts)))
         menu.addItem(.separator())
         menu.addItem(toggleMenuItem)
@@ -280,8 +276,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(privateSessionMenuItem)
         menu.addItem(.separator())
 
-        menu.addItem(menuItem("Voice Studio", symbol: "waveform.badge.mic", action: #selector(openVoiceStudio)))
-        menu.addItem(menuItem("Read Selection in My Voice", symbol: "speaker.wave.2", action: #selector(readSelectionInMyVoice)))
         menu.addItem(menuItem("Words & Replacements", symbol: "textformat.abc", action: #selector(openPersonalization)))
         menu.addItem(menuItem("Settings", symbol: "gearshape", action: #selector(openSettings), keyEquivalent: ","))
         let help = NSMenuItem(title: "Help", action: nil, keyEquivalent: "")
@@ -393,7 +387,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             sender.activate(ignoringOtherApps: true)
         } else {
-            openWorkbench(section: .library)
+            openWorkbench(section: .home)
         }
         return true
     }
@@ -452,6 +446,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openWorkbench(section: .library)
     }
 
+    @objc private func openHome() {
+        openWorkbench(section: .home)
+    }
+
     @objc private func openWhatsNew() {
         openWorkbench(section: .settings, subpage: 7)
     }
@@ -487,23 +485,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openWorkbench(section: .library, subpage: 1)
     }
 
-    @objc private func openVoiceStudio() {
-        openWorkbench(section: .voice)
-    }
-
-    @objc private func readSelectionInMyVoice() {
-        guard let selection = AppContextSnapshot.selectedTextFromFrontmostApplication() else {
-            let alert = NSAlert()
-            alert.messageText = "Select text first"
-            alert.informativeText = "Highlight text in any accessible app, then choose Read Selection in My Voice again."
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-            return
-        }
-        pendingVoicePrefill = selection
-        openWorkbench(section: .voice)
-    }
-
     @objc private func openTranscripts() { openWorkbench(section: .library) }
 
     private var isCheckupVisible: Bool {
@@ -529,13 +510,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         switch route.section {
-        case .voice:
-            let prefill = pendingVoicePrefill
-            pendingVoicePrefill = nil
-            voiceStudioWindow.prepareForEmbeddedDisplay(prefilledText: prefill)
+        case .home:
             return GuidedWorkbenchSurface(
-                view: embeddedView(for: voiceStudioWindow),
-                sizing: .scroll(NSSize(width: 1_080, height: 1_080))
+                view: workbenchHomeView,
+                sizing: .top(NSSize(width: 920, height: 700))
             )
         case .library:
             switch route.subpage {
@@ -592,8 +570,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let message: String?
         if meetingWindow.preventsWorkbenchClose {
             message = "Stop and transcribe the meeting before closing Kiki."
-        } else if voiceStudioWindow.preventsWorkbenchClose {
-            message = "Stop the voice recording before closing Kiki."
         } else {
             message = nil
         }
@@ -655,6 +631,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             firstDictationCompleted: Settings.checkupFirstDictationCompleted
         )
         workbenchWindow.updateCheckupSnapshot(snapshot)
+        workbenchHomeView.update(snapshot: snapshot)
 
         guard isCheckupVisible else { return }
         let microphones = AudioInputDevice.available()

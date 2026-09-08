@@ -12,8 +12,8 @@ APP_BINARY="$APP_BUNDLE/Contents/MacOS/Kiki"
 cd "$PROJECT_ROOT"
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
-KIKI_VERSION="${KIKI_VERSION:-0.6.50}" \
-KIKI_BUILD_NUMBER="${KIKI_BUILD_NUMBER:-83}" \
+KIKI_VERSION="${KIKI_VERSION:-0.6.51}" \
+KIKI_BUILD_NUMBER="${KIKI_BUILD_NUMBER:-84}" \
     ./scripts/make-app.sh
 
 open_app() {

@@ -236,7 +236,6 @@ enum KikiCapabilityVisualKind {
     case dictation
     case meeting
     case audioFile
-    case voiceStudio
 }
 
 @MainActor
@@ -268,7 +267,6 @@ final class KikiCapabilityGlyphView: NSView {
         case .dictation: drawWaveform()
         case .meeting: drawMeeting()
         case .audioFile: drawFiles()
-        case .voiceStudio: drawVoice()
         }
     }
 
@@ -312,25 +310,6 @@ final class KikiCapabilityGlyphView: NSView {
         line.stroke()
     }
 
-    private func drawVoice() {
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let ring = NSBezierPath(ovalIn: CGRect(x: center.x - 8, y: center.y - 8, width: 16, height: 16))
-        ring.lineWidth = 1
-        KikiPalette.accentText.withAlphaComponent(0.55).setStroke()
-        ring.stroke()
-        for index in 0..<12 {
-            let angle = CGFloat(index) / 12 * .pi * 2
-            let point = CGPoint(x: center.x + cos(angle) * 8, y: center.y + sin(angle) * 8)
-            let size: CGFloat = index % 3 == 0 ? 2.3 : 1.5
-            (index % 4 == 0 ? KikiPalette.khaki : KikiPalette.accentText).setFill()
-            NSBezierPath(ovalIn: CGRect(x: point.x - size / 2, y: point.y - size / 2, width: size, height: size)).fill()
-        }
-        for (index, height) in [6, 11, 6].enumerated() {
-            let rect = CGRect(x: 12 + CGFloat(index) * 3, y: center.y - CGFloat(height) / 2, width: 1.7, height: CGFloat(height))
-            KikiPalette.accentText.setFill()
-            NSBezierPath(roundedRect: rect, xRadius: 0.85, yRadius: 0.85).fill()
-        }
-    }
 }
 
 @MainActor
