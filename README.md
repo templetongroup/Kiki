@@ -128,3 +128,7 @@ The Kiki and Templeton Technologies names, logos, and other brand assets are not
 ## Feature freeze
 
 Public-release scope is frozen. New product ideas stay out of the release branch until the signed, notarized, updater-delivered build passes the source, packaged-app, installed-app, permission, shortcut, dictation, export, privacy, and control-click gates in `PUBLIC_RELEASE_CHECKLIST.md`.
+
+### Layout correction in 0.6.52
+
+Setup step numbers are centered inside their badges. The Home meeting description now matches transcript editing and export.

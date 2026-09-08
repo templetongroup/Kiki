@@ -123,7 +123,7 @@ final class GuidedWorkbenchHomeView: NSView {
         let meeting = workflowCard(
             kind: .meeting,
             title: "Capture a meeting",
-            detail: "Record a conversation, then review its transcript, summary, and next steps.",
+            detail: "Record a conversation, then review, edit, or export its transcript.",
             actionTitle: "Capture Meeting",
             identifier: "meeting",
             action: #selector(openMeeting)
@@ -168,10 +168,18 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     private func setupStep(_ number: Int, title: String, detail: String) -> NSView {
-        let badge = NSTextField(labelWithString: "\(number)")
-        badge.alignment = .center
-        badge.font = .monospacedDigitSystemFont(ofSize: 12, weight: .bold)
-        badge.textColor = KikiPalette.accentText
+        let badge = NSView()
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        let numeral = NSTextField(labelWithString: "\(number)")
+        numeral.translatesAutoresizingMaskIntoConstraints = false
+        numeral.alignment = .center
+        numeral.font = .monospacedDigitSystemFont(ofSize: 12, weight: .bold)
+        numeral.textColor = KikiPalette.accentText
+        badge.addSubview(numeral)
+        NSLayoutConstraint.activate([
+            numeral.centerXAnchor.constraint(equalTo: badge.centerXAnchor),
+            numeral.centerYAnchor.constraint(equalTo: badge.centerYAnchor),
+        ])
         badge.wantsLayer = true
         badge.layer?.cornerRadius = 13
         badge.layer?.borderWidth = 1
