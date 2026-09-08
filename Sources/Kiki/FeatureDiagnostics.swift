@@ -747,14 +747,14 @@ enum FeatureDiagnostics {
     static func checkWaveformAudio(referenceURL: URL) throws {
         let samples = try AudioFileLoader.load16kMono(url: referenceURL)
         let chunkSize = 341
-        var haloModel = VoiceHaloModel()
+        var orbModel = VoiceOrbModel()
         var renderedLevels: [CGFloat] = []
         let levels = stride(from: 0, through: max(0, samples.count - chunkSize), by: chunkSize)
             .map { start -> CGFloat in
                 let chunk = Array(samples[start..<(start + chunkSize)])
-                haloModel.ingest(samples: chunk)
-                haloModel.advanceFrame()
-                renderedLevels.append(haloModel.innerLevel)
+                orbModel.ingest(samples: chunk)
+                orbModel.advanceFrame()
+                renderedLevels.append(orbModel.innerLevel)
                 return VoiceLevelMeter.normalizedLevel(for: chunk)
             }
             .filter { $0 > 0 }
@@ -1294,15 +1294,15 @@ enum FeatureDiagnostics {
         }
         let normalSpeechLevel = VoiceLevelMeter.normalizedLevel(for: normalSpeech)
         let forcefulSpeechLevel = VoiceLevelMeter.normalizedLevel(for: forcefulSpeech)
-        var haloModel = VoiceHaloModel()
-        haloModel.ingest(samples: normalSpeech)
-        haloModel.advanceFrame()
-        let firstInnerLevel = haloModel.innerLevel
-        let firstOuterLevel = haloModel.outerLevel
-        haloModel.ingest(samples: forcefulSpeech)
-        haloModel.advanceFrame()
-        let secondInnerLevel = haloModel.innerLevel
-        let secondOuterLevel = haloModel.outerLevel
+        var orbModel = VoiceOrbModel()
+        orbModel.ingest(samples: normalSpeech)
+        orbModel.advanceFrame()
+        let firstInnerLevel = orbModel.innerLevel
+        let firstOuterLevel = orbModel.outerLevel
+        orbModel.ingest(samples: forcefulSpeech)
+        orbModel.advanceFrame()
+        let secondInnerLevel = orbModel.innerLevel
+        let secondOuterLevel = orbModel.outerLevel
         var signalMeterModel = SignalMeterModel()
         signalMeterModel.ingest(samples: normalSpeech)
         signalMeterModel.advanceFrame()
@@ -1348,18 +1348,16 @@ enum FeatureDiagnostics {
               variedMeterModel.levels.count == SignalMeterModel.barCount,
               variedMeterSpread > 0.25,
               AudioRecorder.captureInterval(inputSampleRate: 48_000) <= 1.0 / 30.0,
-              VoiceHaloModel.frameRate == 30,
+              VoiceOrbModel.frameRate == 30,
               SignalMeterModel.frameRate == 30,
               normalSpeechLevel < 0.40,
               forcefulSpeechLevel > 0.65,
               forcefulSpeechLevel < 0.85,
-              HUDPanel.voiceHaloUsesClearSurface,
-              KikiVoiceHaloView.ringCount == 2,
-              KikiVoiceHaloView.usesTempletonSwirl,
-              KikiVoiceHaloView.preferredSize == NSSize(width: 58, height: 58),
-              KikiVoiceHaloView.restingOuterRingAlpha >= 0.35,
-              KikiVoiceHaloView.restingInnerRingAlpha >= 0.50,
-              KikiVoiceHaloView.ringSeparationAlpha >= 0.65,
+              HUDPanel.voiceOrbUsesClearSurface,
+              KikiVoiceOrbView.usesTempletonMaterialPalette,
+              KikiVoiceOrbView.preferredSize == NSSize(width: 64, height: 64),
+              KikiVoiceOrbView.minimumDiameter == 45,
+              KikiVoiceOrbView.maximumDiameter == 51,
               KikiSignalMeterView.barCount == 7,
               KikiSignalMeterView.usesBottomBaseline,
               KikiSignalMeterView.preferredSize == NSSize(width: 94, height: 40)

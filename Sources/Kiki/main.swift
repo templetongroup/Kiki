@@ -379,7 +379,7 @@ if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice halo, signal meter, and Voice Studio")
+            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice orb, signal meter, and Voice Studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
@@ -408,6 +408,40 @@ if args.count >= 2, args[1] == "--preview-waveform" {
             MainActor.assumeIsolated {
                 previewIndex = (previewIndex + 1) % previewLevels.count
                 hud.showWaveform(samples: previewSamples(previewLevels[previewIndex]))
+            }
+        }
+        app.run()
+    }
+}
+
+if args.count >= 3, args[1] == "--render-voice-orb" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        AppearanceController.apply()
+        let view = KikiVoiceOrbView(frame: NSRect(origin: .zero, size: KikiVoiceOrbView.preferredSize))
+        let samples = (0..<760).map { index in
+            let carrier = sin(Float(index) * 0.31)
+            let contour = 0.45 + 0.55 * abs(sin(Float(index) * 0.037))
+            return Float(0.72) * carrier * contour
+        }
+        view.update(samples: samples)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                fputs("Error: could not create voice orb bitmap\n", stderr)
+                exit(1)
+            }
+            view.cacheDisplay(in: view.bounds, to: representation)
+            guard let png = representation.representation(using: .png, properties: [:]) else {
+                fputs("Error: could not encode voice orb PNG\n", stderr)
+                exit(1)
+            }
+            do {
+                try png.write(to: URL(fileURLWithPath: args[2]), options: .atomic)
+                print(args[2])
+                exit(0)
+            } catch {
+                fputs("Error: \(error)\n", stderr)
+                exit(1)
             }
         }
         app.run()
@@ -577,7 +611,7 @@ if args.count >= 2, args[1] == "--self-test-hud" {
                         fputs("Error: Kiki listening display did not hide.\n", stderr)
                         exit(1)
                     }
-                    print("Kiki listening displays passed: model download, model loading, transcript, voice halo, signal meter, hidden")
+                    print("Kiki listening displays passed: model download, model loading, transcript, voice orb, signal meter, hidden")
                     exit(0)
                 }
             }

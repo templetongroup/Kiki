@@ -4,7 +4,7 @@ import CoreGraphics
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
 final class HUDPanel {
-    static let voiceHaloUsesClearSurface = true
+    static let voiceOrbUsesClearSurface = true
 
     private let panel: NSPanel
     private let effect: NSView
@@ -12,7 +12,7 @@ final class HUDPanel {
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
     private let modelProgress = NSProgressIndicator()
-    private let voiceHaloView = KikiVoiceHaloView()
+    private let voiceOrbView = KikiVoiceOrbView()
     private let signalMeterView = KikiSignalMeterView()
     private let textStack = NSStackView()
     private var hasLogo = false
@@ -79,9 +79,9 @@ final class HUDPanel {
         textStack.alignment = .leading
         textStack.spacing = 2
 
-        voiceHaloView.isHidden = true
+        voiceOrbView.isHidden = true
         signalMeterView.isHidden = true
-        let content = NSStackView(views: [logoView, textStack, voiceHaloView, signalMeterView])
+        let content = NSStackView(views: [logoView, textStack, voiceOrbView, signalMeterView])
         content.orientation = .horizontal
         content.alignment = .centerY
         content.spacing = 10
@@ -91,8 +91,8 @@ final class HUDPanel {
             logoView.widthAnchor.constraint(equalToConstant: 34),
             logoView.heightAnchor.constraint(equalToConstant: 34),
             transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
-            voiceHaloView.widthAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.width),
-            voiceHaloView.heightAnchor.constraint(equalToConstant: KikiVoiceHaloView.preferredSize.height),
+            voiceOrbView.widthAnchor.constraint(equalToConstant: KikiVoiceOrbView.preferredSize.width),
+            voiceOrbView.heightAnchor.constraint(equalToConstant: KikiVoiceOrbView.preferredSize.height),
             signalMeterView.widthAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.width),
             signalMeterView.heightAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.height),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
@@ -108,8 +108,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        voiceHaloView.isHidden = true
-        voiceHaloView.reset()
+        voiceOrbView.isHidden = true
+        voiceOrbView.reset()
         signalMeterView.isHidden = true
         signalMeterView.reset()
         statusLabel.stringValue = text
@@ -126,8 +126,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        voiceHaloView.isHidden = true
-        voiceHaloView.reset()
+        voiceOrbView.isHidden = true
+        voiceOrbView.reset()
         signalMeterView.isHidden = true
         signalMeterView.reset()
         statusLabel.stringValue = status.compactTitle
@@ -157,8 +157,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        voiceHaloView.isHidden = true
-        voiceHaloView.reset()
+        voiceOrbView.isHidden = true
+        voiceOrbView.reset()
         signalMeterView.isHidden = true
         signalMeterView.reset()
         statusLabel.stringValue = "Listening"
@@ -177,12 +177,12 @@ final class HUDPanel {
         logoView.isHidden = true
         textStack.isHidden = true
         modelProgress.isHidden = true
-        voiceHaloView.isHidden = false
+        voiceOrbView.isHidden = false
         signalMeterView.isHidden = true
         signalMeterView.reset()
-        if reset { voiceHaloView.reset() }
-        voiceHaloView.update(samples: samples)
-        if needsPresentation { present(width: 82, height: 82) }
+        if reset { voiceOrbView.reset() }
+        voiceOrbView.update(samples: samples)
+        if needsPresentation { present(width: 88, height: 88) }
     }
 
     func showSignalMeter(samples: [Float], reset: Bool = false) {
@@ -192,8 +192,8 @@ final class HUDPanel {
         logoView.isHidden = true
         textStack.isHidden = true
         modelProgress.isHidden = true
-        voiceHaloView.isHidden = true
-        voiceHaloView.reset()
+        voiceOrbView.isHidden = true
+        voiceOrbView.reset()
         signalMeterView.isHidden = false
         if reset { signalMeterView.reset() }
         signalMeterView.update(samples: samples)
@@ -205,8 +205,8 @@ final class HUDPanel {
         applyAppearance()
         logoView.isHidden = !hasLogo
         textStack.isHidden = false
-        voiceHaloView.isHidden = true
-        voiceHaloView.reset()
+        voiceOrbView.isHidden = true
+        voiceOrbView.reset()
         signalMeterView.isHidden = true
         signalMeterView.reset()
         statusLabel.stringValue = "Transcribing…"
@@ -332,7 +332,7 @@ final class HUDPanel {
     private func applyAppearance() {
         panel.appearance = Settings.appearanceMode.appearance
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
-            let usesClearSurface = presentation == .waveform && Self.voiceHaloUsesClearSurface
+            let usesClearSurface = presentation == .waveform && Self.voiceOrbUsesClearSurface
             panel.hasShadow = !usesClearSurface
             effect.layer?.backgroundColor = usesClearSurface
                 ? NSColor.clear.cgColor
@@ -349,7 +349,7 @@ final class HUDPanel {
 
     func hide() {
         presentation = nil
-        voiceHaloView.reset()
+        voiceOrbView.reset()
         signalMeterView.reset()
         panel.orderOut(nil)
     }
@@ -378,7 +378,7 @@ enum VoiceLevelMeter {
     }
 }
 
-struct VoiceHaloModel {
+struct VoiceOrbModel {
     static let frameRate: TimeInterval = 30
 
     private(set) var innerLevel: CGFloat = 0
@@ -554,30 +554,28 @@ final class KikiSignalMeterView: NSView {
 }
 
 @MainActor
-final class KikiVoiceHaloView: NSView {
-    static let preferredSize = NSSize(width: 58, height: 58)
-    static let ringCount = 2
-    static let usesTempletonSwirl = true
-    static let restingOuterRingAlpha: CGFloat = 0.36
-    static let restingInnerRingAlpha: CGFloat = 0.52
-    static let maximumOuterRingAlpha: CGFloat = 0.88
-    static let maximumInnerRingAlpha: CGFloat = 0.98
-    static let ringSeparationAlpha: CGFloat = 0.70
+/// A native AppKit interpretation of OrbKit's MIT-licensed Hydrogen direction.
+/// Kiki draws its own Templeton-colored material and never embeds the web runtime.
+final class KikiVoiceOrbView: NSView {
+    static let preferredSize = NSSize(width: 64, height: 64)
+    static let usesTempletonMaterialPalette = true
+    static let minimumDiameter: CGFloat = 45
+    static let maximumDiameter: CGFloat = 51
 
-    private var model = VoiceHaloModel()
+    private var model = VoiceOrbModel()
     private var animationTimer: Timer?
-    private let markView = KikiDecorativeImageView()
+    private var phase: CGFloat = 0
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setAccessibilityElement(false)
-        configureMarkView()
+        wantsLayer = true
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setAccessibilityElement(false)
-        configureMarkView()
+        wantsLayer = true
     }
 
     func update(samples: [Float]) {
@@ -589,15 +587,19 @@ final class KikiVoiceHaloView: NSView {
         animationTimer?.invalidate()
         animationTimer = nil
         model.reset()
+        phase = 0
         needsDisplay = true
     }
 
     private func startAnimating() {
         guard animationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1 / VoiceHaloModel.frameRate, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1 / VoiceOrbModel.frameRate, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.model.advanceFrame()
+                if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                    self.phase += 0.035 + self.model.innerLevel * 0.045
+                }
                 self.needsDisplay = true
             }
         }
@@ -614,96 +616,117 @@ final class KikiVoiceHaloView: NSView {
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let innerLevel = model.innerLevel
         let outerLevel = model.outerLevel
-        let innerRadius: CGFloat = 19.5 + (reduceMotion ? 0 : innerLevel * 2.5)
-        let outerRadius: CGFloat = 24.5 + (reduceMotion ? 0 : outerLevel * 2)
+        let diameter = Self.minimumDiameter
+            + (reduceMotion ? 0 : outerLevel * (Self.maximumDiameter - Self.minimumDiameter))
+        let radius = diameter / 2
 
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            drawRing(
-                centeredAt: center,
-                radius: outerRadius,
-                lineWidth: 1.7 + outerLevel,
-                alpha: Self.restingOuterRingAlpha
-                    + outerLevel * (Self.maximumOuterRingAlpha - Self.restingOuterRingAlpha)
-            )
-            drawRing(
-                centeredAt: center,
-                radius: innerRadius,
-                lineWidth: 2 + innerLevel,
-                alpha: Self.restingInnerRingAlpha
-                    + innerLevel * (Self.maximumInnerRingAlpha - Self.restingInnerRingAlpha)
-            )
-
-            let backingRect = NSRect(x: center.x - 17, y: center.y - 17, width: 34, height: 34)
-            KikiPalette.canvas.withAlphaComponent(0.96).setFill()
-            NSBezierPath(ovalIn: backingRect).fill()
-            KikiPalette.strongStroke.withAlphaComponent(0.86).setStroke()
-            let backingOutline = NSBezierPath(ovalIn: backingRect.insetBy(dx: 0.5, dy: 0.5))
-            backingOutline.lineWidth = 1
-            backingOutline.stroke()
-
-            if markView.image == nil {
-                drawFallbackMark(centeredAt: center)
-            }
+            drawAura(centeredAt: center, radius: radius, level: outerLevel)
+            drawOrb(centeredAt: center, radius: radius, level: innerLevel)
         }
     }
 
-    private func drawRing(centeredAt center: CGPoint, radius: CGFloat, lineWidth: CGFloat, alpha: CGFloat) {
-        let rect = NSRect(
+    private func drawAura(centeredAt center: CGPoint, radius: CGFloat, level: CGFloat) {
+        let auraRadius = radius * (1.16 + level * 0.08)
+        let auraRect = NSRect(
+            x: center.x - auraRadius,
+            y: center.y - auraRadius,
+            width: auraRadius * 2,
+            height: auraRadius * 2
+        )
+        NSGradient(colorsAndLocations:
+            (KikiPalette.accent.withAlphaComponent(0.15 + level * 0.17), 0),
+            (KikiPalette.khaki.withAlphaComponent(0.06 + level * 0.08), 0.54),
+            (NSColor.clear, 1)
+        )?.draw(in: NSBezierPath(ovalIn: auraRect), relativeCenterPosition: .zero)
+    }
+
+    private func drawOrb(centeredAt center: CGPoint, radius: CGFloat, level: CGFloat) {
+        let orbRect = NSRect(
             x: center.x - radius,
             y: center.y - radius,
             width: radius * 2,
             height: radius * 2
         )
-        let ring = NSBezierPath(ovalIn: rect)
-        KikiPalette.canvas.withAlphaComponent(Self.ringSeparationAlpha).setStroke()
-        ring.lineWidth = lineWidth + 1.5
-        ring.stroke()
-        KikiPalette.accentText.withAlphaComponent(alpha).setStroke()
-        ring.lineWidth = lineWidth
-        ring.stroke()
+        let orb = NSBezierPath(ovalIn: orbRect)
+
+        NSGraphicsContext.saveGraphicsState()
+        orb.addClip()
+
+        NSGradient(colorsAndLocations:
+            (KikiPalette.onAccentText.withAlphaComponent(0.90), 0),
+            (KikiPalette.khaki.withAlphaComponent(0.88), 0.17),
+            (KikiPalette.accent.withAlphaComponent(0.96), 0.43),
+            (KikiPalette.hardwareControl.withAlphaComponent(0.99), 0.76),
+            (KikiPalette.hardwareControl.withAlphaComponent(1), 1)
+        )?.draw(in: orb, relativeCenterPosition: NSPoint(x: -0.52, y: 0.24))
+
+        drawReflectionBands(in: orbRect, level: level)
+
+        let shade = NSGradient(colorsAndLocations:
+            (NSColor.clear, 0),
+            (KikiPalette.canvas.withAlphaComponent(0.08), 0.62),
+            (NSColor.black.withAlphaComponent(0.62), 1)
+        )
+        shade?.draw(in: orb, relativeCenterPosition: NSPoint(x: -0.48, y: 0.46))
+        NSGraphicsContext.restoreGraphicsState()
+
+        drawOrbEdge(orbRect)
+
+        let highlightRadius = radius * 0.34
+        let highlightRect = NSRect(
+            x: orbRect.minX + radius * 0.30,
+            y: orbRect.minY + radius * 0.22,
+            width: highlightRadius * 2,
+            height: highlightRadius * 2
+        )
+        NSGradient(colorsAndLocations:
+            (KikiPalette.onAccentText.withAlphaComponent(0.48 + level * 0.18), 0),
+            (KikiPalette.onAccentText.withAlphaComponent(0.10), 0.38),
+            (NSColor.clear, 1)
+        )?.draw(in: NSBezierPath(ovalIn: highlightRect), relativeCenterPosition: .zero)
     }
 
-    private func drawFallbackMark(centeredAt center: CGPoint) {
-        KikiPalette.accentText.setStroke()
-        for inset in stride(from: CGFloat(0), through: 7, by: 3.5) {
-            let rect = NSRect(x: center.x - 11 + inset, y: center.y - 11 + inset, width: 22 - inset * 2, height: 22 - inset * 2)
-            let arc = NSBezierPath(ovalIn: rect)
-            arc.lineWidth = 2.2
-            arc.stroke()
-        }
+    private func drawOrbEdge(_ orbRect: NSRect) {
+        KikiPalette.canvas.withAlphaComponent(0.96).setStroke()
+        let separation = NSBezierPath(ovalIn: orbRect.insetBy(dx: -0.15, dy: -0.15))
+        separation.lineWidth = 1.20
+        separation.stroke()
+
+        let rim = NSBezierPath(ovalIn: orbRect.insetBy(dx: 0.6, dy: 0.6))
+        rim.lineWidth = 0.60
+        KikiPalette.accentText.withAlphaComponent(0.42).setStroke()
+        rim.stroke()
     }
 
-    private func configureMarkView() {
-        markView.image = Self.loadTempletonMark()
-        markView.imageScaling = .scaleProportionallyUpOrDown
-        markView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(markView)
-        NSLayoutConstraint.activate([
-            markView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            markView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            markView.widthAnchor.constraint(equalToConstant: 26),
-            markView.heightAnchor.constraint(equalToConstant: 26),
-        ])
-    }
-
-    private static func loadTempletonMark() -> NSImage? {
-        guard let url = Bundle.main.url(forResource: "TempletonTechnologies", withExtension: "png"),
-              let image = NSImage(contentsOf: url) else {
-            return nil
-        }
-        let side = min(image.size.height, image.size.width)
-        let sourceRect = NSRect(x: 0, y: 0, width: side, height: side)
-        let mark = NSImage(size: NSSize(width: side, height: side), flipped: false) { destinationRect in
-            image.draw(
-                in: destinationRect,
-                from: sourceRect,
-                operation: .copy,
-                fraction: 1,
-                respectFlipped: true,
-                hints: [.interpolation: NSImageInterpolation.high]
+    private func drawReflectionBands(in rect: NSRect, level: CGFloat) {
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        let colors = [KikiPalette.accentText, KikiPalette.khaki, KikiPalette.magenta]
+        for index in colors.indices {
+            let offset = CGFloat(index - 1) * rect.width * 0.24
+            let drift = sin(phase * (0.72 + CGFloat(index) * 0.11) + CGFloat(index)) * rect.width * 0.08
+            let path = NSBezierPath()
+            path.move(to: CGPoint(x: rect.midX + offset + drift, y: rect.minY - 4))
+            path.curve(
+                to: CGPoint(x: rect.midX - offset * 0.35 - drift, y: rect.maxY + 4),
+                controlPoint1: CGPoint(
+                    x: rect.midX + offset * 0.45 + drift + rect.width * 0.18,
+                    y: rect.minY + rect.height * 0.32
+                ),
+                controlPoint2: CGPoint(
+                    x: rect.midX - offset * 0.20 - drift - rect.width * 0.16,
+                    y: rect.minY + rect.height * 0.70
+                )
             )
-            return true
+            let shadow = NSShadow()
+            shadow.shadowBlurRadius = 4.5 + level * 2.5
+            shadow.shadowColor = colors[index].withAlphaComponent(0.26 + level * 0.22)
+            shadow.shadowOffset = .zero
+            shadow.set()
+            path.lineWidth = rect.width * (index == 1 ? 0.17 : 0.11)
+            colors[index].withAlphaComponent(0.10 + level * 0.10).setStroke()
+            path.stroke()
         }
-        return mark
     }
 }
