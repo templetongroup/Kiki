@@ -53,18 +53,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.checkupInputResponding = false
             self?.refreshCheckup(restartInputMonitor: true)
         }
-        controller.onOpenPersonalization = { [weak self] in
-            self?.openWorkbench(section: .personalization)
+        controller.onOpenPrivateApps = { [weak self] in
+            self?.openWorkbench(section: .settings, subpage: 4)
         }
         return controller
     }()
-    private lazy var dictionaryWindow = CustomDictionaryWindowController()
     private lazy var historyWindow = HistoryWindowController()
-    private lazy var pawprintsWindow = PawprintsWindowController()
     private lazy var personalizationWindow = PersonalizationWindowController()
     private lazy var whatsNewWindow: WhatsNewWindowController = {
         let window = WhatsNewWindowController()
-        window.onExplore = { [weak self] in self?.openCheckup() }
+        window.onExplore = { [weak self] in self?.openTranscripts() }
         return window
     }()
     private lazy var meetingWindow: MeetingWindowController = {
@@ -117,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.togglePracticeDictation()
         }
         window.onOpenModels = { [weak self] in
-            self?.openWorkbench(section: .models)
+            self?.openWorkbench(section: .settings, subpage: 2)
         }
         window.onMicrophoneSelected = { [weak self] uniqueID in
             Settings.microphoneDeviceUID = uniqueID
@@ -133,24 +131,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.checkupPracticeArmed = false
         }
         return window
-    }()
-    private lazy var workbenchHomeView: GuidedWorkbenchHomeView = {
-        let view = GuidedWorkbenchHomeView()
-        view.onStartDictation = { [weak self] in self?.togglePracticeDictation() }
-        view.onOpenMeeting = { [weak self] in self?.openWorkbench(section: .meetings) }
-        view.onOpenVoiceStudio = { [weak self] in self?.openWorkbench(section: .voice) }
-        view.onOpenAudioFile = { [weak self] in self?.openWorkbench(section: .library, subpage: 1) }
-        view.onOpenCheckup = { [weak self] in self?.openCheckup() }
-        view.onOpenModels = { [weak self] in self?.openWorkbench(section: .models) }
-        return view
-    }()
-    private lazy var workbenchDictationView: GuidedWorkbenchDictationView = {
-        let view = GuidedWorkbenchDictationView()
-        view.onToggleDictation = { [weak self] in self?.togglePracticeDictation() }
-        view.onUndo = { [weak self] in self?.controller.undoLastDictation() }
-        view.onRetry = { [weak self] in self?.controller.retryLastDictation() }
-        view.onPrivateSession = { [weak self] in self?.togglePrivateSession() }
-        return view
     }()
     private lazy var workbenchSupportView: GuidedWorkbenchSupportView = {
         let view = GuidedWorkbenchSupportView()
@@ -227,8 +207,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onLastDictationActionsChange = { [weak self] canUndo, canRetry in
             self?.undoLastDictationMenuItem.isEnabled = canUndo
             self?.retryLastDictationMenuItem.isEnabled = canRetry
-            guard let self else { return }
-            self.workbenchDictationView.update(state: self.controller.state, canUndo: canUndo, canRetry: canRetry)
         }
         hotkeys.onHoldStart = { [weak self] in
             guard let self else { return }
@@ -252,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             || NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier
         if shouldOpenWorkbench {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                self?.openWorkbench(section: .home)
+                self?.openWorkbench(section: .library)
             }
         }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_VOICE_STUDIO"] == "1" {
@@ -265,14 +243,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.openCheckup()
             }
         }
-        if ProcessInfo.processInfo.environment["KIKI_OPEN_PAWPRINTS"] == "1" {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                self?.openPawprints()
-            }
-        }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_MODELS"] == "1" {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                self?.openWorkbench(section: .models)
+                self?.openWorkbench(section: .settings, subpage: 2)
             }
         }
         if ProcessInfo.processInfo.environment["KIKI_OPEN_MEETING"] == "1" {
@@ -299,7 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(stateMenuItem)
         menu.addItem(modelMenuItem)
         menu.addItem(.separator())
-        menu.addItem(menuItem("Open Kiki Workbench", symbol: "rectangle.split.3x1", action: #selector(openWorkbenchHome)))
+        menu.addItem(menuItem("Open Transcripts", symbol: "rectangle.split.3x1", action: #selector(openTranscripts)))
         menu.addItem(.separator())
         menu.addItem(toggleMenuItem)
         menu.addItem(undoLastDictationMenuItem)
@@ -307,32 +280,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(privateSessionMenuItem)
         menu.addItem(.separator())
 
-        menu.addItem(menuSection("Features"))
-        menu.addItem(menuItem("Kiki Checkup", symbol: "checkmark.shield", action: #selector(openCheckup)))
-        menu.addItem(menuItem("Meeting Mode", symbol: "person.2.wave.2", action: #selector(openMeetingMode)))
         menu.addItem(menuItem("Voice Studio", symbol: "waveform.badge.mic", action: #selector(openVoiceStudio)))
         menu.addItem(menuItem("Read Selection in My Voice", symbol: "speaker.wave.2", action: #selector(readSelectionInMyVoice)))
-        menu.addItem(menuItem("Transcribe Audio File", symbol: "waveform.badge.magnifyingglass", action: #selector(openFileTranscription)))
-        menu.addItem(menuItem("Personalization Studio", symbol: "brain.head.profile", action: #selector(openPersonalization)))
-
-        menu.addItem(.separator())
-        menu.addItem(menuSection("Library"))
-        menu.addItem(menuItem("History", symbol: "clock.arrow.circlepath", action: #selector(openHistory)))
-        menu.addItem(menuItem("Pawprints", symbol: "pawprint", action: #selector(openPawprints)))
-        menu.addItem(menuItem("Dictionary", symbol: "text.book.closed", action: #selector(openDictionary)))
-        menu.addItem(menuItem("Create Support Bundle…", symbol: "wrench.and.screwdriver", action: #selector(createSupportBundle)))
-
-        menu.addItem(.separator())
+        menu.addItem(menuItem("Words & Replacements", symbol: "textformat.abc", action: #selector(openPersonalization)))
         menu.addItem(menuItem("Settings", symbol: "gearshape", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(menuItem("What’s New in Kiki", symbol: "sparkles", action: #selector(openWhatsNew)))
-        menu.addItem(menuItem("Models Folder", symbol: "folder", action: #selector(openModelsFolder)))
-
-        menu.addItem(.separator())
-        menu.addItem(menuItem("Accessibility Settings", symbol: "accessibility", action: #selector(openAccessibilitySettings)))
-        menu.addItem(menuItem("Microphone Settings", symbol: "mic", action: #selector(openMicrophoneSettings)))
-
-        menu.addItem(updateMenuItem)
-
+        let help = NSMenuItem(title: "Help", action: nil, keyEquivalent: "")
+        let helpMenu = NSMenu()
+        helpMenu.addItem(menuItem("Troubleshoot Dictation", symbol: "checkmark.shield", action: #selector(openCheckup)))
+        helpMenu.addItem(menuItem("Create Support Bundle…", symbol: "wrench.and.screwdriver", action: #selector(createSupportBundle)))
+        helpMenu.addItem(menuItem("About Kiki", symbol: "info.circle", action: #selector(openWhatsNew)))
+        helpMenu.addItem(updateMenuItem)
+        help.submenu = helpMenu
+        menu.addItem(help)
         menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit Kiki", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitItem)
@@ -391,11 +350,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         retryLastDictationMenuItem.isEnabled = state == .idle && controller.canRetryLastDictation
         workbenchWindow.updateDictationState(state)
         if isCheckupVisible { checkupWindow.updateDictationState(state) }
-        workbenchDictationView.update(
-            state: state,
-            canUndo: state == .idle && controller.canUndoLastDictation,
-            canRetry: state == .idle && controller.canRetryLastDictation
-        )
 
         switch state {
         case .noModel:
@@ -406,7 +360,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             toggleMenuItem.isEnabled = false
         case .idle:
             stateMenuItem.title = PrivateSessionController.shared.isActive
-                ? "Private Session — no history or learning"
+                ? "Private Session — history paused"
                 : DictationMenuCopy.idleStatus
             toggleMenuItem.title = DictationMenuCopy.start
             toggleMenuItem.isEnabled = true
@@ -439,7 +393,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             sender.activate(ignoringOtherApps: true)
         } else {
-            openWorkbench(section: .home)
+            openWorkbench(section: .library)
         }
         return true
     }
@@ -457,7 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPracticeDictation() {
-        openWorkbench(section: .settings, subpage: 4)
+        openWorkbench(section: .settings, subpage: 5)
         checkupPracticeArmed = true
         checkupShortcutArmed = false
         DispatchQueue.main.async { [weak self] in
@@ -490,7 +444,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openCheckup() {
-        openWorkbench(section: .settings, subpage: 4)
+        openWorkbench(section: .settings, subpage: 5)
         refreshCheckup(restartInputMonitor: true)
     }
 
@@ -498,16 +452,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openWorkbench(section: .library)
     }
 
-    @objc private func openPawprints() {
-        openWorkbench(section: .settings, subpage: 5)
-    }
-
     @objc private func openWhatsNew() {
         openWorkbench(section: .settings, subpage: 7)
     }
 
     @objc private func openDictionary() {
-        openWorkbench(section: .personalization, subpage: 5)
+        openWorkbench(section: .personalization)
     }
 
     @objc private func createSupportBundle() {
@@ -530,11 +480,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openFileTranscription() {
-        openWorkbench(section: .library, subpage: 1)
+        openWorkbench(section: .library, subpage: 2)
     }
 
     @objc private func openMeetingMode() {
-        openWorkbench(section: .meetings)
+        openWorkbench(section: .library, subpage: 1)
     }
 
     @objc private func openVoiceStudio() {
@@ -554,11 +504,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openWorkbench(section: .voice)
     }
 
-    @objc private func openWorkbenchHome() { openWorkbench(section: .home) }
+    @objc private func openTranscripts() { openWorkbench(section: .library) }
 
     private var isCheckupVisible: Bool {
         checkupWindow.window?.isVisible == true
-            || workbenchWindow.isShowing(section: .settings, subpage: 4)
+            || workbenchWindow.isShowing(section: .settings, subpage: 5)
     }
 
     private func openWorkbench(section: GuidedWorkbenchSection, subpage: Int = 0) {
@@ -566,43 +516,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshCheckup(restartInputMonitor: false)
         activationPolicyCoordinator.prepareToPresentManagementWindow(workbenchWindow.window)
         workbenchWindow.show(section: section, subpage: subpage)
-        if section == .settings, subpage == 4 {
+        if section == .settings, subpage == 5 {
             refreshCheckup(restartInputMonitor: true)
         }
     }
 
     private func surface(for route: GuidedWorkbenchRoute) -> GuidedWorkbenchSurface? {
-        if !(route.section == .settings && route.subpage == 4) {
+        if !(route.section == .settings && route.subpage == 5) {
             checkupWindow.stopInputMonitor()
             checkupShortcutArmed = false
             checkupPracticeArmed = false
         }
 
         switch route.section {
-        case .home:
-            return GuidedWorkbenchSurface(
-                view: workbenchHomeView,
-                sizing: .scroll(NSSize(width: 900, height: 600))
-            )
-        case .dictation:
-            if route.subpage == 0 {
-                workbenchDictationView.update(
-                    state: controller.state,
-                    canUndo: controller.state == .idle && controller.canUndoLastDictation,
-                    canRetry: controller.state == .idle && controller.canRetryLastDictation
-                )
-                return GuidedWorkbenchSurface(view: workbenchDictationView, sizing: .fill)
-            }
-            return GuidedWorkbenchSurface(
-                view: settingsPage(1),
-                sizing: .fill
-            )
-        case .meetings:
-            meetingWindow.prepareForEmbeddedDisplay()
-            return GuidedWorkbenchSurface(
-                view: embeddedView(for: meetingWindow),
-                sizing: .scroll(NSSize(width: 900, height: 700))
-            )
         case .voice:
             let prefill = pendingVoicePrefill
             pendingVoicePrefill = nil
@@ -612,64 +538,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 sizing: .scroll(NSSize(width: 1_080, height: 1_080))
             )
         case .library:
-            if route.subpage == 0 {
+            switch route.subpage {
+            case 1:
+                meetingWindow.prepareForEmbeddedDisplay()
+                return GuidedWorkbenchSurface(view: embeddedView(for: meetingWindow), sizing: .scroll(NSSize(width: 900, height: 700)))
+            case 2:
+                return GuidedWorkbenchSurface(view: embeddedView(for: fileTranscriptionWindow), sizing: .top(NSSize(width: 760, height: 720)))
+            default:
                 historyWindow.prepareForEmbeddedDisplay()
-                return GuidedWorkbenchSurface(
-                    view: embeddedView(for: historyWindow),
-                    sizing: .top(NSSize(width: 900, height: 620))
-                )
+                return GuidedWorkbenchSurface(view: embeddedView(for: historyWindow), sizing: .top(NSSize(width: 900, height: 620)))
             }
-            return GuidedWorkbenchSurface(
-                view: embeddedView(for: fileTranscriptionWindow),
-                sizing: .top(NSSize(width: 760, height: 720))
-            )
         case .personalization:
-            if route.subpage < 5 {
-                return GuidedWorkbenchSurface(
-                    view: personalizationWindow.workbenchPage(
-                        context: captureExternalContext(),
-                        page: route.subpage
-                    ),
-                    sizing: .scroll(NSSize(width: 960, height: 720))
-                )
-            }
-            dictionaryWindow.prepareForEmbeddedDisplay()
             return GuidedWorkbenchSurface(
-                view: embeddedView(for: dictionaryWindow),
-                sizing: .top(NSSize(width: 760, height: 650))
-            )
-        case .models:
-            return GuidedWorkbenchSurface(
-                view: settingsPage(2),
-                sizing: .fill
+                view: personalizationWindow.workbenchPage(context: captureExternalContext(), page: route.subpage),
+                sizing: .scroll(NSSize(width: 900, height: 650))
             )
         case .settings:
             switch route.subpage {
-            case 0, 1, 2, 3:
-                let settingsPage = [0, 1, 3, 4][route.subpage]
-                return GuidedWorkbenchSurface(
-                    view: self.settingsPage(settingsPage),
-                    sizing: .fill
-                )
+            case 0...3:
+                return GuidedWorkbenchSurface(view: settingsPage(route.subpage), sizing: .fill)
             case 4:
-                DispatchQueue.main.async { [weak self] in self?.refreshCheckup(restartInputMonitor: true) }
-                return GuidedWorkbenchSurface(
-                    view: embeddedView(for: checkupWindow),
-                    sizing: .top(NSSize(width: 760, height: 650))
-                )
+                return GuidedWorkbenchSurface(view: personalizationWindow.workbenchPage(context: captureExternalContext(), page: 3), sizing: .scroll(NSSize(width: 800, height: 600)))
             case 5:
-                pawprintsWindow.prepareForEmbeddedDisplay()
-                return GuidedWorkbenchSurface(
-                    view: embeddedView(for: pawprintsWindow),
-                    sizing: .top(NSSize(width: 760, height: 520))
-                )
+                DispatchQueue.main.async { [weak self] in self?.refreshCheckup(restartInputMonitor: true) }
+                return GuidedWorkbenchSurface(view: embeddedView(for: checkupWindow), sizing: .top(NSSize(width: 760, height: 650)))
             case 6:
                 return GuidedWorkbenchSurface(view: workbenchSupportView, sizing: .fill)
             default:
-                return GuidedWorkbenchSurface(
-                    view: workbenchAboutView,
-                    sizing: .scroll(NSSize(width: 900, height: 830))
-                )
+                return GuidedWorkbenchSurface(view: workbenchAboutView, sizing: .scroll(NSSize(width: 900, height: 830)))
             }
         }
     }
@@ -718,7 +614,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "New"
         let key = "lastSeenWhatsNewVersion"
         let force = ProcessInfo.processInfo.environment["KIKI_FORCE_WHATS_NEW"] == "1"
-        guard force || UserDefaults.standard.string(forKey: key) != version else { return }
+        guard force else { return }
         UserDefaults.standard.set(version, forKey: key)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
             self?.openWorkbench(section: .settings, subpage: 7)
@@ -758,7 +654,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             shortcutVerified: Settings.checkupShortcutVerified,
             firstDictationCompleted: Settings.checkupFirstDictationCompleted
         )
-        workbenchHomeView.update(snapshot: snapshot)
         workbenchWindow.updateCheckupSnapshot(snapshot)
 
         guard isCheckupVisible else { return }

@@ -90,7 +90,6 @@ final class DictationController {
     private let recorder = AudioRecorder()
     private let systemAudioSilencer = SystemAudioSilencer()
     private let soundPlayer = DictationSoundPlayer()
-    private let confidenceVerifier = BackgroundConfidenceVerifier()
     private var whisperTranscriber: WhisperTranscriber?
     private var parakeetTranscriber: ParakeetTranscriber?
     private let transcribeQueue = DispatchQueue(label: "kiki.transcribe", qos: .userInitiated)
@@ -384,7 +383,7 @@ final class DictationController {
             createdAt: Date(),
             duration: duration,
             segments: segments,
-            actionItems: MeetingTranscript.actionItems(from: segments)
+            actionItems: []
         )
         capturePrivacy.persistHistoryIfAllowed {
             TranscriptionHistoryStore.shared.add(
@@ -633,14 +632,8 @@ final class DictationController {
                 context: job.context.displayName
             )
         }
-        confidenceVerifier.verify(
-            samples: job.samples,
-            primaryText: finalText,
-            context: job.context
-        )
-
-        let textToInsert = textWithContinuation(finalText, for: job)
         let currentPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let textToInsert = textWithContinuation(finalText, for: job)
         let result: TextInserter.Result
         if currentPID == job.context.processIdentifier || job.context.processIdentifier == 0 {
             result = TextInserter.insert(textToInsert, context: job.context)
@@ -661,11 +654,6 @@ final class DictationController {
             )
             lastInsertionIsPresent = true
             onLastDictationActionsChange?(true, true)
-            PawprintsStore.shared.record(
-                text: textToInsert,
-                duration: job.duration,
-                isPrivate: !job.context.privacyPolicy.pawprintsEnabled
-            )
             onSuccessfulInsertion?(textToInsert, job.context)
             if state != .recording { soundPlayer.playTranscriptionCompleted() }
         case .copiedNeedsAccessibility:

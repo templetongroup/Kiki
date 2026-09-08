@@ -12,7 +12,7 @@ Built with Swift/AppKit, [FluidAudio](https://github.com/FluidInference/FluidAud
 
 ## Local models
 
-Choose and download a model from **Settings…**. All inference stays on your Mac.
+Choose and download a model from **Settings → Models**. All inference stays on your Mac.
 
 | Model | Best for | Hardware | Approx. download |
 | --- | --- | --- | ---: |
@@ -26,58 +26,35 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 
 ## Features
 
-- Fully local dictation with a choice of Parakeet and Whisper models
-- Low-latency live transcript in Kiki's branded listening window with Parakeet
-- Customizable global shortcut with hold-to-dictate and press-to-toggle modes
-- Launch at login, signed automatic updates, a dark Studio Hardware appearance, brand colors, and dictation sounds
-- Custom dictionary for names, jargon, abbreviations, and exact spellings
-- Text-only transcription history with app/source, model, duration, and an explicit local-processing indicator
-- Drag-and-drop local audio-file transcription with editable, copyable, and exportable results
-- Automatic Mac output muting during recording, with the previous mute or volume restored afterward
-- Zero-wait dictation chaining: begin the next recording while the previous final pass finishes
-- Caret-following live preview that stays near the place where text will be inserted
-- Kiki Learns You: local correction suggestions with global or per-app approval
-- Optional local vocabulary imports from Contacts, upcoming Calendar events, and project folders
-- Deterministic voice snippets with `{{date}}`, `{{time}}`, and `{{clipboard}}` variables
-- Private-app zones and automatic secure-field protection that skip history, learning, and verification
-- Standard, disfluency-assist, verbatim, and soft-speech accessibility profiles
-- Optional background confidence verification using an installed Whisper model after the primary result is pasted
-- Offline Meeting Mode with separate microphone/system-audio tracks, local source labels, an automatic local brief (summary, decisions, action items, and next steps), chapters, and Markdown/TXT/SRT/WebVTT export
-- Voice Studio with guided voice enrollment, a fully local Qwen3-TTS engine, on-device text-to-speech, playback, and WAV/M4A export
-- Kiki Checkup with microphone selection, a live input meter, permission/model readiness, shortcut verification, and a guided first dictation
-- Exact Undo Last Dictation plus Retry Last Dictation using only the most recent in-memory recording
-- A transient Private Session that disables history, correction learning, confidence verification, and Pawprints without disabling in-memory undo
-- Read Selection in My Voice, which prefills Voice Studio for review and waits for an explicit Generate click
-- Opt-in Pawprints with aggregate-only local usage totals, Private Session exclusion, and complete reset
-- Sanitized support bundles containing only allowlisted technical configuration and readiness fields
+- Fully local dictation into any Mac app, with hold or hands-free shortcuts and a live listening display
+- **Transcripts**: recent text history, meeting recording with microphone and Mac audio, and audio-file imports
+- Editable transcripts with copy and export, source labels, speaker editing, and optional meeting-folder auto-export
+- **Words & Replacements**: explicit spelling replacements, approved legacy rules, optional context vocabulary, and voice snippets
+- **Voice Studio**: private voice enrollment, local speech generation, playback, and WAV/M4A export
+- **Settings**: microphone, shortcuts, speech style, local engines, privacy, updates, and troubleshooting
+- Exact Undo Last Dictation, Retry Last Dictation from memory, Escape to cancel, and Private Session
+- Private-app exclusions, secure-field protection, signed automatic updates, and sanitized support bundles
 
-Kiki does not upload recordings, transcripts, dictionary entries, or history. Microphone audio is used in memory for transcription and is not added to history.
+Kiki does not upload recordings, transcripts, dictionary entries, or history. Dictation audio is used in memory and is not added to history. Meeting audio is saved only when requested; Voice Studio keeps its reference sample locally.
 
 ## Usage
 
-- **Hold Right ⌥ (Option)** — record while held, transcribe and insert on release. Change the hold key in Settings.
-- **⌃⌥D** — toggle mode: press to start, press again to stop and insert.
-- System audio is silenced while recording by default, then restored exactly when recording stops. This can be disabled in Settings.
-- A branded HUD shows Listening / Transcribing and, with Parakeet, a low-latency live transcript. The preview can be disabled in Settings.
-- Press **Esc** while recording to cancel without transcribing or saving anything.
-- Quick successive dictations can continue the same paragraph, and Kiki can accept another recording while the previous one finishes.
-- Use **Dictionary…** to teach Kiki your preferred spellings and replacements.
-- Use **Personalization Studio…** to approve learned corrections, import context vocabulary, create voice snippets, manage private apps, and review confidence disagreements.
-- Use **History…** to review, copy, or delete locally stored transcript text.
-- Use **Undo Last Dictation** only while Kiki can verify the exact text and caret it inserted. **Retry Last Dictation** reprocesses the same recording from memory; recordings are never written to disk for this feature.
-- Use **Start Private Session** for work that should not appear in history, learning, confidence review, or Pawprints. Private Session ends when you turn it off or quit Kiki.
-- Use **Kiki Checkup…** to choose the actual input device, confirm a live signal, test the shortcut, and complete a real first insertion.
-- Use **Pawprints…** to opt into aggregate-only local totals or permanently reset them.
-- Highlight text in an accessible app and choose **Read Selection in My Voice** to place it in Voice Studio. Kiki never starts generation without the Generate button.
-- Use **Create Support Bundle…** when troubleshooting. The ZIP excludes transcripts, recordings, clipboard contents, names, vocabulary, contacts, and file paths.
-- Use **Transcribe File…** to drop an audio file, edit the result, copy it, or save it as plain text.
-- Use **Meeting Mode…** for longer local sessions. Microphone speech is labelled “You” and Mac system audio is labelled “Others”; headphones produce the cleanest source separation.
-- Use **Voice Studio…** to record one private reference passage, download the optional 2 GB local voice engine, and turn typed text into speech in your voice. Generation works offline after the one-time model download.
-- The Kiki menu bar icon provides status, settings, model controls, update checks, and local transcription tools.
+- Hold your configured shortcut in a text field, speak, and release to insert. **⌃⌥D** also toggles hands-free recording. Change the shortcut in **Settings → Dictation**.
+- Press **Esc** to cancel a recording. Use the menu-bar **Undo Last Dictation** or **Retry Last Dictation** actions for recovery.
+- Open **Transcripts → Recent** to review saved text; **Record** to capture microphone and Mac audio; or **Import Audio** to transcribe a file.
+- Open **Words & Replacements → Replacements** to enter an exact replacement. Existing dictionary entries and approved rules are shown together. Kiki does not monitor your edits or create a learning inbox.
+- **Vocabulary** imports names and terms only from sources you choose. **Snippets** insert saved text when a dictation exactly matches a trigger; templates support `{{date}}`, `{{time}}`, and `{{clipboard}}`.
+- Use **Start Private Session** in the menu bar to pause dictation history until you end the session or quit. Add private apps with the chooser in **Settings → Private Apps**.
+- **Voice Studio** records a private reference passage and generates speech from typed text after its optional local engine is installed. **Read Selection in My Voice** prefills the script and waits for Generate.
+- Use **Help → Troubleshoot Dictation** to test microphone, permissions, model, shortcut, and insertion. **Help → Create Support Bundle…** exports allowlisted technical details without your content.
+
+### Simplified in 0.6.50
+
+The permanent Home and Dictation pages, Pawprints usage tracking, background confidence comparisons, passive correction learning, and automatic heuristic meeting briefs have been removed. Models live in Settings. Meeting capture and file import share the Transcripts destination. Previously saved transcripts, voice recordings, dictionary entries, and approved rules are preserved; retired data files are not erased.
 
 ### Performance design
 
-The normal dictation path remains record → local speech model → deterministic text rules → paste. Learning observation happens after paste, confidence verification runs on a utility queue, and meeting capture uses a separate pipeline. Context vocabulary is token-indexed; the built-in benchmark averages single-digit milliseconds on the development Mac even with 2,002 terms.
+The normal path is record → local speech model → explicit text rules → paste. Finished recordings use an ordered in-memory queue, so a new recording can start while the previous transcription finishes. Optional context vocabulary uses a token index. No second-model auditing or passive edit observation runs after insertion.
 
 ## Setup
 
@@ -111,7 +88,7 @@ Kiki uses [Sparkle](https://sparkle-project.org/) for cryptographically signed a
 
 `HotkeyManager` (Carbon global hotkey + NSEvent modifier monitors) → `AudioRecorder` (AVAudioEngine, resampled to 16 kHz mono) → `ParakeetTranscriber` (FluidAudio/Core ML) or `WhisperTranscriber` (whisper.cpp/Metal) → custom dictionary → optional text-only history → `TextInserter` (pasteboard + synthetic ⌘V, previous clipboard restored).
 
-Finished recordings enter an ordered in-memory job queue, allowing the next recording to start immediately. `TranscriptPostProcessor` applies snippets, approved corrections, and indexed context vocabulary synchronously; correction observation and `BackgroundConfidenceVerifier` run only after insertion. Private zones short-circuit all optional retention and learning.
+Finished recordings enter an ordered in-memory job queue, allowing the next recording to start immediately. `TranscriptPostProcessor` applies snippets, approved corrections, and indexed context vocabulary synchronously; Private zones skip history and optional contextual processing.
 
 Parakeet also receives a short-window stream while recording so the HUD can show an immediate, provisional transcript. Kiki discards that preview when recording ends and runs the normal full-audio pass for the text it inserts.
 

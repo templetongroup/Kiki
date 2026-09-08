@@ -25,10 +25,6 @@ enum TextInserter {
         }
 
         let previous = pasteboard.string(forType: .string)
-        let learningAnchor: CorrectionLearningObserver.Anchor? = context.flatMap { snapshot in
-            guard Settings.learnFromCorrections, snapshot.privacyPolicy.learningEnabled else { return nil }
-            return CorrectionLearningObserver.shared.captureAnchor(context: snapshot)
-        }
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
@@ -41,13 +37,6 @@ enum TextInserter {
                 pasteboard.clearContents()
                 pasteboard.setString(previous, forType: .string)
             }
-        }
-        if let learningAnchor {
-            CorrectionLearningObserver.shared.observe(
-                insertedText: text,
-                anchor: learningAnchor,
-                context: context
-            )
         }
         return .inserted
     }

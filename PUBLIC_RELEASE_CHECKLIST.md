@@ -27,11 +27,11 @@ Feature scope is frozen until every required check below passes against the same
 - [ ] Launch the installed app and physically click every new menu item, window, checkbox, popup, and button.
 - [ ] Kiki Checkup detects the selected microphone, live signal, permissions, model, shortcut, and an actual inserted first dictation.
 - [ ] A real dictation inserts into another app; exact Undo removes it; Retry replaces it from memory.
-- [ ] Private Session leaves history, learning, confidence review, and Pawprints unchanged.
+- [ ] Private Session leaves text history unchanged; retired learning, confidence, and usage systems do not run.
 - [ ] Read Selection prefills Voice Studio and does not generate until Generate is clicked.
 - [ ] Pawprints opt-in, aggregate update, opt-out, Private Session exclusion, and complete reset work.
 - [ ] A support ZIP opens and contains only `diagnostics.json` and `README.txt` with no user content.
-- [ ] Existing Settings, Models, Personalization, Meeting Mode, audio-file transcription, Voice Studio playback/stop, exports, and the supported dark Studio Hardware layout still work.
+- [ ] Transcripts (Recent, Record, Import Audio), Words & Replacements, Settings (including Models and Privacy), Voice Studio playback/stop, exports, and the supported dark layout work.
 
 ## Publication gate
 

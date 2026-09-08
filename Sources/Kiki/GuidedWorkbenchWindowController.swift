@@ -1,72 +1,39 @@
 import AppKit
 
 enum GuidedWorkbenchSection: String, CaseIterable {
-    case home
-    case dictation
-    case meetings
-    case voice
-    case library
-    case personalization
-    case models
-    case settings
+    case library, voice, personalization, settings
 
     var title: String {
         switch self {
-        case .home: "Home"
-        case .dictation: "Dictation"
-        case .meetings: "Meetings"
+        case .library: "Transcripts"
         case .voice: "Voice Studio"
-        case .library: "Library"
-        case .personalization: "Personalization"
-        case .models: "Models"
+        case .personalization: "Words & Replacements"
         case .settings: "Settings"
         }
     }
-
     var subtitle: String {
         switch self {
-        case .home: "Status and setup"
-        case .dictation: "Speak into any app"
-        case .meetings: "Capture and review"
-        case .voice: "Record and create audio"
-        case .library: "Transcripts and imports"
-        case .personalization: "Corrections and snippets"
-        case .models: "Local speech engines"
-        case .settings: "General, privacy, checkup"
+        case .library: "Recent, record, and import"
+        case .voice: "Create audio in your voice"
+        case .personalization: "Spellings and shortcuts"
+        case .settings: "Input, privacy, and models"
         }
     }
-
     var symbol: String {
         switch self {
-        case .home: "house"
-        case .dictation: "waveform"
-        case .meetings: "person.2.wave.2"
+        case .library: "text.bubble"
         case .voice: "waveform.badge.mic"
-        case .library: "books.vertical"
-        case .personalization: "sparkles"
-        case .models: "cpu"
-        case .settings: "command"
+        case .personalization: "textformat.abc"
+        case .settings: "gearshape"
         }
     }
-
-    var group: String {
-        switch self {
-        case .home, .dictation, .meetings, .voice: "Workspace"
-        case .library, .personalization: "Library"
-        case .models, .settings: "System"
-        }
-    }
-
+    var group: String { "Kiki" }
     var subpages: [String] {
         switch self {
-        case .home: ["Overview"]
-        case .dictation: ["Live", "Settings"]
-        case .meetings: ["Capture & Review"]
-        case .voice: ["Record & Create"]
-        case .library: ["History", "Audio File"]
-        case .personalization: ["Learning", "Vocabulary", "Snippets", "Private Apps", "Confidence", "Dictionary"]
-        case .models: ["Installed & Available"]
-        case .settings: ["General", "Dictation", "Intelligence", "Privacy", "Checkup", "Pawprints", "Support", "About"]
+        case .library: ["Recent", "Record", "Import Audio"]
+        case .voice: ["Create Audio"]
+        case .personalization: ["Replacements", "Vocabulary", "Snippets"]
+        case .settings: ["General", "Dictation", "Models", "Privacy", "Private Apps", "Troubleshoot", "Support", "About"]
         }
     }
 }
@@ -109,7 +76,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     private var shouldCenterOnFirstShow = true
     private var dictationState: DictationState = .noModel
     private var checkupSnapshot: KikiCheckupSnapshot?
-    private(set) var route = GuidedWorkbenchRoute(section: .home)
+    private(set) var route = GuidedWorkbenchRoute(section: .library)
 
     private static let compactMinimumSize = NSSize(width: 900, height: 650)
 
@@ -125,7 +92,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             backing: .buffered,
             defer: false
         )
-        window.title = "Kiki Workbench"
+        window.title = "Kiki"
         window.appearance = Settings.appearanceMode.appearance
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
@@ -146,7 +113,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func show(section: GuidedWorkbenchSection = .home, subpage: Int = 0) {
+    func show(section: GuidedWorkbenchSection = .library, subpage: Int = 0) {
         select(GuidedWorkbenchRoute(section: section, subpage: subpage))
         showWindow(nil)
         if shouldCenterOnFirstShow {
@@ -189,13 +156,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             readinessLabel.stringValue = "● Loading model"
             readinessLabel.textColor = KikiPalette.khaki
         case .idle:
-            if checkupSnapshot?.isReady == true {
-                readinessLabel.stringValue = "● Ready"
-                readinessLabel.textColor = KikiPalette.accentText
-            } else {
-                readinessLabel.stringValue = "● Checkup incomplete"
-                readinessLabel.textColor = KikiPalette.khaki
-            }
+            readinessLabel.stringValue = ""
         case .recording:
             readinessLabel.stringValue = "● Listening"
             readinessLabel.textColor = KikiPalette.accentText
@@ -215,12 +176,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         document.updateViewport(scroll.contentSize)
     }
 
-    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
-        if route.section == .home {
-            (currentWrapper as? GuidedWorkbenchHomeView)?.prepareForAvailableWidth(frameSize.width - 258)
-        }
-        return frameSize
-    }
+
 
     private func buildContent() {
         guard let content = window?.contentView else { return }
@@ -257,9 +213,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         let portrait = KikiCircularPortraitView()
         let brandTitle = kikiLabel("Kiki", size: 19, weight: .bold)
         let brandDetail = kikiLabel("VOICE INTELLIGENCE", size: 10, weight: .semibold, color: KikiPalette.tertiaryText)
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
-        let releaseDetail = kikiLabel("RELEASE \(version) · BUILD \(build)", size: 10, weight: .medium, color: KikiPalette.khaki)
+        let releaseDetail = kikiLabel("Private voice for Mac", size: 10, weight: .medium, color: KikiPalette.khaki)
         releaseDetail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.release")
         let brandCopy = NSStackView(views: [brandTitle, brandDetail, releaseDetail])
         brandCopy.orientation = .vertical
@@ -270,7 +224,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         brand.alignment = .centerY
         brand.spacing = 11
 
-        let workflowLabel = kikiLabel("CHOOSE A WORKFLOW", size: 10, weight: .bold, color: KikiPalette.accentText)
+        let workflowLabel = kikiLabel("", size: 10, weight: .bold, color: KikiPalette.accentText)
         let navigation = NSStackView()
         navigation.orientation = .vertical
         navigation.alignment = .leading
@@ -496,12 +450,6 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         // content subtree. Keep an explicit, live visual-order sequence instead
         // of asking that cached loop to reconnect itself.
         var routeKeyViews = validKeyViews(in: surfaceView)
-        if route.section == .home,
-           let primary = view(in: surfaceView, identifier: "kiki.workbench.home.dictation"),
-           let index = routeKeyViews.firstIndex(where: { $0 === primary }) {
-            routeKeyViews.remove(at: index)
-            routeKeyViews.insert(primary, at: 0)
-        }
         if !subnavigation.isHidden,
            subnavigation.acceptsFirstResponder,
            !routeKeyViews.contains(where: { $0 === subnavigation }) {
@@ -555,9 +503,9 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
         guard let window else { return }
         let desired: NSSize
         switch section {
-        case .home, .dictation, .models, .settings:
+        case .settings:
             desired = Self.compactMinimumSize
-        case .meetings, .voice:
+        case .voice:
             desired = NSSize(width: 1_100, height: 780)
         case .library:
             desired = NSSize(width: 1_160, height: 720)

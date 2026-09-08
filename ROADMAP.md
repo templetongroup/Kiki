@@ -1,59 +1,24 @@
-# Kiki product roadmap
+# Kiki product direction
 
-Kiki studies the user experience of leading dictation products, including FluidVoice, while implementing its own code and product architecture. No GPL source code is copied into Kiki.
+Kiki makes private voice input and transcription useful without requiring an administration workflow.
 
-## Product principles
+## Current scope
 
-- Local-first by default; network features are explicit opt-ins.
-- Fast enough to disappear into the user's writing flow.
-- Every background behavior is visible, reversible, and configurable.
-- Hardware-aware model choices instead of a single oversized default.
-- Simple core dictation first; advanced modes never get in the way.
+- Dictate into any Mac app with a shortcut and a compact listening display.
+- Review recent transcripts, record meetings, and import audio in Transcripts.
+- Save explicit replacements, optional vocabulary, and spoken snippets.
+- Create speech locally in Voice Studio.
+- Keep model management, input, privacy, and troubleshooting in Settings.
 
-## Phase 1 — Reliability and everyday polish
+## Removed in 0.6.50
 
-- [x] Customizable hold/toggle trigger
-- [x] Hardware-aware local model picker and downloader
-- [x] Stable local code signing for persistent permissions
-- [x] Silence system output during recording and restore its exact prior state
-- [x] Escape-to-cancel with no clipboard or transcription side effects
-- [ ] Direct Accessibility text insertion with clipboard fallback
-- [x] Microphone picker, input-level meter, and permission diagnostics
-- [x] Launch at login
-- [x] Personal dictionary and text replacements for names and jargon
+Home and dedicated Dictation pages, Pawprints, Confidence Shadow, passive correction learning and its approval queue, and heuristic meeting briefs are retired. Preserve existing user files and approved replacements. Historical release notes describe the versions in which features existed, not current scope.
 
-## Phase 2 — Near-instant dictation
+## Next priorities
 
-- [x] Streaming ASR with live partial text
-- [x] Configurable compact overlay layouts
-- [ ] Voice activity detection and automatic end-of-utterance handling
-- [ ] Prewarm selected models and report memory/latency costs
-- [x] Hardware-aware automatic model recommendations
-- [x] Optional confidence verification with a second local model for difficult utterances
+1. Verify reliable insertion, cancellation, undo, and retry in everyday apps.
+2. Make recording and imported transcripts consistent to edit and export.
+3. Keep model setup hardware-aware and ask for permissions only when needed.
+4. Improve accessibility and keyboard navigation across the four destinations.
 
-## Phase 3 — Context and local intelligence
-
-- [x] Optional local cleanup for punctuation, capitalization, filler words, and formatting
-- [ ] Per-app profiles for tone, formatting, vocabulary, and insertion behavior
-- [ ] Write/rewrite mode for selected text
-- [ ] Voice command mode for approved Shortcuts and app actions
-- [x] Local text history with one-click deletion and no retained dictation audio
-- [x] Opt-in aggregate-only Pawprints stored on-device with complete reset
-
-## Phase 4 — Kiki-only differentiators
-
-- [ ] Audio Protection modes: mute, duck, or pause/resume compatible media apps
-- [x] Private style memory that learns corrections locally and can be reset
-- [ ] Adaptive formatting based on destination type: chat, email, document, code, or terminal
-- [ ] “Fast first, accurate second” mode that inserts immediately and offers a non-disruptive correction
-- [ ] Voice macros with a visible preview and confirmation for destructive actions
-- [ ] Local automation API and Shortcuts actions
-- [x] Optional meeting/file transcription workspace kept separate from quick dictation
-
-## Distribution
-
-- [x] Developer ID-ready signing, notarization, stapling, and release packaging
-- [x] Notarized Apple Silicon GitHub releases
-- [ ] Intel or universal build with Whisper-compatible model choices
-- [x] Signed automatic updates on the stable channel
-- [ ] Repeatable release CI without committing signing credentials
+Add new modes only when an observed user need justifies their additional settings, states, and maintenance. Voice commands, rewrite modes, automation platforms, and additional dashboards are not committed scope.

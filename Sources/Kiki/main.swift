@@ -74,58 +74,45 @@ if args.count >= 5, args[1] == "--analyze-voice-consistency" {
     }
     RunLoop.main.run()
 }
-if args.count >= 2, args[1] == "--preview-ready-home" {
+if args.count >= 3, args[1] == "--render-product-screens" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
+        app.setActivationPolicy(.accessory)
         app.finishLaunching()
         AppearanceController.apply()
-        let home = GuidedWorkbenchHomeView()
-        home.update(snapshot: KikiCheckupSnapshot(
-            microphoneAuthorized: true,
-            inputResponding: true,
-            accessibilityAuthorized: true,
-            modelStatus: .ready(model: .parakeetEnglish),
-            shortcutVerified: true,
-            firstDictationCompleted: true
-        ))
-        let controller = GuidedWorkbenchWindowController()
-        controller.onRouteChange = { route in
-            route.section == .home
-                ? GuidedWorkbenchSurface(view: home, sizing: .fill)
-                : nil
+        let output = URL(fileURLWithPath: args[2], isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+            let shell = GuidedWorkbenchWindowController()
+            let file = FileTranscriptionWindowController()
+            let meeting = MeetingWindowController()
+            func content(_ controller: NSWindowController) -> NSView {
+                let view = controller.window!.contentView!
+                controller.window!.contentView = NSView()
+                return view
+            }
+            let fileView = content(file)
+            let meetingView = content(meeting)
+            shell.onRouteChange = { route in
+                GuidedWorkbenchSurface(view: route.subpage == 1 ? meetingView : fileView, sizing: .fill)
+            }
+            shell.updateDictationState(.idle)
+            for (name, page) in [("kiki-transcripts.png", 2), ("kiki-meeting.png", 1), ("kiki-file-transcription.png", 2)] {
+                shell.select(GuidedWorkbenchRoute(section: .library, subpage: page))
+                shell.window?.setContentSize(NSSize(width: 1240, height: 840))
+                guard let view = shell.window?.contentView else { throw KikiError("Missing product view") }
+                view.layoutSubtreeIfNeeded()
+                guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw KikiError("Cannot render product view") }
+                view.cacheDisplay(in: view.bounds, to: bitmap)
+                guard let data = bitmap.representation(using: .png, properties: [:]) else { throw KikiError("Cannot encode product view") }
+                try data.write(to: output.appendingPathComponent(name))
+            }
+            print("Rendered current native product screens without user content.")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
         }
-        controller.select(GuidedWorkbenchRoute(section: .home))
-        controller.window?.setContentSize(NSSize(width: 1_240, height: 840))
-        controller.window?.makeKeyAndOrderFront(nil)
-        app.activate(ignoringOtherApps: true)
-        app.run()
-    }
-}
-
-if args.count >= 2, args[1] == "--preview-dictation" || args[1] == "--preview-dictation-listening" {
-    MainActor.assumeIsolated {
-        let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
-        app.finishLaunching()
-        AppearanceController.apply()
-        let dictation = GuidedWorkbenchDictationView()
-        dictation.update(
-            state: args[1] == "--preview-dictation-listening" ? .recording : .idle,
-            canUndo: false,
-            canRetry: false
-        )
-        let controller = GuidedWorkbenchWindowController()
-        controller.onRouteChange = { route in
-            route.section == .dictation
-                ? GuidedWorkbenchSurface(view: dictation, sizing: .fill)
-                : nil
-        }
-        controller.select(GuidedWorkbenchRoute(section: .dictation))
-        controller.window?.setContentSize(NSSize(width: 1_240, height: 840))
-        controller.window?.makeKeyAndOrderFront(nil)
-        app.activate(ignoringOtherApps: true)
-        app.run()
     }
 }
 
@@ -185,7 +172,7 @@ if args.count >= 2, args[1] == "--preview-meeting" {
             createdAt: Date(),
             duration: 38,
             segments: segments,
-            actionItems: MeetingTranscript.actionItems(from: segments)
+            actionItems: []
         )
         let controller = MeetingWindowController()
         controller.showPreview(transcript: meeting)
@@ -209,7 +196,7 @@ if args.count >= 2, args[1] == "--preview-meeting-speakers" {
             createdAt: Date(),
             duration: 28,
             segments: segments,
-            actionItems: MeetingTranscript.actionItems(from: segments)
+            actionItems: []
         )
         let controller = MeetingSpeakerEditorWindowController(transcript: meeting)
         controller.showWindow(nil)
@@ -244,17 +231,6 @@ if args.count >= 2, args[1] == "--preview-history" {
     }
 }
 
-if args.count >= 2, args[1] == "--preview-dictionary" {
-    MainActor.assumeIsolated {
-        let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
-        app.finishLaunching()
-        AppearanceController.apply()
-        let controller = CustomDictionaryWindowController()
-        controller.show()
-        app.run()
-    }
-}
 
 if args.count >= 3, args[1] == "--self-test-splash-artwork" {
     MainActor.assumeIsolated {
@@ -379,7 +355,7 @@ if args.count >= 2, args[1] == "--self-test-features" {
     MainActor.assumeIsolated {
         do {
             try FeatureDiagnostics.run()
-            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, Pawprints, selection, learning, meetings, voice orb, signal meter, and Voice Studio")
+            print("Kiki feature diagnostics passed: checkup, undo/retry, privacy, support, selection, replacements, meetings, voice orb, signal meter, and Voice Studio")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)

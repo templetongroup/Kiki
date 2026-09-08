@@ -72,10 +72,10 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
             ]
         )
 
-        let title = kikiLabel("Kiki is ready for the real world.", size: 30, weight: .bold)
+        let title = kikiLabel("Less to manage. More room to speak.", size: 30, weight: .bold)
         title.alignment = .left
         let detail = kikiLabel(
-            "A safer, more confident release with guided setup, reversible dictation, and private local insights.",
+            "A smaller interface for dictation, transcripts, and voice creation. Your saved transcripts and approved replacements stay intact.",
             size: 14,
             color: KikiPalette.secondaryText
         )
@@ -83,16 +83,16 @@ final class WhatsNewWindowController: NSWindowController, NSWindowDelegate {
         detail.maximumNumberOfLines = 2
 
         let features = NSStackView(views: [
-            featureRow(symbol: "checkmark.shield", title: "Know Kiki is ready", detail: "Kiki Checkup verifies your microphone, live input, permissions, model, shortcut, and first real insertion.", tint: KikiPalette.accentText),
+            featureRow(symbol: "checkmark.shield", title: "Your transcripts, together", detail: "Find recent transcripts, record a meeting, or import audio in one place.", tint: KikiPalette.accentText),
             featureRow(symbol: "arrow.uturn.backward", title: "Undo, retry, or go private", detail: "Reverse only Kiki’s exact last insertion, retry from memory, or pause every optional trace with Private Session.", tint: KikiPalette.violet),
-            featureRow(symbol: "pawprint", title: "Useful without being invasive", detail: "Read selected text in your voice and optionally see aggregate-only Pawprints that never include Private Sessions.", tint: KikiPalette.magenta),
+            featureRow(symbol: "textformat.abc", title: "Replacements you choose", detail: "Save exact spellings explicitly, with no passive monitoring or approval inbox.", tint: KikiPalette.magenta),
         ])
         features.orientation = .vertical
         features.alignment = .leading
         features.distribution = .fillEqually
         features.spacing = 10
 
-        let explore = KikiActionButton("Run Kiki Checkup", kind: .primary, target: self, action: #selector(explorePressed))
+        let explore = KikiActionButton("Open Transcripts", kind: .primary, target: self, action: #selector(explorePressed))
         let later = KikiActionButton("Not now", kind: .quiet, target: self, action: #selector(closePressed))
         let actions = NSStackView(views: [explore, later])
         actions.orientation = .horizontal

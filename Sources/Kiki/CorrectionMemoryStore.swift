@@ -24,7 +24,8 @@ struct LearnedCorrection: Codable, Identifiable, Equatable {
         self.useCount = useCount
     }
 }
-struct CorrectionSuggestion: Codable, Identifiable, Equatable {
+// Legacy payload retained so editing approved rules never erases historical data.
+private struct CorrectionSuggestion: Codable, Identifiable, Equatable {
     let id: UUID
     let heard: String
     let replacement: String
@@ -52,7 +53,7 @@ final class CorrectionMemoryStore {
     static let didChangeNotification = Notification.Name("KikiCorrectionMemoryDidChange")
 
     private(set) var corrections: [LearnedCorrection] = []
-    private(set) var suggestions: [CorrectionSuggestion] = []
+    private var suggestions: [CorrectionSuggestion] = []
     private let storageURL: URL
 
     private struct Payload: Codable {
@@ -89,76 +90,6 @@ final class CorrectionMemoryStore {
             )
         }
         return result
-    }
-
-    func suggest(heard: String, replacement: String, bundleIdentifier: String?) {
-        let heard = heard.trimmingCharacters(in: .whitespacesAndNewlines)
-        let replacement = replacement.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard heard.count >= 2,
-              replacement.count >= 2,
-              heard.caseInsensitiveCompare(replacement) != .orderedSame,
-              !suggestions.contains(where: {
-                  $0.heard.caseInsensitiveCompare(heard) == .orderedSame &&
-                  $0.replacement.caseInsensitiveCompare(replacement) == .orderedSame
-              })
-        else { return }
-        suggestions.insert(
-            CorrectionSuggestion(
-                heard: heard,
-                replacement: replacement,
-                bundleIdentifier: bundleIdentifier
-            ),
-            at: 0
-        )
-        suggestions = Array(suggestions.prefix(100))
-        save()
-    }
-
-    func approve(_ suggestion: CorrectionSuggestion, scopeToApp: Bool) {
-        corrections.removeAll {
-            $0.heard.caseInsensitiveCompare(suggestion.heard) == .orderedSame &&
-            $0.bundleIdentifier == (scopeToApp ? suggestion.bundleIdentifier : nil)
-        }
-        corrections.append(
-            LearnedCorrection(
-                heard: suggestion.heard,
-                replacement: suggestion.replacement,
-                bundleIdentifier: scopeToApp ? suggestion.bundleIdentifier : nil
-            )
-        )
-        suggestions.removeAll { $0.id == suggestion.id }
-        save()
-    }
-
-    @discardableResult
-    func updateSuggestion(id: UUID, replacement: String) -> CorrectionSuggestion? {
-        let replacement = replacement.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let index = suggestions.firstIndex(where: { $0.id == id }),
-              replacement.count >= 2,
-              suggestions[index].heard.caseInsensitiveCompare(replacement) != .orderedSame,
-              !suggestions.contains(where: {
-                  $0.id != id &&
-                  $0.heard.caseInsensitiveCompare(suggestions[index].heard) == .orderedSame &&
-                  $0.replacement.caseInsensitiveCompare(replacement) == .orderedSame
-              })
-        else { return nil }
-
-        let original = suggestions[index]
-        let updated = CorrectionSuggestion(
-            id: original.id,
-            heard: original.heard,
-            replacement: replacement,
-            bundleIdentifier: original.bundleIdentifier,
-            createdAt: original.createdAt
-        )
-        suggestions[index] = updated
-        save()
-        return updated
-    }
-
-    func reject(_ suggestion: CorrectionSuggestion) {
-        suggestions.removeAll { $0.id == suggestion.id }
-        save()
     }
 
     func removeCorrection(id: UUID) {

@@ -7,7 +7,7 @@ final class SettingsWindowController: NSWindowController {
     var onAutomaticUpdatesChange: (@MainActor (Bool) -> Void)?
     var onAutomaticDownloadsChange: (@MainActor (Bool) -> Void)?
     var onMicrophoneChange: (@MainActor (String) -> Void)?
-    var onOpenPersonalization: (@MainActor () -> Void)?
+    var onOpenPrivateApps: (@MainActor () -> Void)?
 
     private let shortcutButton = NSButton(title: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
@@ -39,7 +39,6 @@ final class SettingsWindowController: NSWindowController {
         ("General", "Shape how Kiki sounds and starts.", "slider.horizontal.3"),
         ("Dictation", "Tune the way Kiki listens and keeps up with you.", "waveform"),
         ("Models", "Choose the local engine that fits your voice and workflow.", "cpu"),
-        ("Intelligence", "Make Kiki more accurate without slowing down transcription.", "sparkles"),
         ("Privacy", "Control exactly what Kiki remembers—and where it remembers nothing.", "lock.shield"),
     ]
 
@@ -49,9 +48,7 @@ final class SettingsWindowController: NSWindowController {
     private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
     private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
     private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
-    private let learningCheckbox = NSButton(checkboxWithTitle: "Notice corrections and suggest what Kiki should learn", target: nil, action: nil)
     private let contextCheckbox = NSButton(checkboxWithTitle: "Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
-    private let confidenceCheckbox = NSButton(checkboxWithTitle: "Audit results with a background Whisper model", target: nil, action: nil)
     private let historyCheckbox = NSButton(checkboxWithTitle: "Save text-only transcription history", target: nil, action: nil)
 
     private var pages: [NSView] = []
@@ -162,7 +159,6 @@ final class SettingsWindowController: NSWindowController {
             makeGeneralPage(),
             makeDictationPage(),
             makeModelsPage(),
-            makeIntelligencePage(),
             makePrivacyPage(),
         ]
         showPage(index: 0)
@@ -260,8 +256,8 @@ final class SettingsWindowController: NSWindowController {
         let checkboxes = [
             launchAtLoginCheckbox, automaticUpdatesCheckbox, automaticDownloadsCheckbox, silenceAudioCheckbox,
             zeroWaitCheckbox,
-            continuationsCheckbox, learningCheckbox, contextCheckbox,
-            confidenceCheckbox, historyCheckbox,
+            continuationsCheckbox, contextCheckbox,
+            historyCheckbox,
         ]
         checkboxes.forEach {
             $0.font = .systemFont(ofSize: 13)
@@ -306,12 +302,8 @@ final class SettingsWindowController: NSWindowController {
         zeroWaitCheckbox.action = #selector(zeroWaitChanged)
         continuationsCheckbox.target = self
         continuationsCheckbox.action = #selector(continuationsChanged)
-        learningCheckbox.target = self
-        learningCheckbox.action = #selector(learningChanged)
         contextCheckbox.target = self
         contextCheckbox.action = #selector(contextChanged)
-        confidenceCheckbox.target = self
-        confidenceCheckbox.action = #selector(confidenceChanged)
         historyCheckbox.target = self
         historyCheckbox.action = #selector(historyChanged)
 
@@ -442,7 +434,7 @@ final class SettingsWindowController: NSWindowController {
             SettingsCard(
                 title: "Audio",
                 subtitle: "Protect microphone quality while Kiki is listening.",
-                views: [silenceAudioCheckbox]
+                views: [silenceAudioCheckbox, contextCheckbox]
             ),
             SettingsCard(
                 title: "Speech Style",
@@ -459,32 +451,10 @@ final class SettingsWindowController: NSWindowController {
             return card
         }
         let introduction = ModelSectionHeaderView(
-            title: "Choose speed, range, or a second opinion.",
-            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and optional confidence checks."
+            title: "Choose a transcription engine.",
+            detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and additional languages."
         )
         return modelsPage(with: [introduction] + modelCards)
-    }
-
-    private func makeIntelligencePage() -> NSView {
-        let manage = KikiActionButton("Open Personalization Studio", kind: .primary, target: self, action: #selector(openPersonalization))
-        return page(with: [
-            FeatureSpotlightView(
-                eyebrow: "PERSONAL, NOT CLOUD",
-                title: "A voice model of you—not a profile about you.",
-                detail: "Kiki notices the corrections, names, phrases, and rhythms that make your writing yours. Every rule stays on this Mac and remains under your control.",
-                symbol: "person.crop.circle.badge.checkmark"
-            ),
-            SettingsCard(
-                title: "Kiki Learns You",
-                subtitle: "Everything stays on this Mac. Suggestions require your approval before becoming permanent.",
-                views: [learningCheckbox, contextCheckbox, manage]
-            ),
-            SettingsCard(
-                title: "Confidence Shadow",
-                subtitle: "The primary result still pastes immediately. If an installed Whisper model strongly disagrees, Kiki saves a private review for later.",
-                views: [confidenceCheckbox]
-            ),
-        ])
     }
 
     private func makePrivacyPage() -> NSView {
@@ -497,7 +467,7 @@ final class SettingsWindowController: NSWindowController {
             ),
             SettingsCard(
                 title: "Private Zones",
-                subtitle: "Secure text fields are always private. Add apps where Kiki should also skip history, learning, and background verification.",
+                subtitle: "Secure text fields are always private. Add apps where Kiki should also skip history.",
                 views: [manage]
             ),
         ])
@@ -638,9 +608,7 @@ final class SettingsWindowController: NSWindowController {
         listeningPositionPopup.isEnabled = listeningMode != .hidden
         zeroWaitCheckbox.state = Settings.enableZeroWaitChaining ? .on : .off
         continuationsCheckbox.state = Settings.enableVoiceContinuations ? .on : .off
-        learningCheckbox.state = Settings.learnFromCorrections ? .on : .off
         contextCheckbox.state = Settings.useContextVocabulary ? .on : .off
-        confidenceCheckbox.state = Settings.enableConfidenceVerification ? .on : .off
         historyCheckbox.state = Settings.saveTranscriptionHistory ? .on : .off
         modelCards.forEach { $0.refresh() }
         if let modelPreparationStatus {
@@ -787,11 +755,9 @@ final class SettingsWindowController: NSWindowController {
     }
     @objc private func zeroWaitChanged() { Settings.enableZeroWaitChaining = zeroWaitCheckbox.state == .on; onSettingsChange?(Settings.dictationShortcut, Settings.activationMode) }
     @objc private func continuationsChanged() { Settings.enableVoiceContinuations = continuationsCheckbox.state == .on }
-    @objc private func learningChanged() { Settings.learnFromCorrections = learningCheckbox.state == .on }
     @objc private func contextChanged() { Settings.useContextVocabulary = contextCheckbox.state == .on }
-    @objc private func confidenceChanged() { Settings.enableConfidenceVerification = confidenceCheckbox.state == .on }
     @objc private func historyChanged() { Settings.saveTranscriptionHistory = historyCheckbox.state == .on }
-    @objc private func openPersonalization() { onOpenPersonalization?() }
+    @objc private func openPersonalization() { onOpenPrivateApps?() }
 }
 @MainActor
 private final class SettingsCard: KikiCardView {

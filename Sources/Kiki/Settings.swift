@@ -110,10 +110,6 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "saveTranscriptionHistory") }
     }
 
-    static var learnFromCorrections: Bool {
-        get { bool(forKey: "learnFromCorrections", default: true) }
-        set { UserDefaults.standard.set(newValue, forKey: "learnFromCorrections") }
-    }
 
     static var useContextVocabulary: Bool {
         get { bool(forKey: "useContextVocabulary", default: true) }
@@ -146,10 +142,6 @@ enum Settings {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "listeningDisplayPosition") }
     }
 
-    static var enableConfidenceVerification: Bool {
-        get { bool(forKey: "enableConfidenceVerification", default: false) }
-        set { UserDefaults.standard.set(newValue, forKey: "enableConfidenceVerification") }
-    }
 
     static var speechProfile: SpeechProfile {
         get {
@@ -200,10 +192,6 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "checkupFirstDictationCompleted") }
     }
 
-    static var pawprintsEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: "pawprintsEnabled") }
-        set { UserDefaults.standard.set(newValue, forKey: "pawprintsEnabled") }
-    }
 
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {
         guard UserDefaults.standard.object(forKey: key) != nil else { return defaultValue }

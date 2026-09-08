@@ -31,7 +31,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
             backing: .buffered,
             defer: false
         )
-        window.title = "Kiki History"
+        window.title = "Kiki Transcripts"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -103,8 +103,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         let historySurface = KikiDataSurfaceView(
             table: tableView,
             emptySymbol: "clock.arrow.circlepath",
-            emptyTitle: "No local history yet",
-            emptyDetail: "When text-only history is enabled, completed dictations appear here. Microphone audio is never stored."
+            emptyTitle: "No transcripts yet",
+            emptyDetail: "Record or import audio using the tabs above. With history enabled, completed dictations and transcripts appear here."
         )
         tableSurface = historySurface
 
@@ -162,7 +162,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         split.setHoldingPriority(.defaultHigh, forSubviewAt: 1)
 
         let eyebrow = kikiLabel("LOCAL LIBRARY", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("History", size: 27, weight: .bold)
+        let title = kikiLabel("Recent transcripts", size: 27, weight: .bold)
         let subtitle = kikiLabel("Review, copy, or remove the transcript text Kiki stores on this Mac.", size: 13, color: KikiPalette.secondaryText)
         let header = NSStackView(views: [eyebrow, title, subtitle])
         header.orientation = .vertical

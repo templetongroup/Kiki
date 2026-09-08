@@ -1,3 +1,5 @@
+> Historical verification log. Home, the dedicated Dictation page, passive Learning, Confidence Shadow, Pawprints, and heuristic meeting briefs were retired in 0.6.50. Use PUBLIC_RELEASE_CHECKLIST.md for the current release scope.
+
 # Kiki public-release gauntlet
 
 This log records independent builder/critic rounds for the release candidate. A source build, screenshot, signature, or builder report cannot pass a piece by itself. Each piece must be inspected in the real artifact by a fresh critic, and the complete installed artifact must pass a final integration critic before publication.

@@ -20,7 +20,6 @@ enum FeatureDiagnostics {
         try checkPrivateSession()
         try checkMeetingCapturePrivacy()
         try checkSupportBundle()
-        try checkPawprints()
         try checkPhraseBoundaries()
         try checkGuidedWorkbench()
         try checkWindowInteractions()
@@ -88,536 +87,30 @@ enum FeatureDiagnostics {
 
     private static func checkGuidedWorkbench() throws {
         let controller = GuidedWorkbenchWindowController()
+        guard controller.route.section == .library,
+              GuidedWorkbenchSection.allCases.count == 4 else { throw failure("transcript-first navigation") }
         controller.onRouteChange = { _ in
-            let view = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 600))
-            return GuidedWorkbenchSurface(view: view, sizing: .fill)
+            GuidedWorkbenchSurface(view: NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 620)), sizing: .fill)
         }
         for section in GuidedWorkbenchSection.allCases {
             for subpage in section.subpages.indices {
                 let route = GuidedWorkbenchRoute(section: section, subpage: subpage)
                 controller.select(route)
-                guard controller.route == route else { throw failure("Guided Workbench route \(section.rawValue) \(subpage)") }
+                guard controller.route == route,
+                      let content = controller.window?.contentView else { throw failure("route availability") }
+                content.layoutSubtreeIfNeeded()
+                guard let rail = findView(in: content, identifier: "kiki.workbench.tab-rail"),
+                      rail.isHidden == (section.subpages.count == 1) else { throw failure("route tab visibility") }
             }
         }
-        controller.window?.contentView?.layoutSubtreeIfNeeded()
-        guard let content = controller.window?.contentView,
-              findView(in: content, identifier: "kiki.workbench.sidebar") != nil,
-              let sidebarFooter = findView(
-                  in: content,
-                  identifier: "kiki.workbench.sidebar.templeton-footer"
-              ),
-              let sidebarFooterLabel = findView(
-                  in: content,
-                  identifier: "kiki.workbench.sidebar.templeton-product-label"
-              ) as? NSTextField,
-              let sidebarFooterLogo = findView(
-                  in: content,
-                  identifier: "kiki.workbench.sidebar.templeton-logo"
-              ) as? NSButton,
-              findView(in: content, identifier: "kiki.workbench.content") != nil,
-              findView(in: content, identifier: "kiki.workbench.context-bar")?.layer?.backgroundColor == KikiPalette.surface.cgColor,
-              findView(in: content, identifier: "kiki.workbench.tab-rail")?.layer?.backgroundColor != nil,
-              let subnavigation = findView(
-                  in: content,
-                  identifier: "kiki.workbench.subnavigation"
-              ) as? KikiFocusableSegmentedControl,
-              subnavigation.layer?.sublayers?.contains(where: {
-                  $0.name == "kiki.segmented-control.keyboard-focus"
-              }) == true,
-              findView(in: content, identifier: "kiki.workbench.quick-dictation") == nil,
-              let releaseLabel = findView(in: content, identifier: "kiki.workbench.release") as? NSTextField,
-              releaseLabel.stringValue.hasPrefix("RELEASE "),
-              sidebarFooterLabel.stringValue == "Kiki is a Templeton Technologies product.",
-              abs(sidebarFooterLogo.frame.width - 138) <= 0.5,
-              abs(
-                  (sidebarFooterLogo.frame.height / sidebarFooterLogo.frame.width)
-                      - (192.0 / 900.0)
-              ) <= 0.01,
-              sidebarFooterLogo.target != nil,
-              sidebarFooterLogo.action != nil,
-              abs(sidebarFooter.frame.minY - 14) <= 0.5,
-              GuidedWorkbenchSection.allCases.allSatisfy({
-                  findView(in: content, identifier: "kiki.workbench.nav.\($0.rawValue)") is NSButton
-              }),
-              controller.window?.isMovableByWindowBackground == false,
-              controller.window?.styleMask.contains(.resizable) == true,
-              controller.window?.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua,
-              (controller.window?.minSize.width ?? 0) >= 900 else {
-            throw failure("Guided Workbench shell")
-        }
-        controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
-        content.layoutSubtreeIfNeeded()
-        let navigationControls = descendants(of: content).compactMap { $0 as? NSControl }
-            .filter { $0.identifier?.rawValue.hasPrefix("kiki.workbench.nav.") == true }
-        let navigationHitFailures = navigationControls.compactMap { control -> String? in
-            control.scrollToVisible(control.bounds)
-            content.layoutSubtreeIfNeeded()
+        guard let content = controller.window?.contentView else { throw failure("window content") }
+        for section in GuidedWorkbenchSection.allCases {
+            guard let control = findView(in: content, identifier: "kiki.workbench.nav.\(section.rawValue)") as? NSButton else { throw failure("navigation button") }
             let point = control.convert(NSPoint(x: control.bounds.midX, y: control.bounds.midY), to: content)
-            guard let hit = content.hitTest(point) else {
-                return "\(control.identifier?.rawValue ?? "unknown") hit nothing frame=\(control.frame)"
-            }
-            guard hit === control || hit.isDescendant(of: control) else {
-                return "\(control.identifier?.rawValue ?? "unknown") hit \(type(of: hit)) frame=\(control.frame)"
-            }
-            return nil
+            guard let hit = content.hitTest(point), hit === control || hit.isDescendant(of: control) else { throw failure("navigation click target") }
         }
-        guard navigationHitFailures.isEmpty else {
-            throw failure("Guided Workbench native click routing [\(navigationHitFailures.joined(separator: "; "))]")
-        }
-
-        controller.select(GuidedWorkbenchRoute(section: .home, subpage: 0))
-        content.layoutSubtreeIfNeeded()
-        guard let tabRail = findView(in: content, identifier: "kiki.workbench.tab-rail"),
-              tabRail.isHidden,
-              tabRail.frame.height < 1 else {
-            throw failure("single-page Workbench sections must not reserve an empty tab rail")
-        }
-        guard let selectedHomeNavigation = findView(in: content, identifier: "kiki.workbench.nav.home"),
-              selectedHomeNavigation.layer?.borderWidth == 0 else {
-            throw failure("selected Workbench navigation must not draw a colored border")
-        }
-
-        controller.select(GuidedWorkbenchRoute(section: .dictation, subpage: 1))
-        content.layoutSubtreeIfNeeded()
-        guard !tabRail.isHidden,
-              tabRail.frame.height >= 40 else {
-            throw failure("multi-page Workbench sections must keep their compact tab rail")
-        }
-
-        controller.select(GuidedWorkbenchRoute(section: .meetings))
-        let availableMeetingHeight = (controller.window?.screen ?? NSScreen.main)?.visibleFrame.height ?? 760
-        guard (controller.window?.minSize.height ?? 0) >= min(760, availableMeetingHeight) else {
-            throw failure("Meeting route must open tall enough to expose its actions")
-        }
-        controller.select(GuidedWorkbenchRoute(section: .library))
-        guard (controller.window?.minSize.width ?? 0) >= 1_100 else {
-            throw failure("Library route must preserve readable split-view width")
-        }
-        controller.select(GuidedWorkbenchRoute(section: .home))
-        guard (controller.window?.minSize.width ?? 0) <= 900,
-              (controller.window?.minSize.height ?? 0) <= 650 else {
-            throw failure("Home route must remain freely resizable")
-        }
-
-        let compactHomeController = GuidedWorkbenchWindowController()
-        let compactHomeView = GuidedWorkbenchHomeView()
-        compactHomeController.onRouteChange = { route in
-            route.section == .home
-                ? GuidedWorkbenchSurface(view: compactHomeView, sizing: .fill)
-                : nil
-        }
-        compactHomeController.select(GuidedWorkbenchRoute(section: .home))
-        compactHomeController.window?.setContentSize(NSSize(width: 900, height: 650))
-        compactHomeController.window?.contentView?.layoutSubtreeIfNeeded()
-        guard let compactHomeContent = compactHomeController.window?.contentView,
-              compactHomeContent.bounds.width <= 900.5,
-              compactHomeView.bounds.width <= 665,
-              let compactReadinessCard = findView(
-                  in: compactHomeView,
-                  identifier: "kiki.workbench.home.readiness-card"
-              ),
-              compactReadinessCard.frame.height >= 200,
-              findView(in: compactHomeView, identifier: "kiki.workbench.home.capabilities") != nil else {
-            throw failure(
-                "Home content must fit its capability launchpad and contextual setup card in a 900-point window content=\(String(describing: compactHomeController.window?.contentView?.bounds)) home=\(compactHomeView.bounds) fitting=\(compactHomeView.fittingSize)"
-            )
-        }
-        let wideHomeView = GuidedWorkbenchHomeView()
-        wideHomeView.frame = NSRect(x: 0, y: 0, width: 1_000, height: 600)
-        wideHomeView.layoutSubtreeIfNeeded()
-        guard let wideReadinessCard = findView(
-                  in: wideHomeView,
-                  identifier: "kiki.workbench.home.readiness-card"
-              ),
-              let wideReadinessList = findView(
-                  in: wideHomeView,
-                  identifier: "kiki.workbench.home.readiness-list"
-              ),
-              wideReadinessCard.frame.height >= 200,
-              abs(wideReadinessList.frame.width - 376) <= 1 else {
-            throw failure("Home setup checks must keep the compact unfinished-check grid aligned")
-        }
-        let homeActionIDs = [
-            "kiki.workbench.home.dictation",
-            "kiki.workbench.home.meeting",
-            "kiki.workbench.home.voice",
-            "kiki.workbench.home.audio",
-        ]
-        guard let homeTitle = findView(
-            in: compactHomeView,
-            identifier: "kiki.workbench.home.title"
-        ) as? NSTextField,
-              homeTitle.stringValue == "Your voice, ready to work.",
-              let microphoneValue = findView(
-                  in: compactHomeView,
-                  identifier: "kiki.workbench.home.readiness.microphone.value"
-              ) as? NSTextField,
-              microphoneValue.stringValue == "Permission needed",
-              let accessibilityValue = findView(
-                  in: compactHomeView,
-                  identifier: "kiki.workbench.home.readiness.accessibility.value"
-              ) as? NSTextField,
-              accessibilityValue.stringValue == "Permission needed",
-              let shortcutHelp = findView(
-                  in: compactHomeView,
-                  identifier: "kiki.workbench.home.shortcut-help"
-              ) as? NSTextField,
-              shortcutHelp.stringValue
-                == "In any text field: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))" else {
-            throw failure("Home readiness must reflect incomplete live checks")
-        }
-
-        let dictationView = GuidedWorkbenchDictationView()
-        dictationView.frame = NSRect(x: 0, y: 0, width: 900, height: 560)
-        dictationView.update(state: .idle, canUndo: false, canRetry: false)
-        dictationView.layoutSubtreeIfNeeded()
-        guard let configuredShortcut = findView(
-                  in: dictationView,
-                  identifier: "kiki.workbench.dictation.configured-shortcut"
-              ) as? NSTextField,
-              configuredShortcut.stringValue
-                == "Configured shortcut: \(Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut))",
-              let handsFreeShortcut = findView(
-                  in: dictationView,
-                  identifier: "kiki.workbench.dictation.hands-free-shortcut"
-              ) as? NSTextField,
-              handsFreeShortcut.stringValue == DictationShortcutGuidance.handsFreeInstruction,
-              let dictationVisual = findView(
-                  in: dictationView,
-                  identifier: "kiki.workbench.dictation.voice-visual"
-              ) as? KikiVoiceStateVisual,
-              !dictationVisual.isHidden,
-              !dictationVisual.isAccessibilityElement() else {
-            throw failure("Dictation surface must distinguish configured and hands-free shortcuts")
-        }
-        dictationView.setFrameSize(NSSize(width: 700, height: 560))
-        dictationView.layoutSubtreeIfNeeded()
-        guard dictationVisual.isHidden,
-              !configuredShortcut.isHidden,
-              !handsFreeShortcut.isHidden else {
-            throw failure("Dictation voice visual must yield to shortcut guidance at compact widths")
-        }
-
-        let capabilityVisualIDs = ["dictation", "meeting", "audio", "voice"].map {
-            "kiki.workbench.home.capability.\($0).visual"
-        }
-        guard capabilityVisualIDs.allSatisfy({ identifier in
-            guard let visual = findView(in: compactHomeView, identifier: identifier) as? KikiCapabilityGlyphView else {
-                return false
-            }
-            return !visual.isAccessibilityElement()
-        }) else {
-            throw failure("Home capability visuals must be present and decorative")
-        }
-        guard let homeDictationButton = findView(
-            in: compactHomeView,
-            identifier: "kiki.workbench.home.dictation"
-        ) as? KikiActionButton,
-              homeDictationButton.title == "Try Dictation" else {
-            throw failure("Incomplete setup must offer a working practice dictation")
-        }
-        guard let homeArtwork = findView(
-            in: compactHomeView,
-            identifier: "kiki.workbench.home.hero"
-        ) as? KikiDecorativeImageView,
-              !homeArtwork.isAccessibilityElement() else {
-            throw failure("Home hero artwork must be decorative")
-        }
-        var homeRouteChecks: [String] = []
-        compactHomeView.onOpenCheckup = { homeRouteChecks.append("checkup") }
-        compactHomeView.onOpenModels = { homeRouteChecks.append("models") }
-        compactHomeView.onStartDictation = { homeRouteChecks.append("dictation") }
-        let readinessActionChecks = [
-            ("kiki.workbench.home.readiness.shortcut.action", "checkup"),
-            ("kiki.workbench.home.readiness.model.action", "models"),
-        ]
-        for (identifier, expectedRoute) in readinessActionChecks {
-            guard let action = findView(in: compactHomeView, identifier: identifier) as? KikiActionButton else {
-                throw failure("Home readiness action \(identifier)")
-            }
-            action.performClick(nil)
-            guard homeRouteChecks.last == expectedRoute else {
-                throw failure("Home readiness action \(identifier) must open \(expectedRoute)")
-            }
-        }
-        let readinessActionIDs = [
-            "kiki.workbench.home.readiness.microphone.action",
-            "kiki.workbench.home.readiness.accessibility.action",
-            "kiki.workbench.home.readiness.model.action",
-            "kiki.workbench.home.readiness.shortcut.action",
-        ]
-        compactHomeView.layoutSubtreeIfNeeded()
-        let readinessActions = readinessActionIDs.compactMap {
-            findView(in: compactHomeView, identifier: $0) as? KikiActionButton
-        }
-        let actionMinX = readinessActions.map(\.frame.minX)
-        let actionWidths = readinessActions.map(\.frame.width)
-        let actionHeights = readinessActions.map(\.frame.height)
-        let readinessValueIDs = [
-            "kiki.workbench.home.readiness.microphone.value",
-            "kiki.workbench.home.readiness.accessibility.value",
-            "kiki.workbench.home.readiness.model.value",
-            "kiki.workbench.home.readiness.shortcut.value",
-            "kiki.workbench.home.readiness.first-dictation.value",
-        ]
-        let readinessValues = readinessValueIDs.compactMap {
-            findView(in: compactHomeView, identifier: $0) as? NSTextField
-        }
-        let readinessTitleIDs = [
-            "kiki.workbench.home.readiness.microphone.title",
-            "kiki.workbench.home.readiness.accessibility.title",
-            "kiki.workbench.home.readiness.model.title",
-            "kiki.workbench.home.readiness.shortcut.title",
-            "kiki.workbench.home.readiness.first-dictation.title",
-        ]
-        let readinessTitles = readinessTitleIDs.compactMap {
-            findView(in: compactHomeView, identifier: $0) as? NSTextField
-        }
-        let readinessValueMinX = readinessValues.map(\.frame.minX)
-        let readinessTitleMaxX = readinessTitles.map(\.frame.maxX)
-        let readinessRows = [
-            "kiki.workbench.home.readiness.microphone",
-            "kiki.workbench.home.readiness.accessibility",
-            "kiki.workbench.home.readiness.model",
-            "kiki.workbench.home.readiness.shortcut",
-            "kiki.workbench.home.readiness.first-dictation",
-        ].compactMap { findView(in: compactHomeView, identifier: $0) }
-        let readinessRowHeights = readinessRows.map(\.frame.height)
-        guard readinessActions.count == readinessActionIDs.count,
-              let minimumActionX = actionMinX.min(),
-              let maximumActionX = actionMinX.max(),
-              maximumActionX - minimumActionX <= 1,
-              actionWidths.allSatisfy({ abs($0 - 104) <= 1 }),
-              actionHeights.allSatisfy({ abs($0 - 30) <= 1 }),
-              readinessValues.count == readinessValueIDs.count,
-              readinessTitles.count == readinessTitleIDs.count,
-              let minimumValueX = readinessValueMinX.min(),
-              let maximumValueX = readinessValueMinX.max(),
-              maximumValueX - minimumValueX <= 1,
-              zip(readinessValueMinX, readinessTitleMaxX).allSatisfy({ valueX, titleX in
-                  valueX - titleX <= 9
-              }),
-              readinessRows.count == 5,
-              readinessRowHeights.allSatisfy({ abs($0 - 32) <= 1 }) else {
-            throw failure("Home readiness actions must share one aligned column x=\(actionMinX) widths=\(actionWidths) heights=\(actionHeights)")
-        }
-        guard let firstDictationAction = findView(
-            in: compactHomeView,
-            identifier: "kiki.workbench.home.readiness.first-dictation.action"
-        ) as? KikiActionButton,
-              firstDictationAction.isHidden else {
-            throw failure("First dictation must use the single hero action")
-        }
-        homeDictationButton.performClick(nil)
-        guard homeRouteChecks.last == "dictation" else {
-            throw failure("Home Try Dictation must open guided dictation")
-        }
-        compactHomeView.update(snapshot: KikiCheckupSnapshot(
-            microphoneAuthorized: true,
-            inputResponding: true,
-            accessibilityAuthorized: true,
-            modelStatus: .ready(model: .parakeetEnglish),
-            shortcutVerified: true,
-            firstDictationCompleted: true
-        ))
-        let readinessActionsWhenReady = [
-            "kiki.workbench.home.readiness.microphone.action",
-            "kiki.workbench.home.readiness.accessibility.action",
-            "kiki.workbench.home.readiness.model.action",
-            "kiki.workbench.home.readiness.shortcut.action",
-            "kiki.workbench.home.readiness.first-dictation.action",
-        ].compactMap { findView(in: compactHomeView, identifier: $0) as? KikiActionButton }
-        let visibleTryDictationButtons = descendants(of: compactHomeView)
-            .compactMap { $0 as? NSButton }
-            .filter { !$0.isHidden && $0.title == "Try Dictation" }
-        guard homeTitle.stringValue == "Your voice, ready to work.",
-              microphoneValue.stringValue == "Ready",
-              accessibilityValue.stringValue == "Ready",
-              shortcutHelp.stringValue.contains(Settings.dictationShortcut.displayString),
-              homeDictationButton.title == "Try Dictation",
-              compactReadinessCard.isHidden,
-              readinessActionsWhenReady.count == 5,
-              readinessActionsWhenReady.allSatisfy(\.isHidden),
-              visibleTryDictationButtons.count == 1,
-              visibleTryDictationButtons.first === homeDictationButton else {
-            throw failure("Ready Home must have one dictation action and status-only setup checks")
-        }
-        let homeActionButtons = homeActionIDs.compactMap {
-            findView(in: compactHomeView, identifier: $0) as? KikiActionButton
-        }
-        let capabilityCardIDs = ["dictation", "meeting", "audio", "voice"].map {
-            "kiki.workbench.home.capability.\($0)"
-        }
-        let capabilityCards = capabilityCardIDs.compactMap { findView(in: compactHomeView, identifier: $0) }
-        let capabilityCardHeights = capabilityCards.map(\.frame.height)
-        let homeActionHeights = homeActionButtons.map(\.frame.height)
-        let homeActionFontSizes = homeActionButtons.compactMap { $0.font?.pointSize }
-        let homeActionFontNames = homeActionButtons.compactMap { $0.font?.fontName }
-        let homeActionRenderedFontSizes = homeActionButtons.compactMap {
-            $0.attributedTitle.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
-        }.map(\.pointSize)
-        let homeActionRenderedFontNames = homeActionButtons.compactMap {
-            $0.attributedTitle.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
-        }.map(\.fontName)
-        guard homeActionButtons.count == homeActionIDs.count,
-              capabilityCards.count == capabilityCardIDs.count,
-              capabilityCardHeights.allSatisfy({ abs($0 - 148) <= 1 }),
-              homeActionHeights.allSatisfy({ abs($0 - KikiMetrics.compactControlHeight) <= 1 }),
-              Set(homeActionFontSizes).count == 1,
-              Set(homeActionFontNames).count == 1,
-              Set(homeActionRenderedFontSizes).count == 1,
-              Set(homeActionRenderedFontNames).count == 1,
-              homeActionRenderedFontSizes.allSatisfy({ abs($0 - 12.5) < 0.1 }) else {
-            throw failure(
-                "Home capability cards must share one geometry and button treatment cards=\(capabilityCardHeights) heights=\(homeActionHeights) fonts=\(homeActionFontNames) sizes=\(homeActionFontSizes) renderedFonts=\(homeActionRenderedFontNames) renderedSizes=\(homeActionRenderedFontSizes)"
-            )
-        }
-
-        let adaptivePage = NSView(frame: NSRect(x: 0, y: 0, width: 900, height: 620))
-        controller.onRouteChange = { _ in
-            GuidedWorkbenchSurface(view: adaptivePage, sizing: .scroll(NSSize(width: 900, height: 620)))
-        }
-        controller.window?.setContentSize(NSSize(width: 1_300, height: 820))
-        controller.select(GuidedWorkbenchRoute(section: .library))
-        content.layoutSubtreeIfNeeded()
-        controller.windowDidResize(Notification(name: NSWindow.didResizeNotification))
-        content.layoutSubtreeIfNeeded()
-        guard adaptivePage.frame.width > 900,
-              adaptivePage.frame.width <= 1_215.5,
-              adaptivePage.frame.height >= 620 else {
-            throw failure("Workbench hosted pages must resize within a readable measure")
-        }
-
-        let settingsController = SettingsWindowController()
-        let personalizationController = PersonalizationWindowController()
-        let embeddedSettings = settingsController.workbenchPage(0)
-        let embeddedPersonalization = personalizationController.workbenchPage(context: nil, page: 0)
-        guard descendants(of: embeddedSettings).allSatisfy({ !($0 is KikiNavButton) }),
-              descendants(of: embeddedPersonalization).allSatisfy({ !($0 is KikiNavButton) }),
-              findView(in: embeddedSettings, identifier: "kiki.settings.automatic-update-checks") is NSButton,
-              findView(in: embeddedSettings, identifier: "kiki.settings.automatic-update-downloads") is NSButton else {
-            throw failure("Workbench content must not embed legacy sidebars")
-        }
-
-        let aboutView = GuidedWorkbenchAboutView()
-        aboutView.frame = NSRect(x: 0, y: 0, width: 900, height: 830)
-        aboutView.layoutSubtreeIfNeeded()
-        guard let checkupButton = findView(in: aboutView, identifier: "kiki.workbench.about.checkup"),
-              let updateButton = findView(in: aboutView, identifier: "kiki.workbench.about.check-updates"),
-              let templetonFooter = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-footer"),
-              let templetonLogo = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-logo") as? NSButton,
-              let templetonLabel = findView(in: aboutView, identifier: "kiki.workbench.about.templeton-product-label") as? NSTextField,
-              abs(checkupButton.frame.width - updateButton.frame.width) <= 0.5,
-              abs(checkupButton.frame.height - updateButton.frame.height) <= 0.5,
-              abs(templetonLogo.frame.width - 285) <= 0.5,
-              abs((templetonLogo.frame.height / templetonLogo.frame.width) - (192.0 / 900.0)) <= 0.01,
-              templetonLogo.target != nil,
-              templetonLogo.action != nil,
-              abs((templetonLabel.font?.pointSize ?? 0) - 12) <= 0.5,
-              abs(templetonLabel.frame.minY - templetonLogo.frame.maxY - 14) <= 0.5,
-              NSColor(cgColor: templetonFooter.layer?.backgroundColor ?? NSColor.clear.cgColor)?.alphaComponent ?? 1 <= 0.01 else {
-            throw failure("About actions and Radiant-matched Templeton footer geometry")
-        }
-        aboutView.frame.size.width = 700
-        aboutView.layoutSubtreeIfNeeded()
-        let compactLogoWidth = templetonLogo.frame.width
-        guard abs(compactLogoWidth - 220) <= 0.5,
-              templetonLogo.frame.maxX <= templetonFooter.bounds.maxX + 0.5 else {
-            throw failure(
-                "Templeton footer must scale down without overflow compactLogo=\(compactLogoWidth) footer=\(templetonFooter.frame.width)"
-            )
-        }
-
-        let narrowPersonalizationHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
-        embeddedPersonalization.translatesAutoresizingMaskIntoConstraints = false
-        narrowPersonalizationHost.addSubview(embeddedPersonalization)
-        NSLayoutConstraint.activate([
-            embeddedPersonalization.leadingAnchor.constraint(equalTo: narrowPersonalizationHost.leadingAnchor),
-            embeddedPersonalization.trailingAnchor.constraint(equalTo: narrowPersonalizationHost.trailingAnchor),
-            embeddedPersonalization.topAnchor.constraint(equalTo: narrowPersonalizationHost.topAnchor),
-            embeddedPersonalization.bottomAnchor.constraint(equalTo: narrowPersonalizationHost.bottomAnchor),
-        ])
-        narrowPersonalizationHost.layoutSubtreeIfNeeded()
-        guard let suggestionEditor = findView(
-            in: embeddedPersonalization,
-            identifier: "kiki.personalization.suggestion-editor"
-        ) else {
-            throw failure("Personalization suggestion editor surface")
-        }
-        let suggestionEditorFrame = suggestionEditor.convert(suggestionEditor.bounds, to: embeddedPersonalization)
-        guard suggestionEditorFrame.width >= 520,
-              suggestionEditorFrame.width <= 560,
-              suggestionEditorFrame.minX >= -0.5,
-              suggestionEditorFrame.maxX <= embeddedPersonalization.bounds.maxX + 0.5,
-              suggestionEditorFrame.minY >= -0.5,
-              suggestionEditorFrame.maxY <= embeddedPersonalization.bounds.maxY + 0.5,
-              suggestionEditorFrame.height >= suggestionEditor.fittingSize.height - 1 else {
-            throw failure(
-                "Personalization suggestion editor must remain visible at narrow widths frame=\(suggestionEditorFrame) page=\(embeddedPersonalization.bounds)"
-            )
-        }
-
-        let dictationSettings = settingsController.workbenchPage(1)
-        let narrowSettingsHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
-        dictationSettings.translatesAutoresizingMaskIntoConstraints = false
-        narrowSettingsHost.addSubview(dictationSettings)
-        NSLayoutConstraint.activate([
-            dictationSettings.leadingAnchor.constraint(equalTo: narrowSettingsHost.leadingAnchor),
-            dictationSettings.trailingAnchor.constraint(equalTo: narrowSettingsHost.trailingAnchor),
-            dictationSettings.topAnchor.constraint(equalTo: narrowSettingsHost.topAnchor),
-            dictationSettings.bottomAnchor.constraint(equalTo: narrowSettingsHost.bottomAnchor),
-        ])
-        narrowSettingsHost.layoutSubtreeIfNeeded()
-        guard let positionRow = findView(
-            in: dictationSettings,
-            identifier: "kiki.settings.listening-position-row"
-        ),
-              let positionLabel = descendants(of: positionRow).compactMap({ $0 as? NSTextField }).first,
-              let positionPopup = findView(
-                in: positionRow,
-                identifier: "kiki.listening-display-position"
-              ) else {
-            throw failure("Listening display position row")
-        }
-        let positionLabelFrame = positionLabel.convert(positionLabel.bounds, to: positionRow)
-        let positionPopupFrame = positionPopup.convert(positionPopup.bounds, to: positionRow)
-        guard positionPopupFrame.minX - positionLabelFrame.maxX <= 18 else {
-            throw failure(
-                "Listening display label and menu must stay grouped gap=\(positionPopupFrame.minX - positionLabelFrame.maxX)"
-            )
-        }
-
-        let narrowGeneralSettingsHost = NSView(frame: NSRect(x: 0, y: 0, width: 960, height: 900))
-        embeddedSettings.translatesAutoresizingMaskIntoConstraints = false
-        narrowGeneralSettingsHost.addSubview(embeddedSettings)
-        NSLayoutConstraint.activate([
-            embeddedSettings.leadingAnchor.constraint(equalTo: narrowGeneralSettingsHost.leadingAnchor),
-            embeddedSettings.trailingAnchor.constraint(equalTo: narrowGeneralSettingsHost.trailingAnchor),
-            embeddedSettings.topAnchor.constraint(equalTo: narrowGeneralSettingsHost.topAnchor),
-            embeddedSettings.bottomAnchor.constraint(equalTo: narrowGeneralSettingsHost.bottomAnchor),
-        ])
-        narrowGeneralSettingsHost.layoutSubtreeIfNeeded()
-        let groupedSettingsControls: [(page: NSView, rowID: String, controlID: String)] = [
-            (embeddedSettings, "kiki.settings.sound-row", "kiki.sound-style"),
-            (embeddedSettings, "kiki.settings.microphone-row", "kiki.settings.microphone"),
-            (dictationSettings, "kiki.settings.shortcut-row", "kiki.dictation-shortcut"),
-            (dictationSettings, "kiki.settings.behavior-row", "kiki.activation-mode"),
-            (dictationSettings, "kiki.settings.speech-profile-row", "kiki.speech-profile"),
-        ]
-        for groupedControl in groupedSettingsControls {
-            guard let row = findView(in: groupedControl.page, identifier: groupedControl.rowID),
-                  let label = descendants(of: row).compactMap({ $0 as? NSTextField }).first,
-                  let control = findView(in: row, identifier: groupedControl.controlID) else {
-                throw failure("Grouped settings control \(groupedControl.rowID)")
-            }
-            let labelFrame = label.convert(label.bounds, to: row)
-            let controlFrame = control.convert(control.bounds, to: row)
-            guard controlFrame.minX - labelFrame.maxX <= 18 else {
-                throw failure(
-                    "Settings label and control must stay grouped row=\(groupedControl.rowID) gap=\(controlFrame.minX - labelFrame.maxX)"
-                )
-            }
-        }
+        controller.updateDictationState(.idle)
+        guard !descendants(of: content).compactMap({ $0 as? NSTextField }).contains(where: { $0.stringValue.contains("Checkup incomplete") }) else { throw failure("retired global setup warning") }
     }
 
     static func benchmarkPostProcessing(iterations: Int = 100) -> TimeInterval {
@@ -808,25 +301,17 @@ enum FeatureDiagnostics {
     }
 
     private static func checkCorrectionMemory() throws {
+        // Older approved app-scoped rules remain readable and retain their scope.
         let fileURL = temporaryFile("learning.json")
+        let legacy = #"{"corrections":[{"id":"00000000-0000-0000-0000-000000000001","heard":"Northwimd","replacement":"Northwind","bundleIdentifier":"com.apple.mail","createdAt":0,"useCount":0}],"suggestions":[]}"#
+        try Data(legacy.utf8).write(to: fileURL)
         let store = CorrectionMemoryStore(fileURL: fileURL)
-        store.suggest(heard: "Northwimd", replacement: "Northwind", bundleIdentifier: "com.apple.mail")
-        guard let suggestion = store.suggestions.first else { throw failure("correction suggestion") }
-        store.approve(suggestion, scopeToApp: true)
         guard store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.mail") == "Alex Northwind",
-              store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.TextEdit") == "Alex Northwimd"
-        else { throw failure("correction scoping") }
-
-        store.suggest(heard: "Lemour", replacement: "Lim", bundleIdentifier: "com.apple.MobileSMS")
-        guard let pending = store.suggestions.first,
-              store.updateSuggestion(id: pending.id, replacement: "Limore")?.replacement == "Limore",
-              CorrectionMemoryStore(fileURL: fileURL).suggestions.first?.replacement == "Limore" else {
-            throw failure("correction suggestion editing persistence")
-        }
-        store.reject(store.suggestions[0])
-        guard CorrectionMemoryStore(fileURL: fileURL).suggestions.isEmpty else {
-            throw failure("correction suggestion removal persistence")
-        }
+              store.apply(to: "Alex Northwimd", bundleIdentifier: "com.apple.TextEdit") == "Alex Northwimd" else { throw failure("legacy replacement scoping") }
+        let dictionaryURL = temporaryFile("dictionary.json")
+        let dictionary = CustomDictionaryStore(fileURL: dictionaryURL)
+        dictionary.add(spoken: "Northwimd", replacement: "Northwind")
+        guard CustomDictionaryStore(fileURL: dictionaryURL).apply(to: "Northwimd team") == "Northwind team" else { throw failure("explicit replacement persistence") }
     }
 
     private static func checkVoiceSnippets() throws {
@@ -853,112 +338,20 @@ enum FeatureDiagnostics {
     }
 
     private static func checkMeetingExports() throws {
-        let permissionError = MeetingCaptureStartError.systemAudioPermissionRequired
         let segments = [
             MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "You", text: "I will send the proposal."),
-            MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review."),
+            MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review.")
         ]
-        let liveMeetingSegments = [
-            MeetingTranscriptSegment(startTime: 77, endTime: 81, speaker: "Speaker 1", text: "Do we just need to wait?"),
-            MeetingTranscriptSegment(startTime: 77, endTime: 81, speaker: "You", text: "Do we just need to wait?"),
-            MeetingTranscriptSegment(startTime: 385, endTime: 389, speaker: "You", text: "I'll continue."),
-            MeetingTranscriptSegment(startTime: 390, endTime: 399, speaker: "You", text: "Continue planning, organizing structurally what we want."),
-            MeetingTranscriptSegment(startTime: 465, endTime: 470, speaker: "Speaker 1", text: "It's something I need to figure out because my"),
-            MeetingTranscriptSegment(startTime: 576, endTime: 577, speaker: "You", text: "I'll definitely put some together for you."),
-            MeetingTranscriptSegment(startTime: 577, endTime: 579, speaker: "You", text: "I'll send you a few examples."),
-            MeetingTranscriptSegment(startTime: 610, endTime: 614, speaker: "Speaker 1", text: "Could you email me the final options?"),
-        ]
-        let refinedMeetingSegments = MeetingTranscript.deduplicatingSourceOverlap(liveMeetingSegments)
-        let contextualActions = MeetingTranscript.actionItems(from: refinedMeetingSegments)
-        let meeting = MeetingTranscript(
-            title: "Planning",
-            createdAt: Date(timeIntervalSince1970: 0),
-            duration: 12,
-            segments: segments,
-            actionItems: MeetingTranscript.actionItems(from: segments)
-        )
-        let briefingSegments = [
-            MeetingTranscriptSegment(startTime: 0, endTime: 6, speaker: "You", text: "The purpose today is to finalize the September launch plan."),
-            MeetingTranscriptSegment(startTime: 7, endTime: 14, speaker: "Alex", text: "We agreed to launch on September fifteenth and use the final blue artwork."),
-            MeetingTranscriptSegment(startTime: 15, endTime: 22, speaker: "You", text: "I will send the approved artwork to the web team tomorrow."),
-            MeetingTranscriptSegment(startTime: 23, endTime: 30, speaker: "Alex", text: "Could you schedule the final review with Jordan?"),
-            MeetingTranscriptSegment(startTime: 31, endTime: 38, speaker: "You", text: "The release checklist is otherwise complete."),
-        ]
-        let briefing = MeetingTranscript(
-            title: "September Launch",
-            createdAt: Date(timeIntervalSince1970: 0),
-            duration: 38,
-            segments: briefingSegments,
-            actionItems: MeetingTranscript.actionItems(from: briefingSegments)
-        )
-        let emptyBriefing = MeetingTranscript(
-            title: "Empty",
-            createdAt: Date(timeIntervalSince1970: 0),
-            duration: 0,
-            segments: [],
-            actionItems: []
-        )
-        let renamed = meeting.renamingSpeaker(from: "Speaker 1", to: "Alex")
-        let assigned = renamed.assigningSpeaker(
-            "Jordan",
-            to: Set(segments.filter { $0.speaker == "You" }.map(\.id))
-        )
-        let sentenceRows = MeetingTranscriptSegment.sentenceSegments(
-            startTime: 0,
-            endTime: 12,
-            speaker: "Speaker 1",
-            text: "First person speaking. Second person answering!"
-        )
-        guard refinedMeetingSegments.filter({ $0.text == "Do we just need to wait?" }).count == 1 else {
-            throw failure("meeting cross-track echo removal")
-        }
-        guard !contextualActions.contains(where: { $0.localizedCaseInsensitiveContains("need to wait") }),
-              contextualActions.contains(where: {
-                  $0.contains("You —")
-                      && $0.localizedCaseInsensitiveContains("continue planning")
-                      && $0.contains("00:06:25")
-              }),
-              contextualActions.filter({ $0.localizedCaseInsensitiveContains("examples") }).count == 1 else {
-            throw failure("meeting contextual action items")
-        }
-        guard contextualActions.contains(where: {
-            $0.contains("You —")
-                && $0.localizedCaseInsensitiveContains("email me the final options")
-                && $0.contains("requested by Speaker 1")
-        }) else {
-            throw failure("meeting action request ownership")
-        }
-        guard meeting.markdown.contains("## Action items"),
+        let meeting = MeetingTranscript(title: "Planning", createdAt: Date(timeIntervalSince1970: 0), duration: 12, segments: segments, actionItems: [])
+        guard meeting.markdown.contains("## Transcript"),
+              meeting.markdown.contains("I will send the proposal."),
+              !meeting.markdown.contains("## Summary"),
+              !meeting.markdown.contains("## Next steps"),
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
-              meeting.actionItems.count == 2,
-              !renamed.markdown.contains("Speaker 1"),
-              renamed.markdown.contains("Alex"),
-              renamed.srt.contains("Alex:"),
-              renamed.vtt.contains("<v Alex>"),
-              assigned.speakerNames == ["Jordan", "Alex"],
-              sentenceRows.count == 2,
-              sentenceRows[0].endTime == sentenceRows[1].startTime,
-              permissionError.requiresScreenRecordingSettings,
-              permissionError.localizedDescription.contains("Zoom"),
-              !MeetingCaptureStartError.microphoneUnavailable("test").requiresScreenRecordingSettings
-        else { throw failure("meeting exports") }
-        guard briefing.summary.count == 3,
-              briefing.summary.first?.contains("purpose today") == true,
-              briefing.decisions.count == 1,
-              briefing.decisions.first?.contains("We agreed") == true,
-              briefing.actionItems.count == 2,
-              briefing.nextSteps.count == 2,
-              briefing.nextSteps.allSatisfy({ !$0.contains("00:00:") }),
-              briefing.markdown.contains("## Summary"),
-              briefing.markdown.contains("## Decisions"),
-              briefing.markdown.contains("## Next steps"),
-              briefing.markdown.contains("1. You — I will send the approved artwork"),
-              emptyBriefing.markdown.contains("No substantive discussion was captured."),
-              emptyBriefing.markdown.contains("No explicit decisions were detected."),
-              emptyBriefing.markdown.contains("No explicit action items were detected."),
-              emptyBriefing.markdown.contains("No explicit next steps were detected.")
-        else { throw failure("automatic local meeting brief") }
+              meeting.renamingSpeaker(from: "Speaker 1", to: "Alex").plainText.contains("Alex: Please schedule") else { throw failure("transcript exports and speaker rename") }
+        let echoed = segments + [MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "Others", text: "I will send the proposal.")]
+        guard MeetingTranscript.deduplicatingSourceOverlap(echoed).count == 2 else { throw failure("microphone echo deduplication") }
     }
 
     private static func checkFileTranscriptExports() throws {
@@ -1138,22 +531,9 @@ enum FeatureDiagnostics {
     }
 
     private static func checkPrivateSession() throws {
-        let normal = PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: false)
-        let session = PrivateSessionPolicy.resolved(privateSessionActive: true, privateContext: false)
-        let privateApp = PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: true)
-        guard normal.historyEnabled,
-              normal.learningEnabled,
-              normal.confidenceVerificationEnabled,
-              normal.pawprintsEnabled,
-              session == PrivateSessionPolicy(
-                historyEnabled: false,
-                learningEnabled: false,
-                confidenceVerificationEnabled: false,
-                pawprintsEnabled: false
-              ),
-              privateApp == session else {
-            throw failure("Private Session policy")
-        }
+        guard PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: false).historyEnabled,
+              !PrivateSessionPolicy.resolved(privateSessionActive: true, privateContext: false).historyEnabled,
+              !PrivateSessionPolicy.resolved(privateSessionActive: false, privateContext: true).historyEnabled else { throw failure("Private Session history policy") }
     }
 
     private static func checkMeetingCapturePrivacy() throws {
@@ -1243,38 +623,6 @@ enum FeatureDiagnostics {
             throw failure(
                 "support bundle allowlist files=\(extractedFiles.sorted()) archive=\(archiveSize) unzip=\(unzip.terminationStatus) forbidden=\(extractedKeys.intersection(forbiddenKeys).sorted())"
             )
-        }
-    }
-
-    private static func checkPawprints() throws {
-        let url = temporaryFile("pawprints.json")
-        try? FileManager.default.removeItem(at: url)
-        var enabled = false
-        let store = PawprintsStore(fileURL: url, isEnabled: { enabled })
-        guard !store.record(text: "This must never be stored", duration: 4, isPrivate: false),
-              store.summary == .empty else { throw failure("Pawprints opt-in") }
-        enabled = true
-        guard !store.record(text: "five private words stay completely hidden", duration: 5, isPrivate: true),
-              store.summary == .empty else { throw failure("Pawprints Private Session exclusion") }
-        let day = Date(timeIntervalSince1970: 1_722_470_400)
-        guard store.record(text: "Five useful aggregate words", duration: 6, isPrivate: false, now: day),
-              store.record(text: "Three more words", duration: 4, isPrivate: false, now: day) else {
-            throw failure("Pawprints aggregate persistence")
-        }
-        let summary = store.summary
-        let diskText = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        guard summary.dictations == 2,
-              summary.words == 7,
-              summary.speakingSeconds == 10,
-              summary.activeDays == 1,
-              !diskText.contains("useful"),
-              !diskText.contains("aggregate") else {
-            throw failure("Pawprints aggregate-only storage")
-        }
-        guard store.reset(),
-              store.summary == .empty,
-              !FileManager.default.fileExists(atPath: url.path) else {
-            throw failure("Pawprints complete reset")
         }
     }
 
@@ -1659,22 +1007,6 @@ enum FeatureDiagnostics {
         guard checkupBody.orientation == .horizontal else {
             throw failure("Kiki Checkup must restore two columns when space is available")
         }
-        let pawprints = PawprintsWindowController()
-        guard let pawprintsContent = pawprints.window?.contentView,
-              let pawprintsToggle = findView(
-                in: pawprintsContent,
-                identifier: "kiki.pawprints.enable"
-              ) as? NSButton,
-              pawprintsToggle.contentTintColor?.isEqual(KikiPalette.accentText) == true,
-              let pawprintsEyebrow = findView(
-                in: pawprintsContent,
-                identifier: "kiki.pawprints.eyebrow"
-              ) as? NSTextField,
-              pawprintsEyebrow.textColor?.isEqual(KikiPalette.accentText) == true,
-              findView(in: pawprintsContent, identifier: "kiki.pawprints.summary") != nil,
-              findButton(in: pawprintsContent, title: "Reset Pawprints") != nil else {
-            throw failure("Pawprints controls")
-        }
         let meetingWindow = MeetingWindowController()
         meetingWindow.window?.contentView?.layoutSubtreeIfNeeded()
         guard let meetingContent = meetingWindow.window?.contentView,
@@ -1694,160 +1026,18 @@ enum FeatureDiagnostics {
             throw failure("disabled Meeting Hardware button contrast")
         }
 
-        let personalizationStore = CorrectionMemoryStore(fileURL: temporaryFile("personalization-learning.json"))
-        personalizationStore.suggest(
-            heard: "Lemour",
-            replacement: "Lim",
-            bundleIdentifier: "com.apple.MobileSMS"
-        )
-        let personalization = PersonalizationWindowController(correctionStore: personalizationStore)
+        let personalization = PersonalizationWindowController()
         personalization.prepareForDiagnostics(page: 0)
-        let guidedStep = KikiGuidedStepView(
-            number: 1,
-            title: "Choose what changed",
-            detail: "Select a suggestion to review."
-        )
-        guidedStep.frame = NSRect(x: 0, y: 0, width: 400, height: 90)
-        guidedStep.layoutSubtreeIfNeeded()
-        guard let personalizationContent = personalization.window?.contentView,
-              let approveSuggestion = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.approve"
-              ) as? KikiActionButton,
-              let saveSuggestion = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.save-suggestion"
-              ) as? KikiActionButton,
-              let removeSuggestion = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.remove-suggestion"
-              ) as? KikiActionButton,
-              let replacementField = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.replacement"
-              ) as? NSTextField,
-              let suggestionScope = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.suggestion-scope"
-              ) as? NSPopUpButton,
-              abs(approveSuggestion.frame.height - saveSuggestion.frame.height) < 0.5,
-              abs(approveSuggestion.frame.height - removeSuggestion.frame.height) < 0.5,
-              abs(approveSuggestion.frame.height - KikiMetrics.primaryControlHeight) < 0.5,
-              findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.suggestions.surface"
-              ) is KikiDataSurfaceView,
-              let learningLayout = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.learning-layout"
-              ),
-              let suggestionsSection = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.suggestions-section"
-              ),
-              let suggestionsTable = findView(
-                in: personalizationContent,
-                identifier: "kiki.personalization.suggestions"
-              ) as? NSTableView,
-              let suggestionAppColumn = suggestionsTable.tableColumn(
-                withIdentifier: NSUserInterfaceItemIdentifier("scope")
-              ),
-              let guidedBadge = findView(
-                in: guidedStep,
-                identifier: "kiki.guided-step.badge"
-              ),
-              let guidedNumber = findView(
-                in: guidedStep,
-                identifier: "kiki.guided-step.number"
-              ),
-              !approveSuggestion.isEnabled,
-              !saveSuggestion.isEnabled,
-              !removeSuggestion.isEnabled,
-              !replacementField.isEnabled else {
-            throw failure("Personalization guided review state")
-        }
-        guard abs(learningLayout.bounds.width - suggestionsSection.bounds.width) < 1,
-              suggestionsSection.bounds.width > 800,
-              suggestionAppColumn.width > 300 else {
-            throw failure(
-                "full-width suggestions layout=\(learningLayout.bounds.width) section=\(suggestionsSection.bounds.width) app=\(suggestionAppColumn.width)"
-            )
-        }
-        let guidedBadgeCenter = guidedBadge.convert(
-            NSPoint(x: guidedBadge.bounds.midX, y: guidedBadge.bounds.midY),
-            to: guidedStep
-        )
-        let guidedNumberCenter = guidedNumber.convert(
-            NSPoint(x: guidedNumber.bounds.midX, y: guidedNumber.bounds.midY),
-            to: guidedStep
-        )
-        guard abs(guidedBadgeCenter.x - guidedNumberCenter.x) <= 0.5,
-              abs(guidedBadgeCenter.y - guidedNumberCenter.y) <= 0.5,
-              guidedNumber.bounds.height < guidedBadge.bounds.height else {
-            throw failure(
-                "centered step number badge=\(guidedBadgeCenter) number=\(guidedNumberCenter) heights=\(guidedBadge.bounds.height)/\(guidedNumber.bounds.height)"
-            )
-        }
-
-        suggestionsTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
-        personalization.tableViewSelectionDidChange(
-            Notification(name: NSTableView.selectionDidChangeNotification, object: suggestionsTable)
-        )
-        guard replacementField.stringValue == "Lim",
-              suggestionScope.indexOfSelectedItem == 1,
-              approveSuggestion.isEnabled,
-              removeSuggestion.isEnabled,
-              !saveSuggestion.isEnabled else {
-            throw failure("Personalization selected suggestion state")
-        }
-        replacementField.stringValue = "Limore"
-        personalization.controlTextDidChange(
-            Notification(name: NSControl.textDidChangeNotification, object: replacementField)
-        )
-        guard saveSuggestion.isEnabled else {
-            throw failure("Personalization edited suggestion state")
-        }
-        saveSuggestion.performClick(nil)
-        guard personalizationStore.suggestions.first?.replacement == "Limore",
-              replacementField.stringValue == "Limore" else {
-            throw failure("Personalization suggestion edit persistence")
-        }
-        removeSuggestion.performClick(nil)
-        guard personalizationStore.suggestions.isEmpty else {
-            throw failure("Personalization suggestion removal")
-        }
-
+        guard let replacementContent = personalization.window?.contentView,
+              let addReplacement = findView(in: replacementContent, identifier: "kiki.replacements.add") as? NSButton,
+              !addReplacement.isEnabled,
+              findView(in: replacementContent, identifier: "kiki.personalization.suggestions") == nil else { throw failure("explicit replacements without learning queue") }
         let snippetPersonalization = PersonalizationWindowController()
         snippetPersonalization.prepareForDiagnostics(page: 2)
         let privateAppsPersonalization = PersonalizationWindowController()
         privateAppsPersonalization.prepareForDiagnostics(page: 3)
-        let confidencePersonalization = PersonalizationWindowController()
-        confidencePersonalization.prepareForDiagnostics(page: 4)
-        guard let snippetContent = snippetPersonalization.window?.contentView,
-              let snippetActions = findView(
-                in: snippetContent,
-                identifier: "kiki.personalization.snippets.actions"
-              ) as? NSStackView,
-              symmetricActionRow(snippetActions, count: 2),
-              let privateAppsContent = privateAppsPersonalization.window?.contentView,
-              let privateAppActions = findView(
-                in: privateAppsContent,
-                identifier: "kiki.personalization.private-apps.actions"
-              ) as? NSStackView,
-              symmetricActionRow(privateAppActions, count: 2),
-              let confidenceContent = confidencePersonalization.window?.contentView,
-              let confidenceActions = findView(
-                in: confidenceContent,
-                identifier: "kiki.personalization.confidence.actions"
-              ) as? NSStackView,
-              symmetricActionRow(confidenceActions, count: 3),
-              let clearReviews = findView(
-                in: confidenceContent,
-                identifier: "kiki.personalization.clear-reviews"
-              ) as? KikiActionButton,
-              clearReviews.layer?.borderWidth == 1 else {
-            throw failure("Personalization action-row symmetry")
-        }
+        guard let privateContent = privateAppsPersonalization.window?.contentView,
+              findButton(in: privateContent, title: "Choose App…") != nil else { throw failure("private app chooser") }
 
         let fileTranscription = FileTranscriptionWindowController()
         guard let fileContent = fileTranscription.window?.contentView,
@@ -1892,16 +1082,6 @@ enum FeatureDiagnostics {
             throw failure("History selection-aware actions copy=\(copyFrame) delete=\(deleteFrame)")
         }
 
-        let dictionary = CustomDictionaryWindowController()
-        guard let dictionaryContent = dictionary.window?.contentView,
-              let dictionaryAdd = findView(in: dictionaryContent, identifier: "kiki.dictionary.add") as? KikiActionButton,
-              let dictionaryDelete = findView(in: dictionaryContent, identifier: "kiki.dictionary.delete") as? KikiActionButton,
-              findView(in: dictionaryContent, identifier: "kiki.dictionary.table.surface") is KikiDataSurfaceView,
-              !dictionaryAdd.isEnabled,
-              !dictionaryDelete.isEnabled else {
-            throw failure("Dictionary validation and empty state")
-        }
-
         let speakerEditor = MeetingSpeakerEditorWindowController(transcript: diagnosticMeeting)
         guard let speakerContent = speakerEditor.window?.contentView,
               let renameSpeaker = findView(
@@ -1920,7 +1100,6 @@ enum FeatureDiagnostics {
             diagnosticSettings,
             checkboxSettings,
             checkup,
-            pawprints,
             WhatsNewWindowController(),
             VoiceStudioWindowController(),
             meetingWindow,
@@ -1928,10 +1107,8 @@ enum FeatureDiagnostics {
             personalization,
             snippetPersonalization,
             privateAppsPersonalization,
-            confidencePersonalization,
             fileTranscription,
             history,
-            dictionary,
         ]
         guard interactiveWindows.allSatisfy({ $0.window?.isMovableByWindowBackground == false }),
               !overridesMouseDown else {
