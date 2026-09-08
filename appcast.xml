@@ -6,6 +6,24 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.52</title>
+            <pubDate>Tue, 08 Sep 2026 14:34:55 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.52</link>
+            <sparkle:version>85</sparkle:version>
+            <sparkle:shortVersionString>0.6.52</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.52
+
+- Centers the setup step numbers inside their circular badges.
+- Corrects the Home screen meeting description to match transcript editing and export.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki-0.6.52-macOS.zip" length="8691681" type="application/octet-stream" sparkle:edSignature="BTAeemB1TwXXbEfYfuMA+ZDg0LCd8ig0hB/c+mTjsWsyvqc1bURUgosFNSmIW998X+TkPjz6OZFhX+bl1rioBA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki85-84.delta" sparkle:deltaFrom="84" length="185114" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="2rXoYcO+5bTlxdIMX6awemxI4NcS1p3NNMZT8h2jQELiqwM8EbbHhhel3dkF0ueL7LBj2hpBvKAKs+hz4yCYBQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.51</title>
             <pubDate>Tue, 08 Sep 2026 13:51:53 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.51</link>
@@ -75,22 +93,6 @@
 - Keeps keyboard actions and native macOS menus immediate while using a brief state transition where explanatory copy changes.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.45/Kiki-0.6.45-macOS.zip" length="53990875" type="application/octet-stream" sparkle:edSignature="OhpJteGhUwONWG/ivGxb4SlXAyQqZzQwm0aS7ifYoaXLQRF4HHZuiVsMgZhIBv0AXBuXzpZPhlfFCEwH2hIPBQ=="/>
-        </item>
-        <item>
-            <title>0.6.44</title>
-            <pubDate>Thu, 03 Sep 2026 16:58:48 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.44</link>
-            <sparkle:version>77</sparkle:version>
-            <sparkle:shortVersionString>0.6.44</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.44
-
-- Replaces the scrolling waveform with a compact radial Voice Halo centered on the complete Templeton swirl.
-- The two sage rings respond directly to microphone level while preserving a calm, static presentation when Reduce Motion is enabled.
-- Renames the Listening Display option to Voice Halo so Settings matches the on-screen experience.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.44/Kiki-0.6.44-macOS.zip" length="53984495" type="application/octet-stream" sparkle:edSignature="Qved+6I5ArydLKIHby9YZSKw1IwITaFeWCFFpnb1yaFUg4BpjQVIWC2nKURvVOcXgL8tw6nwRvdWgEsaPFySDw=="/>
         </item>
     </channel>
 </rss>
