@@ -1,5 +1,7 @@
 import AppKit
 import CoreGraphics
+import CoreImage
+@preconcurrency import MetalKit
 
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
@@ -182,7 +184,7 @@ final class HUDPanel {
         signalMeterView.reset()
         if reset { voiceOrbView.reset() }
         voiceOrbView.update(samples: samples)
-        if needsPresentation { present(width: 88, height: 88) }
+        if needsPresentation { present(width: 136, height: 136) }
     }
 
     func showSignalMeter(samples: [Float], reset: Bool = false) {
@@ -379,19 +381,24 @@ enum VoiceLevelMeter {
 }
 
 struct VoiceOrbModel {
-    static let frameRate: TimeInterval = 30
+    static let frameRate: TimeInterval = 60
+    static let sensitivityExponent: CGFloat = 0.56
+    static let sensitivityGain: CGFloat = 1.25
 
     private(set) var innerLevel: CGFloat = 0
     private(set) var outerLevel: CGFloat = 0
     private var targetLevel: CGFloat = 0
 
     mutating func ingest(samples: [Float]) {
-        targetLevel = VoiceLevelMeter.normalizedLevel(for: samples)
+        let capturedLevel = VoiceLevelMeter.normalizedLevel(for: samples)
+        targetLevel = capturedLevel > 0
+            ? min(1, pow(capturedLevel, Self.sensitivityExponent) * Self.sensitivityGain)
+            : 0
     }
 
     mutating func advanceFrame() {
-        let innerResponse: CGFloat = targetLevel > innerLevel ? 0.45 : 0.22
-        let outerResponse: CGFloat = targetLevel > outerLevel ? 0.28 : 0.14
+        let innerResponse: CGFloat = targetLevel > innerLevel ? 0.30 : 0.12
+        let outerResponse: CGFloat = targetLevel > outerLevel ? 0.18 : 0.075
         innerLevel += (targetLevel - innerLevel) * innerResponse
         outerLevel += (targetLevel - outerLevel) * outerResponse
     }
@@ -554,29 +561,166 @@ final class KikiSignalMeterView: NSView {
 }
 
 @MainActor
-/// A native AppKit interpretation of OrbKit's MIT-licensed Hydrogen direction.
+/// A native Metal interpretation of OrbKit's MIT-licensed Hydrogen direction.
 /// Kiki draws its own Templeton-colored material and never embeds the web runtime.
-final class KikiVoiceOrbView: NSView {
-    static let preferredSize = NSSize(width: 64, height: 64)
+final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
+    static let preferredSize = NSSize(width: 112, height: 112)
     static let usesTempletonMaterialPalette = true
-    static let minimumDiameter: CGFloat = 45
-    static let maximumDiameter: CGFloat = 51
+    static let minimumDiameter: CGFloat = 88
+    static let maximumDiameter: CGFloat = 102
 
     private var model = VoiceOrbModel()
     private var animationTimer: Timer?
-    private var phase: CGFloat = 0
+    private var phase: Float = 0
+    private var commandQueue: MTLCommandQueue?
+    private var pipelineState: MTLRenderPipelineState?
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        setAccessibilityElement(false)
-        wantsLayer = true
+    private struct OrbUniforms {
+        var resolution: SIMD2<Float>
+        var time: Float
+        var innerLevel: Float
+        var outerLevel: Float
+        var motionAmount: Float
+        var paddingA: Float = 0
+        var paddingB: Float = 0
     }
 
-    required init?(coder: NSCoder) {
+    private static let shaderSource = #"""
+    #include <metal_stdlib>
+    using namespace metal;
+
+    struct OrbUniforms {
+        float2 resolution;
+        float time;
+        float innerLevel;
+        float outerLevel;
+        float motionAmount;
+        float paddingA;
+        float paddingB;
+    };
+
+    struct RasterData { float4 position [[position]]; };
+
+    vertex RasterData orbVertex(uint vertexID [[vertex_id]]) {
+        const float2 positions[3] = {
+            float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0)
+        };
+        RasterData out;
+        out.position = float4(positions[vertexID], 0.0, 1.0);
+        return out;
+    }
+
+    float orbHash(float2 p) {
+        return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float orbNoise(float2 p) {
+        float2 i = floor(p);
+        float2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(orbHash(i), orbHash(i + float2(1, 0)), f.x),
+                   mix(orbHash(i + float2(0, 1)), orbHash(i + float2(1, 1)), f.x), f.y);
+    }
+
+    float orbFBM(float2 p) {
+        float value = 0.0;
+        float amplitude = 0.52;
+        for (int octave = 0; octave < 5; octave++) {
+            value += amplitude * orbNoise(p);
+            p = float2(1.62 * p.x - 1.18 * p.y, 1.18 * p.x + 1.62 * p.y) + 0.17;
+            amplitude *= 0.50;
+        }
+        return value;
+    }
+
+    fragment float4 orbFragment(RasterData in [[stage_in]],
+                                constant OrbUniforms &u [[buffer(0)]]) {
+        float minSide = max(min(u.resolution.x, u.resolution.y), 1.0);
+        float2 uv = (in.position.xy * 2.0 - u.resolution) / minSide;
+        uv.y *= -1.0;
+        float radius = 0.79 + u.outerLevel * 0.12;
+        float distanceFromCenter = length(uv);
+        float pixel = 2.0 / minSide;
+        float sphereMask = 1.0 - smoothstep(radius - pixel * 1.7, radius + pixel * 1.7, distanceFromCenter);
+        float outside = max(distanceFromCenter - radius, 0.0);
+        float auraEdge = 1.0 - smoothstep(radius + 0.02, 1.0, distanceFromCenter);
+        float aura = exp(-outside * outside * 105.0) * auraEdge * (0.18 + u.outerLevel * 0.26);
+
+        if (sphereMask <= 0.001) {
+            float3 auraColor = float3(0.322, 0.400, 0.239) * aura;
+            return float4(auraColor, aura * 0.72);
+        }
+
+        float2 dome = uv / radius;
+        float z = sqrt(max(1.0 - dot(dome, dome), 0.0));
+        float3 point = float3(dome.x, dome.y, z);
+        float time = u.time;
+
+        float yaw = time * (0.44 + u.innerLevel * 0.26);
+        float cy = cos(yaw), sy = sin(yaw);
+        point = float3(point.x * cy - point.z * sy, point.y, point.x * sy + point.z * cy);
+        float tilt = sin(time * 0.31) * (0.32 + u.innerLevel * 0.24);
+        float ct = cos(tilt), st = sin(tilt);
+        point = float3(point.x, point.y * ct - point.z * st, point.y * st + point.z * ct);
+
+        float flow = 0.52 + u.innerLevel * 0.82;
+        float n1 = orbFBM(point.xy * (2.2 + u.innerLevel * 0.9) + float2(time * 0.26, -time * 0.19));
+        float n2 = orbFBM(point.yz * 2.5 + float2(-time * 0.21, time * 0.29) + 4.1);
+        float n3 = orbFBM(point.zx * 2.1 + float2(time * 0.17, time * 0.24) + 8.7);
+        float3 warped = point + (float3(n1, n2, n3) - 0.5) * flow;
+
+        float theta = atan2(warped.y, warped.x);
+        float radial = length(warped.xy);
+        float travelling = theta * 3.0 + warped.z * 7.0 + radial * 5.0;
+        float ribbonA = 0.5 + 0.5 * sin(travelling + n1 * 5.2 - time * 1.42);
+        float ribbonB = 0.5 + 0.5 * sin(travelling * 1.37 - n2 * 4.4 + time * 0.93);
+        float ribbonC = 0.5 + 0.5 * sin(theta * 5.0 + n3 * 6.1 - time * 0.67);
+        float probability = smoothstep(0.30, 0.94, ribbonA * 0.48 + ribbonB * 0.34 + ribbonC * 0.18);
+        probability = pow(probability, 0.70 - u.innerLevel * 0.20);
+
+        const float3 charcoal = float3(0.070, 0.076, 0.070);
+        const float3 moss = float3(0.322, 0.400, 0.239);
+        const float3 sage = float3(0.655, 0.753, 0.502);
+        const float3 khaki = float3(0.671, 0.648, 0.502);
+        const float3 bone = float3(0.906, 0.871, 0.784);
+        const float3 mineral = float3(0.565, 0.606, 0.520);
+
+        float palettePhase = 0.5 + 0.5 * sin(travelling * 0.62 + n2 * 3.0 + time * 0.34);
+        float3 flowingColor = mix(moss, sage, palettePhase);
+        flowingColor = mix(flowingColor, khaki, smoothstep(0.58, 0.92, ribbonB));
+        flowingColor = mix(flowingColor, mineral, smoothstep(0.64, 0.96, ribbonC) * 0.52);
+        float3 color = mix(charcoal, moss, 0.30 + n3 * 0.12);
+        color = mix(color, flowingColor, 0.28 + probability * (0.58 + u.innerLevel * 0.12));
+
+        float3 normal = normalize(float3(dome, z));
+        float diffuse = 0.34 + 0.66 * max(dot(normal, normalize(float3(-0.44, 0.62, 0.74))), 0.0);
+        float fresnel = pow(1.0 - z, 2.1);
+        float specular = pow(max(dot(normal, normalize(float3(-0.36, 0.48, 0.80))), 0.0), 24.0);
+        color *= diffuse;
+        color += sage * fresnel * (0.30 + u.outerLevel * 0.28);
+        color += bone * specular * (0.72 + u.innerLevel * 0.38);
+        color += flowingColor * probability * u.innerLevel * 0.24;
+
+        float alpha = sphereMask * (0.92 + probability * 0.08);
+        return float4(color * alpha, alpha);
+    }
+    """#
+
+    convenience init() {
+        self.init(frame: .zero, device: MTLCreateSystemDefaultDevice())
+    }
+
+    override init(frame frameRect: NSRect, device: MTLDevice?) {
+        super.init(frame: frameRect, device: device)
+        configureRenderer(device: device)
+    }
+
+    required init(coder: NSCoder) {
         super.init(coder: coder)
-        setAccessibilityElement(false)
-        wantsLayer = true
+        configureRenderer(device: device ?? MTLCreateSystemDefaultDevice())
     }
+
+    override var isOpaque: Bool { false }
 
     func update(samples: [Float]) {
         model.ingest(samples: samples)
@@ -588,7 +732,8 @@ final class KikiVoiceOrbView: NSView {
         animationTimer = nil
         model.reset()
         phase = 0
-        needsDisplay = true
+        isPaused = true
+        setNeedsDisplay(bounds)
     }
 
     private func startAnimating() {
@@ -598,135 +743,111 @@ final class KikiVoiceOrbView: NSView {
                 guard let self else { return }
                 self.model.advanceFrame()
                 if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                    self.phase += 0.035 + self.model.innerLevel * 0.045
+                    self.phase += Float((0.60 + self.model.innerLevel * 2.25) / CGFloat(VoiceOrbModel.frameRate))
                 }
-                self.needsDisplay = true
+                self.draw()
             }
         }
-        timer.tolerance = 0.003
+        timer.tolerance = 0.001
         RunLoop.main.add(timer, forMode: .common)
         animationTimer = timer
     }
 
-    override var isFlipped: Bool { true }
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        let innerLevel = model.innerLevel
-        let outerLevel = model.outerLevel
-        let diameter = Self.minimumDiameter
-            + (reduceMotion ? 0 : outerLevel * (Self.maximumDiameter - Self.minimumDiameter))
-        let radius = diameter / 2
-
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            drawAura(centeredAt: center, radius: radius, level: outerLevel)
-            drawOrb(centeredAt: center, radius: radius, level: innerLevel)
+    private func configureRenderer(device metalDevice: MTLDevice?) {
+        setAccessibilityElement(false)
+        wantsLayer = true
+        layer?.isOpaque = false
+        clearColor = MTLClearColorMake(0, 0, 0, 0)
+        colorPixelFormat = .bgra8Unorm
+        framebufferOnly = false
+        preferredFramesPerSecond = Int(VoiceOrbModel.frameRate)
+        enableSetNeedsDisplay = false
+        isPaused = true
+        autoResizeDrawable = true
+        guard let metalDevice else { return }
+        device = metalDevice
+        commandQueue = metalDevice.makeCommandQueue()
+        do {
+            let library = try metalDevice.makeLibrary(source: Self.shaderSource, options: nil)
+            let descriptor = MTLRenderPipelineDescriptor()
+            descriptor.vertexFunction = library.makeFunction(name: "orbVertex")
+            descriptor.fragmentFunction = library.makeFunction(name: "orbFragment")
+            descriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+            descriptor.colorAttachments[0].isBlendingEnabled = true
+            descriptor.colorAttachments[0].sourceRGBBlendFactor = .one
+            descriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+            descriptor.colorAttachments[0].sourceAlphaBlendFactor = .one
+            descriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+            pipelineState = try metalDevice.makeRenderPipelineState(descriptor: descriptor)
+        } catch {
+            NSLog("Kiki voice orb Metal setup failed: %@", String(describing: error))
         }
     }
 
-    private func drawAura(centeredAt center: CGPoint, radius: CGFloat, level: CGFloat) {
-        let auraRadius = radius * (1.16 + level * 0.08)
-        let auraRect = NSRect(
-            x: center.x - auraRadius,
-            y: center.y - auraRadius,
-            width: auraRadius * 2,
-            height: auraRadius * 2
-        )
-        NSGradient(colorsAndLocations:
-            (KikiPalette.accent.withAlphaComponent(0.15 + level * 0.17), 0),
-            (KikiPalette.khaki.withAlphaComponent(0.06 + level * 0.08), 0.54),
-            (NSColor.clear, 1)
-        )?.draw(in: NSBezierPath(ovalIn: auraRect), relativeCenterPosition: .zero)
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+
+    func draw(in view: MTKView) {
+        guard let drawable = view.currentDrawable,
+              let descriptor = view.currentRenderPassDescriptor else { return }
+        encode(into: drawable.texture, descriptor: descriptor, drawable: drawable)
     }
 
-    private func drawOrb(centeredAt center: CGPoint, radius: CGFloat, level: CGFloat) {
-        let orbRect = NSRect(
-            x: center.x - radius,
-            y: center.y - radius,
-            width: radius * 2,
-            height: radius * 2
+    @discardableResult
+    private func encode(
+        into texture: MTLTexture,
+        descriptor: MTLRenderPassDescriptor,
+        drawable: CAMetalDrawable? = nil
+    ) -> MTLCommandBuffer? {
+        guard let pipelineState, let commandQueue,
+              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else { return nil }
+        var uniforms = OrbUniforms(
+            resolution: SIMD2(Float(texture.width), Float(texture.height)),
+            time: phase,
+            innerLevel: Float(model.innerLevel),
+            outerLevel: Float(model.outerLevel),
+            motionAmount: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0 : 1
         )
-        let orb = NSBezierPath(ovalIn: orbRect)
-
-        NSGraphicsContext.saveGraphicsState()
-        orb.addClip()
-
-        NSGradient(colorsAndLocations:
-            (KikiPalette.onAccentText.withAlphaComponent(0.90), 0),
-            (KikiPalette.khaki.withAlphaComponent(0.88), 0.17),
-            (KikiPalette.accent.withAlphaComponent(0.96), 0.43),
-            (KikiPalette.hardwareControl.withAlphaComponent(0.99), 0.76),
-            (KikiPalette.hardwareControl.withAlphaComponent(1), 1)
-        )?.draw(in: orb, relativeCenterPosition: NSPoint(x: -0.52, y: 0.24))
-
-        drawReflectionBands(in: orbRect, level: level)
-
-        let shade = NSGradient(colorsAndLocations:
-            (NSColor.clear, 0),
-            (KikiPalette.canvas.withAlphaComponent(0.08), 0.62),
-            (NSColor.black.withAlphaComponent(0.62), 1)
-        )
-        shade?.draw(in: orb, relativeCenterPosition: NSPoint(x: -0.48, y: 0.46))
-        NSGraphicsContext.restoreGraphicsState()
-
-        drawOrbEdge(orbRect)
-
-        let highlightRadius = radius * 0.34
-        let highlightRect = NSRect(
-            x: orbRect.minX + radius * 0.30,
-            y: orbRect.minY + radius * 0.22,
-            width: highlightRadius * 2,
-            height: highlightRadius * 2
-        )
-        NSGradient(colorsAndLocations:
-            (KikiPalette.onAccentText.withAlphaComponent(0.48 + level * 0.18), 0),
-            (KikiPalette.onAccentText.withAlphaComponent(0.10), 0.38),
-            (NSColor.clear, 1)
-        )?.draw(in: NSBezierPath(ovalIn: highlightRect), relativeCenterPosition: .zero)
-    }
-
-    private func drawOrbEdge(_ orbRect: NSRect) {
-        KikiPalette.canvas.withAlphaComponent(0.96).setStroke()
-        let separation = NSBezierPath(ovalIn: orbRect.insetBy(dx: -0.15, dy: -0.15))
-        separation.lineWidth = 1.20
-        separation.stroke()
-
-        let rim = NSBezierPath(ovalIn: orbRect.insetBy(dx: 0.6, dy: 0.6))
-        rim.lineWidth = 0.60
-        KikiPalette.accentText.withAlphaComponent(0.42).setStroke()
-        rim.stroke()
-    }
-
-    private func drawReflectionBands(in rect: NSRect, level: CGFloat) {
-        NSGraphicsContext.saveGraphicsState()
-        defer { NSGraphicsContext.restoreGraphicsState() }
-        let colors = [KikiPalette.accentText, KikiPalette.khaki, KikiPalette.magenta]
-        for index in colors.indices {
-            let offset = CGFloat(index - 1) * rect.width * 0.24
-            let drift = sin(phase * (0.72 + CGFloat(index) * 0.11) + CGFloat(index)) * rect.width * 0.08
-            let path = NSBezierPath()
-            path.move(to: CGPoint(x: rect.midX + offset + drift, y: rect.minY - 4))
-            path.curve(
-                to: CGPoint(x: rect.midX - offset * 0.35 - drift, y: rect.maxY + 4),
-                controlPoint1: CGPoint(
-                    x: rect.midX + offset * 0.45 + drift + rect.width * 0.18,
-                    y: rect.minY + rect.height * 0.32
-                ),
-                controlPoint2: CGPoint(
-                    x: rect.midX - offset * 0.20 - drift - rect.width * 0.16,
-                    y: rect.minY + rect.height * 0.70
-                )
-            )
-            let shadow = NSShadow()
-            shadow.shadowBlurRadius = 4.5 + level * 2.5
-            shadow.shadowColor = colors[index].withAlphaComponent(0.26 + level * 0.22)
-            shadow.shadowOffset = .zero
-            shadow.set()
-            path.lineWidth = rect.width * (index == 1 ? 0.17 : 0.11)
-            colors[index].withAlphaComponent(0.10 + level * 0.10).setStroke()
-            path.stroke()
+        encoder.setRenderPipelineState(pipelineState)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<OrbUniforms>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.endEncoding()
+        if let drawable {
+            commandBuffer.present(drawable)
         }
+        commandBuffer.commit()
+        return commandBuffer
+    }
+
+    func renderedPNGData(scale: CGFloat = 2) -> Data? {
+        guard let device, commandQueue != nil, pipelineState != nil else { return nil }
+        let width = max(1, Int(Self.preferredSize.width * scale))
+        let height = max(1, Int(Self.preferredSize.height * scale))
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: colorPixelFormat,
+            width: width,
+            height: height,
+            mipmapped: false
+        )
+        textureDescriptor.usage = [.renderTarget, .shaderRead]
+        textureDescriptor.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: textureDescriptor) else { return nil }
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = texture
+        pass.colorAttachments[0].loadAction = .clear
+        pass.colorAttachments[0].storeAction = .store
+        pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 0)
+        guard let commandBuffer = encode(into: texture, descriptor: pass) else { return nil }
+        commandBuffer.waitUntilCompleted()
+        guard let image = CIImage(mtlTexture: texture, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!]) else {
+            return nil
+        }
+        let context = CIContext(mtlDevice: device)
+        guard let cgImage = context.createCGImage(image, from: image.extent) else { return nil }
+        return NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:])
+    }
+
+    func setDiagnosticPhase(_ value: Float) {
+        phase = value
     }
 }

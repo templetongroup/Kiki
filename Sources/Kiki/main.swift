@@ -418,20 +418,21 @@ if args.count >= 3, args[1] == "--render-voice-orb" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
         AppearanceController.apply()
-        let view = KikiVoiceOrbView(frame: NSRect(origin: .zero, size: KikiVoiceOrbView.preferredSize))
+        let view = KikiVoiceOrbView(
+            frame: NSRect(origin: .zero, size: KikiVoiceOrbView.preferredSize),
+            device: MTLCreateSystemDefaultDevice()
+        )
         let samples = (0..<760).map { index in
             let carrier = sin(Float(index) * 0.31)
             let contour = 0.45 + 0.55 * abs(sin(Float(index) * 0.037))
             return Float(0.72) * carrier * contour
         }
         view.update(samples: samples)
+        if args.count >= 4, let diagnosticPhase = Float(args[3]) {
+            view.setDiagnosticPhase(diagnosticPhase)
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
-                fputs("Error: could not create voice orb bitmap\n", stderr)
-                exit(1)
-            }
-            view.cacheDisplay(in: view.bounds, to: representation)
-            guard let png = representation.representation(using: .png, properties: [:]) else {
+            guard let png = view.renderedPNGData() else {
                 fputs("Error: could not encode voice orb PNG\n", stderr)
                 exit(1)
             }
