@@ -132,3 +132,7 @@ Public-release scope is frozen. New product ideas stay out of the release branch
 ### Layout correction in 0.6.52
 
 Setup step numbers are centered inside their badges. The Home meeting description now matches transcript editing and export.
+
+### Actionable setup in 0.6.53
+
+Readiness checks keep their navigation buttons available after completion. Open Models directly to choose, download, or change a local model; review permissions and repeat shortcut or dictation tests from the same screen.

@@ -188,7 +188,7 @@ final class KikiCheckupWindowController: NSWindowController {
             passed: snapshot.microphoneAuthorized,
             detail: snapshot.microphoneAuthorized ? "Allowed" : "Action needed",
             guidance: snapshot.microphoneAuthorized ? nil : "Allow Kiki to use your microphone in System Settings.",
-            showsAction: !snapshot.microphoneAuthorized
+            showsAction: true
         )
         inputRow.update(
             passed: snapshot.inputResponding,
@@ -200,20 +200,13 @@ final class KikiCheckupWindowController: NSWindowController {
             passed: snapshot.accessibilityAuthorized,
             detail: snapshot.accessibilityAuthorized ? "Allowed" : "Action needed",
             guidance: snapshot.accessibilityAuthorized ? nil : "Allow Kiki to insert dictated text into other apps.",
-            showsAction: !snapshot.accessibilityAuthorized
+            showsAction: true
         )
-        let modelNeedsAction: Bool
-        switch snapshot.modelStatus {
-        case .unavailable, .failed:
-            modelNeedsAction = true
-        case .downloading, .loading, .ready:
-            modelNeedsAction = false
-        }
         modelRow.update(
             passed: snapshot.modelStatus.isReady,
             detail: snapshot.modelStatus.checkupDetail,
-            guidance: modelNeedsAction ? "Choose and download a speech model before dictating." : nil,
-            showsAction: modelNeedsAction
+            guidance: "Open Models to choose, download, or change the speech model used on this Mac.",
+            showsAction: true
         )
         if let fraction = snapshot.modelStatus.downloadFraction {
             modelProgress.doubleValue = fraction
@@ -228,13 +221,13 @@ final class KikiCheckupWindowController: NSWindowController {
             guidance: snapshot.shortcutVerified
                 ? nil
                 : "Click Test shortcut. \(Settings.activationMode.shortcutTestInstruction(for: Settings.dictationShortcut)) Kiki will confirm it works.",
-            showsAction: !snapshot.shortcutVerified
+            showsAction: true
         )
         firstDictationRow.update(
             passed: snapshot.firstDictationCompleted,
             detail: snapshot.firstDictationCompleted ? "Completed" : "Try it once",
             guidance: snapshot.firstDictationCompleted ? nil : "Use the guided field beside these checks to confirm text appears.",
-            showsAction: !snapshot.firstDictationCompleted
+            showsAction: true
         )
         let remaining = [
             snapshot.microphoneAuthorized,
@@ -496,7 +489,7 @@ private final class KikiCheckupStatusRow: NSView {
     private let guidanceLabel = kikiLabel("", size: 11.5, color: KikiPalette.secondaryText)
     private var actionButton: KikiActionButton?
     private var guidanceRow: NSStackView?
-    private var actionRow: NSStackView?
+    
 
     init(
         title: String,
@@ -521,7 +514,7 @@ private final class KikiCheckupStatusRow: NSView {
             detailLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).detail")
             guidanceLabel.identifier = NSUserInterfaceItemIdentifier("\(baseIdentifier).guidance")
         }
-        let heading = NSStackView(views: [indicator, titleLabel, NSView(), detailLabel])
+        let heading = NSStackView(views: [indicator, titleLabel, NSView()])
         heading.orientation = .horizontal
         heading.alignment = .centerY
         heading.spacing = 8
@@ -534,7 +527,12 @@ private final class KikiCheckupStatusRow: NSView {
         guidance.isHidden = true
         guidanceRow = guidance
 
-        var rows: [NSView] = [heading, guidance]
+        let detailIndent = NSView()
+        detailIndent.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        let detail = NSStackView(views: [detailIndent, detailLabel])
+        detail.orientation = .horizontal
+        detail.spacing = 0
+        let rows: [NSView] = [heading, detail, guidance]
         if let actionTitle, let action {
             let button = KikiActionButton(actionTitle, kind: .hardware, target: target, action: action)
             if let actionIdentifier {
@@ -543,15 +541,7 @@ private final class KikiCheckupStatusRow: NSView {
             button.widthAnchor.constraint(equalToConstant: 128).isActive = true
             button.heightAnchor.constraint(equalToConstant: 30).isActive = true
             actionButton = button
-            let actionIndent = NSView()
-            actionIndent.widthAnchor.constraint(equalToConstant: 16).isActive = true
-            let actionContainer = NSStackView(views: [actionIndent, button, NSView()])
-            actionContainer.orientation = .horizontal
-            actionContainer.alignment = .centerY
-            actionContainer.spacing = 0
-            actionContainer.isHidden = true
-            actionRow = actionContainer
-            rows.append(actionContainer)
+            heading.addArrangedSubview(button)
         }
         let stack = NSStackView(views: rows)
         stack.orientation = .vertical
@@ -561,7 +551,7 @@ private final class KikiCheckupStatusRow: NSView {
         addSubview(stack)
         heading.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         guidance.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        actionRow?.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        detail.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         NSLayoutConstraint.activate([
             indicator.widthAnchor.constraint(equalToConstant: 8),
             indicator.heightAnchor.constraint(equalToConstant: 8),
@@ -579,7 +569,6 @@ private final class KikiCheckupStatusRow: NSView {
         detailLabel.stringValue = detail
         guidanceLabel.stringValue = guidance ?? ""
         guidanceRow?.isHidden = guidance == nil
-        actionRow?.isHidden = !showsAction
         actionButton?.isHidden = !showsAction
         actionButton?.setAccessibilityHelp(guidance ?? "")
     }

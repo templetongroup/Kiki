@@ -1,7 +1,7 @@
 import FeatureJourney from './FeatureJourney';
 
 const downloadUrl =
-  'https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki-0.6.52-macOS.zip';
+  'https://github.com/templetongroup/Kiki/releases/download/v0.6.53/Kiki-0.6.53-macOS.zip';
 
 const waveform = [18, 34, 52, 26, 70, 42, 88, 54, 32, 66, 92, 48, 76, 38, 58, 24, 46, 20];
 const privacyWaveform = [24, 42, 68, 36, 82, 50, 92, 58, 32, 74, 46, 88, 54, 70, 38, 62, 28, 48, 76, 44, 84, 52, 66, 34, 58, 26, 42];
@@ -39,7 +39,7 @@ export default function Home() {
             </a>
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
-          <p className="compatibility">Version 0.6.52 · macOS 14+ · Apple silicon</p>
+          <p className="compatibility">Version 0.6.53 · macOS 14+ · Apple silicon</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -143,7 +143,7 @@ export default function Home() {
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
-            Download Kiki 0.6.52 <span className="button-arrow" aria-hidden="true">↘</span>
+            Download Kiki 0.6.53 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
           <small>8.7 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>

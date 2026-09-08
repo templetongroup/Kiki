@@ -780,6 +780,23 @@ enum FeatureDiagnostics {
         guard checkupModelProgress.isHidden else {
             throw failure("Kiki Checkup must hide download progress while loading")
         }
+        checkup.update(snapshot: KikiCheckupSnapshot(
+            microphoneAuthorized: true, inputResponding: true,
+            accessibilityAuthorized: true,
+            modelStatus: .ready(model: .whisperBaseEnglish),
+            shortcutVerified: true, firstDictationCompleted: true
+        ))
+        for name in ["microphone", "accessibility", "model", "shortcut", "first-dictation"] {
+            guard let button = findView(in: checkupContent,
+                identifier: "kiki.checkup.readiness.\(name).action") as? KikiActionButton,
+                !button.isHiddenOrHasHiddenAncestor, button.isEnabled else {
+                throw failure("Completed readiness checks must keep \(name) navigation available")
+            }
+        }
+        var didOpenModels = false
+        checkup.onOpenModels = { didOpenModels = true }
+        (findView(in: checkupContent, identifier: "kiki.checkup.readiness.model.action") as? KikiActionButton)?.performClick(nil)
+        guard didOpenModels else { throw failure("Ready local model must still open Models") }
         guard let inCardPracticeButton = findView(
             in: checkupContent,
             identifier: "kiki.checkup.practice"
