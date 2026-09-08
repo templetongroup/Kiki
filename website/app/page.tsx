@@ -1,7 +1,7 @@
 import FeatureJourney from './FeatureJourney';
 
 const downloadUrl =
-  'https://templetongroup.dev/kiki/kiki.dmg';
+  'https://github.com/templetongroup/Kiki/releases/download/v0.6.51/Kiki-0.6.51-macOS.zip';
 
 const waveform = [18, 34, 52, 26, 70, 42, 88, 54, 32, 66, 92, 48, 76, 38, 58, 24, 46, 20];
 const privacyWaveform = [24, 42, 68, 36, 82, 50, 92, 58, 32, 74, 46, 88, 54, 70, 38, 62, 28, 48, 76, 44, 84, 52, 66, 34, 58, 26, 42];
@@ -82,7 +82,7 @@ export default function Home() {
         <div className="privacy-copy">
           <p className="eyebrow">Privacy is the architecture</p>
           <h2>No cloud<br />to trust.</h2>
-          <p>Kiki’s normal workflow happens on the Mac in front of you. Recordings, transcripts, saved replacements, and voice references don’t need a round trip through someone else’s server.</p>
+          <p>Kiki’s normal workflow happens on the Mac in front of you. Recordings, transcripts, and saved replacements don’t need a round trip through someone else’s server.</p>
           <ul>
             <li><span>✓</span> Local speech recognition</li>
             <li><span>✓</span> Private-app and secure-field protection</li>
@@ -145,7 +145,7 @@ export default function Home() {
           <a className="primary-button download-button" href={downloadUrl}>
             Download Kiki 0.6.51 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
-          <small>63.1 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
+          <small>8.7 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>
         <img src="/kiki-studio-hero.png" alt="Kiki wearing headphones beside a studio microphone" />
       </section>
