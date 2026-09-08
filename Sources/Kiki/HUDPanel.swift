@@ -563,7 +563,7 @@ final class KikiSignalMeterView: NSView {
 @MainActor
 /// A native Metal interpretation of OrbKit's MIT-licensed Hydrogen direction.
 /// Kiki draws its own Templeton-colored material and never embeds the web runtime.
-final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
+final class KikiVoiceOrbView: NSView {
     static let preferredSize = NSSize(width: 112, height: 112)
     static let usesTempletonMaterialPalette = true
     static let minimumDiameter: CGFloat = 88
@@ -572,8 +572,12 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
     private var model = VoiceOrbModel()
     private var animationTimer: Timer?
     private var phase: Float = 0
+    private var metalDevice: MTLDevice?
     private var commandQueue: MTLCommandQueue?
     private var pipelineState: MTLRenderPipelineState?
+    private var renderTexture: MTLTexture?
+    private var imageContext: CIContext?
+    private var lastRenderedImage: CGImage?
 
     private struct OrbUniforms {
         var resolution: SIMD2<Float>
@@ -706,18 +710,14 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
     }
     """#
 
-    convenience init() {
-        self.init(frame: .zero, device: MTLCreateSystemDefaultDevice())
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configureRenderer(device: MTLCreateSystemDefaultDevice())
     }
 
-    override init(frame frameRect: NSRect, device: MTLDevice?) {
-        super.init(frame: frameRect, device: device)
-        configureRenderer(device: device)
-    }
-
-    required init(coder: NSCoder) {
+    required init?(coder: NSCoder) {
         super.init(coder: coder)
-        configureRenderer(device: device ?? MTLCreateSystemDefaultDevice())
+        configureRenderer(device: MTLCreateSystemDefaultDevice())
     }
 
     override var isOpaque: Bool { false }
@@ -725,6 +725,7 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
     func update(samples: [Float]) {
         model.ingest(samples: samples)
         startAnimating()
+        if layer?.contents == nil { renderFrame() }
     }
 
     func reset() {
@@ -732,8 +733,8 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
         animationTimer = nil
         model.reset()
         phase = 0
-        isPaused = true
-        setNeedsDisplay(bounds)
+        lastRenderedImage = nil
+        layer?.contents = nil
     }
 
     private func startAnimating() {
@@ -743,9 +744,11 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
                 guard let self else { return }
                 self.model.advanceFrame()
                 if !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-                    self.phase += Float((0.60 + self.model.innerLevel * 2.25) / CGFloat(VoiceOrbModel.frameRate))
+                    // Keep the surface drift calm and ambient. Voice energy is expressed
+                    // primarily through scale, deformation, and light—not rapid rotation.
+                    self.phase += Float((0.06 + self.model.innerLevel * 0.12) / CGFloat(VoiceOrbModel.frameRate))
                 }
-                self.draw()
+                self.renderFrame()
             }
         }
         timer.tolerance = 0.001
@@ -757,22 +760,17 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
         setAccessibilityElement(false)
         wantsLayer = true
         layer?.isOpaque = false
-        clearColor = MTLClearColorMake(0, 0, 0, 0)
-        colorPixelFormat = .bgra8Unorm
-        framebufferOnly = false
-        preferredFramesPerSecond = Int(VoiceOrbModel.frameRate)
-        enableSetNeedsDisplay = false
-        isPaused = true
-        autoResizeDrawable = true
+        layer?.contentsGravity = .resizeAspect
         guard let metalDevice else { return }
-        device = metalDevice
+        self.metalDevice = metalDevice
         commandQueue = metalDevice.makeCommandQueue()
+        imageContext = CIContext(mtlDevice: metalDevice)
         do {
             let library = try metalDevice.makeLibrary(source: Self.shaderSource, options: nil)
             let descriptor = MTLRenderPipelineDescriptor()
             descriptor.vertexFunction = library.makeFunction(name: "orbVertex")
             descriptor.fragmentFunction = library.makeFunction(name: "orbFragment")
-            descriptor.colorAttachments[0].pixelFormat = colorPixelFormat
+            descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
             descriptor.colorAttachments[0].isBlendingEnabled = true
             descriptor.colorAttachments[0].sourceRGBBlendFactor = .one
             descriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
@@ -784,19 +782,10 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
         }
     }
 
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
-
-    func draw(in view: MTKView) {
-        guard let drawable = view.currentDrawable,
-              let descriptor = view.currentRenderPassDescriptor else { return }
-        encode(into: drawable.texture, descriptor: descriptor, drawable: drawable)
-    }
-
     @discardableResult
     private func encode(
         into texture: MTLTexture,
-        descriptor: MTLRenderPassDescriptor,
-        drawable: CAMetalDrawable? = nil
+        descriptor: MTLRenderPassDescriptor
     ) -> MTLCommandBuffer? {
         guard let pipelineState, let commandQueue,
               let commandBuffer = commandQueue.makeCommandBuffer(),
@@ -812,26 +801,28 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<OrbUniforms>.stride, index: 0)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         encoder.endEncoding()
-        if let drawable {
-            commandBuffer.present(drawable)
-        }
         commandBuffer.commit()
         return commandBuffer
     }
 
-    func renderedPNGData(scale: CGFloat = 2) -> Data? {
-        guard let device, commandQueue != nil, pipelineState != nil else { return nil }
+    private func renderedCGImage(scale: CGFloat) -> CGImage? {
+        guard let metalDevice, let imageContext, commandQueue != nil, pipelineState != nil else {
+            return nil
+        }
         let width = max(1, Int(Self.preferredSize.width * scale))
         let height = max(1, Int(Self.preferredSize.height * scale))
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: colorPixelFormat,
-            width: width,
-            height: height,
-            mipmapped: false
-        )
-        textureDescriptor.usage = [.renderTarget, .shaderRead]
-        textureDescriptor.storageMode = .shared
-        guard let texture = device.makeTexture(descriptor: textureDescriptor) else { return nil }
+        if renderTexture?.width != width || renderTexture?.height != height {
+            let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                pixelFormat: .bgra8Unorm,
+                width: width,
+                height: height,
+                mipmapped: false
+            )
+            textureDescriptor.usage = [.renderTarget, .shaderRead]
+            textureDescriptor.storageMode = .shared
+            renderTexture = metalDevice.makeTexture(descriptor: textureDescriptor)
+        }
+        guard let texture = renderTexture else { return nil }
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = texture
         pass.colorAttachments[0].loadAction = .clear
@@ -842,9 +833,27 @@ final class KikiVoiceOrbView: MTKView, MTKViewDelegate {
         guard let image = CIImage(mtlTexture: texture, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!]) else {
             return nil
         }
-        let context = CIContext(mtlDevice: device)
-        guard let cgImage = context.createCGImage(image, from: image.extent) else { return nil }
-        return NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:])
+        return imageContext.createCGImage(image, from: image.extent)
+    }
+
+    private func renderFrame() {
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        guard let image = renderedCGImage(scale: scale) else { return }
+        layer?.contentsScale = scale
+        lastRenderedImage = image
+        layer?.contents = image
+    }
+
+    var diagnosticHasVisibleContents: Bool { layer?.contents != nil }
+
+    func renderFrameForDiagnostics() {
+        renderFrame()
+    }
+
+    func renderedPNGData(scale: CGFloat = 2) -> Data? {
+        if layer?.contents == nil { renderFrame() }
+        guard let image = lastRenderedImage else { return nil }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
 
     func setDiagnosticPhase(_ value: Float) {

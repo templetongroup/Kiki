@@ -418,10 +418,7 @@ if args.count >= 3, args[1] == "--render-voice-orb" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared
         AppearanceController.apply()
-        let view = KikiVoiceOrbView(
-            frame: NSRect(origin: .zero, size: KikiVoiceOrbView.preferredSize),
-            device: MTLCreateSystemDefaultDevice()
-        )
+        let view = KikiVoiceOrbView(frame: NSRect(origin: .zero, size: KikiVoiceOrbView.preferredSize))
         let samples = (0..<760).map { index in
             let carrier = sin(Float(index) * 0.31)
             let contour = 0.45 + 0.55 * abs(sin(Float(index) * 0.037))
