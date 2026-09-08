@@ -6,6 +6,25 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.50</title>
+            <pubDate>Tue, 08 Sep 2026 13:04:42 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.50</link>
+            <sparkle:version>83</sparkle:version>
+            <sparkle:shortVersionString>0.6.50</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.50
+
+- Reduces the main interface to Transcripts, Voice Studio, Words & Replacements, and Settings.
+- Groups recent transcripts, recording, and audio import together; moves models into Settings.
+- Replaces passive correction monitoring and the Learning inbox with explicit replacements, preserving existing dictionary entries and approved rules.
+- Removes Home, the dedicated Dictation page, Pawprints, background confidence comparisons, and heuristic meeting briefs.
+- Replaces typed private-app identifiers with a native app chooser and shortens the menu bar menu.
+- Preserves saved user files, dictation recovery, private sessions, local transcription, and Voice Studio.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.50/Kiki-0.6.50-macOS.zip" length="53854188" type="application/octet-stream" sparkle:edSignature="65/BoyQlXSIZd8Wt4ehnC8Bl3/qxU73As8H16aIAL2IQfG3nTYGntLEm1nlaT/jWWZ6ytQgyp+d4ZC42gWcnCQ=="/>
+        </item>
+        <item>
             <title>0.6.46</title>
             <pubDate>Thu, 03 Sep 2026 22:21:13 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.46</link>
@@ -71,23 +90,6 @@
 - Renames the Listening Display option to Voice Halo so Settings matches the on-screen experience.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.43/Kiki-0.6.43-macOS.zip" length="53983400" type="application/octet-stream" sparkle:edSignature="IASbgDduJqNEYtYW+JIn7YtMzwP+tsU+Nfa6XRoYVh3JQRr/D8AGXEofBl6qO5tw8xV7iqsYsbgf/mKoemfzAQ=="/>
-        </item>
-        <item>
-            <title>0.6.42</title>
-            <pubDate>Thu, 03 Sep 2026 16:13:04 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.42</link>
-            <sparkle:version>75</sparkle:version>
-            <sparkle:shortVersionString>0.6.42</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.42
-
-- Automatically creates a fully local meeting brief with Summary, Decisions, Action items, and Next steps after transcription.
-- Keeps the newest live dictation words visible as the Full Transcript display fills.
-- Adds deterministic coverage for meeting insights, honest empty states, and the rolling transcript behavior.
-- Preserves speaker labels and timestamps so every extracted decision and task remains traceable to the transcript.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.42/Kiki-0.6.42-macOS.zip" length="53982315" type="application/octet-stream" sparkle:edSignature="r5wCeeIFtE0SVH5xseJS97wxpcKW19ptmWWpeuDi+w4s0R9qxqYq2S4ll+nQx4kVB0F4hgzhkYJfYQWaqf5WCg=="/>
         </item>
     </channel>
 </rss>
