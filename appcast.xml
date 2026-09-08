@@ -6,6 +6,21 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.53</title>
+            <pubDate>Tue, 08 Sep 2026 15:16:08 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.53</link>
+            <sparkle:version>86</sparkle:version>
+            <sparkle:shortVersionString>0.6.53</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.53
+
+- Keeps direct actions visible on completed readiness checks: open permission settings, manage local models, and repeat shortcut or dictation tests.
+- Places actions next to each check and explains where to choose or download a local model.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.53/Kiki-0.6.53-macOS.zip" length="8697861" type="application/octet-stream" sparkle:edSignature="6APeQVNIWhbE9SFCJBDIqIFD1ZtBys7GrxvbEU1jHE1Z8Cz6wfHkzEXb17/m89KlhIoOCX5LmhFv0tTPzZf+Ag=="/>
+        </item>
+        <item>
             <title>0.6.52</title>
             <pubDate>Tue, 08 Sep 2026 14:34:55 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.52</link>
@@ -75,24 +90,6 @@
 - Preserves a calm fixed-height presentation when Reduce Motion is enabled.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.46/Kiki-0.6.46-macOS.zip" length="53991240" type="application/octet-stream" sparkle:edSignature="Ye1kgfP1k7lf8C7gKed/7U0ZF8ujE8kCRCBikNEbdkAZ/oEUedPeO8sfVNKvJEur/lUarZlvLHwv7B07AxPTBQ=="/>
-        </item>
-        <item>
-            <title>0.6.45</title>
-            <pubDate>Thu, 03 Sep 2026 21:46:27 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.45</link>
-            <sparkle:version>78</sparkle:version>
-            <sparkle:shortVersionString>0.6.45</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.45
-
-- Adds Signal Meter as a fourth Listening Display option alongside Full Transcript, Voice Halo, and Hidden.
-- Shows microphone strength through seven compact, bottom-anchored sage bars driven by the live input signal.
-- Uses a fixed-height, illumination-based meter when Reduce Motion is enabled.
-- Adds restrained pointer feedback to Kiki's custom buttons, a slim sage selection rail, and a brief destination reveal to navigation.
-- Keeps keyboard actions and native macOS menus immediate while using a brief state transition where explanatory copy changes.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.45/Kiki-0.6.45-macOS.zip" length="53990875" type="application/octet-stream" sparkle:edSignature="OhpJteGhUwONWG/ivGxb4SlXAyQqZzQwm0aS7ifYoaXLQRF4HHZuiVsMgZhIBv0AXBuXzpZPhlfFCEwH2hIPBQ=="/>
         </item>
     </channel>
 </rss>
