@@ -489,7 +489,7 @@ private final class KikiCheckupStatusRow: NSView {
     private let guidanceLabel = kikiLabel("", size: 11.5, color: KikiPalette.secondaryText)
     private var actionButton: KikiActionButton?
     private var guidanceRow: NSStackView?
-    
+
 
     init(
         title: String,
