@@ -216,6 +216,30 @@ enum FeatureDiagnostics {
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
               meeting.renamingSpeaker(from: "Speaker 1", to: "Alex").plainText.contains("Alex: Please schedule") else { throw failure("transcript exports and speaker rename") }
+
+        let exportFolder = temporaryFile("meeting-auto-export")
+        try FileManager.default.createDirectory(at: exportFolder, withIntermediateDirectories: true)
+        let exportConfiguration = MeetingAutoExportConfiguration(isEnabled: true, folderURL: exportFolder)
+        guard case .saved(let fileName) = MeetingTranscriptAutoExporter.export(
+            meeting,
+            configuration: exportConfiguration
+        ),
+        fileName.hasSuffix("-Planning.md"),
+        FileManager.default.fileExists(atPath: exportFolder.appendingPathComponent(fileName).path) else {
+            throw failure("meeting auto-export must write Markdown to the selected folder")
+        }
+
+        try FileManager.default.removeItem(at: exportFolder)
+        guard case .failed(let reason) = MeetingTranscriptAutoExporter.export(
+            meeting,
+            configuration: exportConfiguration
+        ),
+        reason.contains("no longer available"),
+        !FileManager.default.fileExists(atPath: exportFolder.path),
+        MeetingAutoExportConfiguration(isEnabled: true, folderURL: nil).isEnabled == false else {
+            throw failure("meeting auto-export must not recreate a missing destination")
+        }
+
         let echoed = segments + [MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "Others", text: "I will send the proposal.")]
         guard MeetingTranscript.deduplicatingSourceOverlap(echoed).count == 2 else { throw failure("microphone echo deduplication") }
     }

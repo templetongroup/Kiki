@@ -11,3 +11,10 @@ func kikiSafeFileComponent(_ value: String, fallback: String) -> String {
     let result = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     return result.isEmpty ? fallback : result
 }
+
+func kikiTimestampedFileStem(date: Date, title: String, fallback: String) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+    let safeTitle = kikiSafeFileComponent(title, fallback: fallback)
+    return "\(formatter.string(from: date))-\(safeTitle)"
+}
