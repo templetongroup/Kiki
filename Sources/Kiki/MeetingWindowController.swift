@@ -66,9 +66,11 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             titleField.stringValue = "Meeting — \(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short))"
         }
         saveAudioCheckbox.state = Settings.saveMeetingAudio ? .on : .off
-        autoExportCheckbox.state = Settings.meetingAutoExportEnabled ? .on : .off
+        let autoExportConfiguration = Settings.meetingAutoExportConfiguration
+        Settings.meetingAutoExportEnabled = autoExportConfiguration.isEnabled
+        autoExportCheckbox.state = autoExportConfiguration.isEnabled ? .on : .off
         updateAutoExportFolderLabel()
-        chooseAutoExportFolderButton.isEnabled = autoExportCheckbox.state == .on
+        chooseAutoExportFolderButton.isEnabled = autoExportConfiguration.isEnabled
         if transcript == nil, !isRecording {
             transcriptEmptyState.isHidden = false
             exportButton.isEnabled = false
@@ -148,9 +150,10 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         autoExportCheckbox.contentTintColor = KikiPalette.accentText
         autoExportFolderLabel.lineBreakMode = .byTruncatingMiddle
         autoExportFolderLabel.maximumNumberOfLines = 1
+        autoExportFolderLabel.setAccessibilityLabel("Automatic export folder")
         autoExportFolderLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let controls = NSStackView(views: [recordButton, timerLabel, NSView(), saveAudioCheckbox])
+        let controls = NSStackView(views: [recordButton, timerLabel])
         controls.orientation = .horizontal
         controls.alignment = .centerY
         controls.spacing = 12
@@ -158,7 +161,12 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         autoExportRow.orientation = .horizontal
         autoExportRow.alignment = .centerY
         autoExportRow.spacing = 10
-        let controlStack = NSStackView(views: [controls, autoExportRow, statusLabel])
+        let captureOptions = NSStackView(views: [saveAudioCheckbox, autoExportRow])
+        captureOptions.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.capture-options")
+        captureOptions.orientation = .vertical
+        captureOptions.alignment = .leading
+        captureOptions.spacing = 7
+        let controlStack = NSStackView(views: [controls, captureOptions, statusLabel])
         controlStack.orientation = .vertical
         controlStack.alignment = .leading
         controlStack.spacing = 9
@@ -171,7 +179,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             controlStack.topAnchor.constraint(equalTo: controlCard.topAnchor, constant: 12),
             controlStack.bottomAnchor.constraint(equalTo: controlCard.bottomAnchor, constant: -12),
             controls.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
-            autoExportRow.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
+            captureOptions.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
+            autoExportRow.widthAnchor.constraint(equalTo: captureOptions.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: controlStack.widthAnchor),
         ])
 
@@ -413,11 +422,16 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func autoExportChanged() {
-        Settings.meetingAutoExportEnabled = autoExportCheckbox.state == .on
-        chooseAutoExportFolderButton.isEnabled = autoExportCheckbox.state == .on
-        if autoExportCheckbox.state == .on, Settings.meetingAutoExportFolderPath == nil {
-            chooseAutoExportFolder()
+        if autoExportCheckbox.state == .on {
+            if Settings.meetingAutoExportFolderPath == nil {
+                chooseAutoExportFolder()
+            } else {
+                Settings.meetingAutoExportEnabled = true
+            }
+        } else {
+            Settings.meetingAutoExportEnabled = false
         }
+        chooseAutoExportFolderButton.isEnabled = Settings.meetingAutoExportEnabled
         updateAutoExportFolderLabel()
     }
 
@@ -431,8 +445,17 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         if let existing = Settings.meetingAutoExportFolderPath {
             panel.directoryURL = URL(fileURLWithPath: existing, isDirectory: true)
         }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        Settings.meetingAutoExportFolderPath = url.path
+        guard panel.runModal() == .OK, let url = panel.url else {
+            if Settings.meetingAutoExportFolderPath == nil {
+                Settings.configureMeetingAutoExport(isEnabled: false, folderURL: nil)
+                autoExportCheckbox.state = .off
+                chooseAutoExportFolderButton.isEnabled = false
+            }
+            return
+        }
+        Settings.configureMeetingAutoExport(isEnabled: true, folderURL: url)
+        autoExportCheckbox.state = .on
+        chooseAutoExportFolderButton.isEnabled = true
         updateAutoExportFolderLabel()
     }
 
@@ -487,7 +510,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         default: contents = transcript.markdown
         }
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "\(safeFileName(transcript.title)).\(ext)"
+        let safeTitle = kikiSafeFileComponent(transcript.title, fallback: "Kiki-Meeting")
+        panel.nameFieldStringValue = "\(safeTitle).\(ext)"
         if let type = UTType(filenameExtension: ext) {
             panel.allowedContentTypes = [type]
         }
@@ -500,7 +524,4 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    private func safeFileName(_ value: String) -> String {
-        kikiSafeFileComponent(value, fallback: "Kiki-Meeting")
-    }
 }

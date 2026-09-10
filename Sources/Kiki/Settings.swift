@@ -177,6 +177,19 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "meetingAutoExportFolderPath") }
     }
 
+    static var meetingAutoExportConfiguration: MeetingAutoExportConfiguration {
+        let path = meetingAutoExportFolderPath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return MeetingAutoExportConfiguration(
+            isEnabled: meetingAutoExportEnabled,
+            folderURL: path.flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+        )
+    }
+
+    static func configureMeetingAutoExport(isEnabled: Bool, folderURL: URL?) {
+        meetingAutoExportFolderPath = folderURL?.path
+        meetingAutoExportEnabled = isEnabled && folderURL != nil
+    }
+
     static var microphoneDeviceUID: String? {
         get { UserDefaults.standard.string(forKey: "microphoneDeviceUID") }
         set { UserDefaults.standard.set(newValue, forKey: "microphoneDeviceUID") }
