@@ -6,6 +6,25 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.54</title>
+            <pubDate>Thu, 10 Sep 2026 11:54:23 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.54</link>
+            <sparkle:version>87</sparkle:version>
+            <sparkle:shortVersionString>0.6.54</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.54
+
+- Makes Meeting Mode automatic Markdown export fail clearly when its selected folder is missing or unavailable instead of silently recreating it.
+- Keeps automatic export off when the first folder picker is cancelled.
+- Groups meeting storage options together and adds regression checks for successful and missing-folder exports.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.54/Kiki-0.6.54-macOS.zip" length="8703536" type="application/octet-stream" sparkle:edSignature="VPG51SuDi4J9vmt8x7M+EUe9tI0O8qYkQTT8aRDwvNJUuckPSZu5e/TKTAL3LxtkwaMOiE5vg5L426RMwpOOAg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.54/Kiki87-86.delta" sparkle:deltaFrom="86" length="305786" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="R/DK3MoqG2hVNy1Z+IaWoAUeTtY4jpFsKiFcRecsO9lo0vehXOSjksQN8P06uPyBqkaYcVIL5ihYPpSUUaFHCA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.53</title>
             <pubDate>Tue, 08 Sep 2026 15:16:08 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.53</link>
@@ -73,23 +92,6 @@
 - Preserves saved user files, dictation recovery, private sessions, local transcription, and Voice Studio.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.50/Kiki-0.6.50-macOS.zip" length="53854188" type="application/octet-stream" sparkle:edSignature="65/BoyQlXSIZd8Wt4ehnC8Bl3/qxU73As8H16aIAL2IQfG3nTYGntLEm1nlaT/jWWZ6ytQgyp+d4ZC42gWcnCQ=="/>
-        </item>
-        <item>
-            <title>0.6.46</title>
-            <pubDate>Thu, 03 Sep 2026 22:21:13 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.46</link>
-            <sparkle:version>79</sparkle:version>
-            <sparkle:shortVersionString>0.6.46</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.46
-
-- Strengthens both Voice Halo rings with clearer resting contrast, brighter active states, and a separation keyline that remains visible over other apps.
-- Makes Signal Meter substantially more responsive to conversational and loud speech.
-- Drives each meter bar from recent microphone input so the display changes shape with the voice instead of scaling one fixed silhouette.
-- Preserves a calm fixed-height presentation when Reduce Motion is enabled.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.46/Kiki-0.6.46-macOS.zip" length="53991240" type="application/octet-stream" sparkle:edSignature="Ye1kgfP1k7lf8C7gKed/7U0ZF8ujE8kCRCBikNEbdkAZ/oEUedPeO8sfVNKvJEur/lUarZlvLHwv7B07AxPTBQ=="/>
         </item>
     </channel>
 </rss>
