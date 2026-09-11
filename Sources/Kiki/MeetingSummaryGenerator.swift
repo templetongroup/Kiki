@@ -111,13 +111,20 @@ enum MeetingSummaryGenerator {
         }
         let actions = explicitActions(from: transcript)
         if !actions.isEmpty,
-           let noSteps = result.range(
-               of: "(?mi)^\\s*-?\\s*No explicit next steps were stated\\.?\\s*$",
-               options: .regularExpression
-           ) {
-            result.replaceSubrange(noSteps, with: actions.joined(separator: "\n"))
+           let nextStepsHeading = result.range(of: "## Next steps", options: .caseInsensitive) {
+            // The transcript is authoritative. Replace the model's entire action
+            // section so it cannot contradict explicit commitments it already
+            // surfaced elsewhere in the brief.
+            result.replaceSubrange(
+                nextStepsHeading.upperBound..<result.endIndex,
+                with: "\n\n" + actions.joined(separator: "\n")
+            )
         }
         return result
+    }
+
+    static func normalizeForDiagnostics(_ value: String, transcript: MeetingTranscript) -> String? {
+        normalized(value, transcript: transcript)
     }
 
     private static func extractiveSummary(from transcript: MeetingTranscript) -> String {
