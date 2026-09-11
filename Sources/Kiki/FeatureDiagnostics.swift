@@ -210,6 +210,25 @@ enum FeatureDiagnostics {
             MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review.")
         ]
         let meeting = MeetingTranscript(title: "Planning", createdAt: Date(timeIntervalSince1970: 0), duration: 12, segments: segments, actionItems: [])
+        let contradictoryModelResult = """
+        ## Summary
+        The team prepared a proposal review.
+
+        ## Key points
+        - A proposal review is planned.
+
+        ## Next steps
+        No explicit next steps were stated.
+        """
+        guard let correctedModelResult = MeetingSummaryGenerator.normalizeForDiagnostics(
+            contradictoryModelResult,
+            transcript: meeting
+        ),
+        correctedModelResult.contains("- You: I will send the proposal."),
+        correctedModelResult.contains("- Requested by Speaker 1: Please schedule the review."),
+        !correctedModelResult.localizedCaseInsensitiveContains("No explicit next steps") else {
+            throw failure("meeting summary explicit action reconciliation")
+        }
         let summarized = meeting.addingSummary("## Summary\n\nThe team prepared a proposal review.\n\n## Key points\n\n- The proposal is ready.\n\n## Next steps\n\n- You will send the proposal.")
         guard summarized.markdown.contains("## Summary"),
               summarized.markdown.contains("## Next steps"),

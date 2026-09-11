@@ -6,6 +6,27 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.57</title>
+            <pubDate>Fri, 11 Sep 2026 15:09:31 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.57</link>
+            <sparkle:version>90</sparkle:version>
+            <sparkle:shortVersionString>0.6.57</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.57
+
+- Meeting summaries now preserve explicit commitments and requested tasks in Next steps, even when Apple Intelligence incorrectly says none were stated.
+- Includes the separate Meetings library, one-click private meeting summaries, and bounded routine dictation history introduced in 0.6.56.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.57/Kiki-0.6.57-macOS.zip" length="8737436" type="application/octet-stream" sparkle:edSignature="tx8Jj0wnycQwTkN2KMsljeSIoxd/Lj4sgj5jGCUpzD6kxjsTuUenyrGI7WNwzx9bhe9lbQdXOtiLjHUaWmPyAw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.57/Kiki90-89.delta" sparkle:deltaFrom="89" length="185970" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="JWWsBIPh0Dv+abl9oJGhzvOIFtYsSiFs05ERCylr+PPcvPa3MiPjtvG4DW8gOKZjWiAVl0yRFHn3SjGiSnydDQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.57/Kiki90-88.delta" sparkle:deltaFrom="88" length="484750" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="fNK7gQSLX2EsXhTkCyGK/L/NoJmhAKLiimxhcKlbKZDmrAXjHJmQq0jFAUVIzGOFTZ8nq0JcBMSY4pF1L3NXAg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.57/Kiki90-87.delta" sparkle:deltaFrom="87" length="478330" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="x39Lh+2/zBmU9MJnSVL0rZza/7cXcOvl0D1FFu8bYUTTlFLBdirzzDpBYf6CPCrgfIqDsfPE4TJIVNDy3zDJCg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.57/Kiki90-86.delta" sparkle:deltaFrom="86" length="487226" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="GxUzDBfgsGwX7yvgWQ9r27ucXLbAN2y5YmXoXNDm+YkY25hcN7vd6b1vA4TnzM/7f1SP0b2dh2a6T2T1pLq8DA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.56</title>
             <pubDate>Fri, 11 Sep 2026 15:00:15 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.56</link>
@@ -79,24 +100,6 @@
 - Places actions next to each check and explains where to choose or download a local model.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.53/Kiki-0.6.53-macOS.zip" length="8697861" type="application/octet-stream" sparkle:edSignature="6APeQVNIWhbE9SFCJBDIqIFD1ZtBys7GrxvbEU1jHE1Z8Cz6wfHkzEXb17/m89KlhIoOCX5LmhFv0tTPzZf+Ag=="/>
-        </item>
-        <item>
-            <title>0.6.52</title>
-            <pubDate>Tue, 08 Sep 2026 14:34:55 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.52</link>
-            <sparkle:version>85</sparkle:version>
-            <sparkle:shortVersionString>0.6.52</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.52
-
-- Centers the setup step numbers inside their circular badges.
-- Corrects the Home screen meeting description to match transcript editing and export.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki-0.6.52-macOS.zip" length="8691681" type="application/octet-stream" sparkle:edSignature="BTAeemB1TwXXbEfYfuMA+ZDg0LCd8ig0hB/c+mTjsWsyvqc1bURUgosFNSmIW998X+TkPjz6OZFhX+bl1rioBA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki85-84.delta" sparkle:deltaFrom="84" length="185114" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="2rXoYcO+5bTlxdIMX6awemxI4NcS1p3NNMZT8h2jQELiqwM8EbbHhhel3dkF0ueL7LBj2hpBvKAKs+hz4yCYBQ=="/>
-            </sparkle:deltas>
         </item>
     </channel>
 </rss>
