@@ -6,6 +6,27 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.56</title>
+            <pubDate>Fri, 11 Sep 2026 15:00:15 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.56</link>
+            <sparkle:version>89</sparkle:version>
+            <sparkle:shortVersionString>0.6.56</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.56
+
+- Adds a **Create Summary** action after meeting transcription. Kiki creates a private on-device brief with a summary, key points, and explicit next steps; the result remains editable and is included in Markdown exports.
+- Gives completed meetings their own **Meetings** library instead of mixing them into everyday dictation history.
+- Bounds routine dictation history to the most recent 250 entries by default. The Privacy page can keep 50, 250, 1,000, or retain entries until they are deleted; meetings and imported-audio transcripts remain until explicitly removed.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki-0.6.56-macOS.zip" length="8737582" type="application/octet-stream" sparkle:edSignature="MKWhFvic/5Kff+4sOsscLhP523q5Tu/TDhp4PgJmMzVspWPDwCRRyJXdzHX9XLm8/HAHj+2ubFb8pdjPUHy+Dw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-88.delta" sparkle:deltaFrom="88" length="476474" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="HUd5mbK+NKIZ/sNZ9ltdB/gG4SY973wHaKRY4Gn8dlWjF7858B01rjC+egRMFdhxHrzjQQ7hxSYYK6+ClmubCQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-87.delta" sparkle:deltaFrom="87" length="462470" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="bND0OOhANw8qziCkWm6aNwFiZ6BZvHgDEdsHEQW3r8dj9F0xc7KjOnEXBraFHmVg6kU1FcAyISiNjPc5scjuAg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-86.delta" sparkle:deltaFrom="86" length="493326" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="w41vGsdZP169hyiKXiiZMe80uiFxohggbW2Cjk2+Ine0WuMzcpl7fm5MWm/4UlAth4F9uFLg/ldaCW33MimZDA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.55</title>
             <pubDate>Fri, 11 Sep 2026 13:56:38 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.55</link>
@@ -76,23 +97,6 @@
             <sparkle:deltas>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.52/Kiki85-84.delta" sparkle:deltaFrom="84" length="185114" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="2rXoYcO+5bTlxdIMX6awemxI4NcS1p3NNMZT8h2jQELiqwM8EbbHhhel3dkF0ueL7LBj2hpBvKAKs+hz4yCYBQ=="/>
             </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.51</title>
-            <pubDate>Tue, 08 Sep 2026 13:51:53 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.51</link>
-            <sparkle:version>84</sparkle:version>
-            <sparkle:shortVersionString>0.6.51</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.51
-
-- Adds a real Home orientation screen with setup status, a three-step first-dictation guide, and equal-size actions for dictation, meetings, and audio import.
-- Replaces the listening orb approximation with a native Metal port of OrbKit SHDR-21 Nimbus, using Templeton colors and distinct idle, thinking, and speaking motion states.
-- Removes Voice Studio and local voice-cloning code, menus, assets, and MLX dependencies from the application.
-- Preserves transcripts, dictionary entries, approved replacements, settings, and other existing local user data.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.51/Kiki-0.6.51-macOS.zip" length="8691605" type="application/octet-stream" sparkle:edSignature="9rIwvb/wAgGp02xYAGWvLlIKfwxWqERtFxV5Ek/WlpANn/Aj0v6gLFnSi5dhmBBJSXZBKlrveCVDsNQgrpaTCg=="/>
         </item>
     </channel>
 </rss>

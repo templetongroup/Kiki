@@ -1,7 +1,7 @@
 import FeatureJourney from './FeatureJourney';
 
 const downloadUrl =
-  'https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki-0.6.55-macOS.zip';
+  'https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki-0.6.56-macOS.zip';
 
 const waveform = [18, 34, 52, 26, 70, 42, 88, 54, 32, 66, 92, 48, 76, 38, 58, 24, 46, 20];
 const privacyWaveform = [24, 42, 68, 36, 82, 50, 92, 58, 32, 74, 46, 88, 54, 70, 38, 62, 28, 48, 76, 44, 84, 52, 66, 34, 58, 26, 42];
@@ -39,7 +39,7 @@ export default function Home() {
             </a>
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
-          <p className="compatibility">Version 0.6.55 · macOS 14+ · Apple silicon</p>
+          <p className="compatibility">Version 0.6.56 · macOS 14+ · Apple silicon</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -119,7 +119,7 @@ export default function Home() {
           <article><p>Live feedback</p><h3>See what Kiki hears while you speak.</h3><span>A lightweight transcript follows your caret, then disappears after insertion.</span></article>
           <article><p>Private session</p><h3>Leave no trail when the work is sensitive.</h3><span>Pause dictation history with one action. Your recording stays in memory for undo and retry.</span></article>
           <article><p>Recovery</p><h3>Undo or retry your exact last dictation.</h3><span>Recover quickly without Kiki saving the underlying recording to disk.</span></article>
-          <article><p>Meeting transcripts</p><h3>Keep the words. Skip the extra paperwork.</h3><span>Review the source-labelled transcript, adjust speaker names, and export the format you need.</span></article>
+          <article><p>Meeting intelligence</p><h3>Keep meetings out of the dictation pile.</h3><span>Use the separate meetings library, then create a private on-device summary with key points and next steps.</span></article>
           <article><p>Checkup</p><h3>Know what’s ready before you start.</h3><span>Test your microphone, permissions, model, shortcut, and first insertion in one place.</span></article>
         </div>
       </section>
@@ -143,7 +143,7 @@ export default function Home() {
           <h2>Say it once.<br /><em>Keep it yours.</em></h2>
           <p>Private voice intelligence for Apple silicon Macs running macOS 14 or later.</p>
           <a className="primary-button download-button" href={downloadUrl}>
-            Download Kiki 0.6.55 <span className="button-arrow" aria-hidden="true">↘</span>
+            Download Kiki 0.6.56 <span className="button-arrow" aria-hidden="true">↘</span>
           </a>
           <small>8.7 MB · Developer ID signed · Notarized by Apple · Signed automatic updates</small>
         </div>
