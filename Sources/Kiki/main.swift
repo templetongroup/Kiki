@@ -235,6 +235,9 @@ if args.count >= 2, args[1] == "--self-test-meeting-summary" {
                   result.markdown.contains("## Next steps") else {
                 throw KikiError("Meeting summary is missing required sections.")
             }
+            if ProcessInfo.processInfo.environment["KIKI_DEBUG_SUMMARY"] == "1" {
+                print(result.markdown)
+            }
             print("Kiki meeting summary diagnostic passed using \(result.methodDescription)")
             exit(0)
         } catch {

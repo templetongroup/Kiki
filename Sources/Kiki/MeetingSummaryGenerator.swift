@@ -18,11 +18,16 @@ enum MeetingSummaryGenerator {
 #if canImport(FoundationModels)
         if #available(macOS 26.0, *), SystemLanguageModel.default.isAvailable {
             do {
-                let markdown = try await generateWithAppleIntelligence(transcript.plainText)
-                return MeetingSummaryResult(
-                    markdown: normalized(markdown, fallback: transcript),
-                    methodDescription: "Apple Intelligence on this Mac"
-                )
+                let response = try await generateWithAppleIntelligence(transcript.plainText)
+                if ProcessInfo.processInfo.environment["KIKI_DEBUG_SUMMARY"] == "1" {
+                    fputs("Raw Apple Intelligence meeting summary:\n\(response)\n", stderr)
+                }
+                if let markdown = normalized(response, transcript: transcript) {
+                    return MeetingSummaryResult(
+                        markdown: markdown,
+                        methodDescription: "Apple Intelligence on this Mac"
+                    )
+                }
             } catch {
                 // A usable local brief is still better than losing the action when
                 // the system model is temporarily busy or its context is unavailable.
@@ -81,17 +86,36 @@ enum MeetingSummaryGenerator {
     }
 #endif
 
-    private static func normalized(_ value: String, fallback transcript: MeetingTranscript) -> String {
+    private static func normalized(_ value: String, transcript: MeetingTranscript) -> String? {
         var result = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if result.hasPrefix("```"), let firstBreak = result.firstIndex(of: "\n") {
             result = String(result[result.index(after: firstBreak)...])
             if result.hasSuffix("```") { result.removeLast(3) }
             result = result.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        guard result.contains("## Summary"),
-              result.contains("## Key points"),
-              result.contains("## Next steps") else {
-            return extractiveSummary(from: transcript)
+        let headings = ["Summary", "Key points", "Next steps"]
+        for heading in headings {
+            let escaped = NSRegularExpression.escapedPattern(for: heading)
+            let pattern = "(?mi)^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\(escaped)(?:\\*\\*)?:?\\s*$"
+            if let expression = try? NSRegularExpression(pattern: pattern) {
+                let range = NSRange(result.startIndex..<result.endIndex, in: result)
+                result = expression.stringByReplacingMatches(
+                    in: result,
+                    range: range,
+                    withTemplate: "## \(heading)"
+                )
+            }
+        }
+        guard headings.allSatisfy({ result.localizedCaseInsensitiveContains("## \($0)") }) else {
+            return nil
+        }
+        let actions = explicitActions(from: transcript)
+        if !actions.isEmpty,
+           let noSteps = result.range(
+               of: "(?mi)^\\s*-?\\s*No explicit next steps were stated\\.?\\s*$",
+               options: .regularExpression
+           ) {
+            result.replaceSubrange(noSteps, with: actions.joined(separator: "\n"))
         }
         return result
     }
@@ -101,15 +125,7 @@ enum MeetingSummaryGenerator {
             .map { ($0.text.trimmingCharacters(in: .whitespacesAndNewlines), $0.speaker) }
             .filter { !$0.0.isEmpty }
         let keyPoints = Array(candidates.prefix(5))
-        let actionPatterns = [
-            " i will ", " i'll ", " we will ", " we'll ", " need to ", " needs to ",
-            " should ", " must ", " please ", " could you ", " follow up ", " schedule ",
-            " send ", " prepare ", " finish ", " confirm "
-        ]
-        let actions = candidates.filter { text, _ in
-            let normalized = " \(text.lowercased()) "
-            return actionPatterns.contains { normalized.contains($0) }
-        }
+        let actions = explicitActions(from: transcript)
 
         let overview = candidates.prefix(2).map(\.0).joined(separator: " ")
         var result = "## Summary\n\n\(overview.isEmpty ? "No spoken content was available to summarize." : overview)\n\n"
@@ -120,8 +136,25 @@ enum MeetingSummaryGenerator {
         result += "## Next steps\n\n"
         result += actions.isEmpty
             ? "- No explicit next steps were stated."
-            : Array(actions.prefix(6)).map { "- \($0.1): \($0.0)" }.joined(separator: "\n")
+            : actions.joined(separator: "\n")
         return result
+    }
+
+    private static func explicitActions(from transcript: MeetingTranscript) -> [String] {
+        let actionPatterns = [
+            " i will ", " i'll ", " we will ", " we'll ", " need to ", " needs to ",
+            " should ", " must ", " please ", " could you ", " follow up ", " schedule ",
+            " send ", " prepare ", " finish ", " confirm "
+        ]
+        return transcript.segments.compactMap { segment in
+            let text = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalized = " \(text.lowercased()) "
+            guard !text.isEmpty, actionPatterns.contains(where: { normalized.contains($0) }) else { return nil }
+            let attribution = normalized.contains(" please ") || normalized.contains(" could you ")
+                ? "Requested by \(segment.speaker)"
+                : segment.speaker
+            return "- \(attribution): \(text)"
+        }.prefix(6).map { $0 }
     }
 
     private static func chunk(_ text: String, maximumCharacters: Int) -> [String] {
