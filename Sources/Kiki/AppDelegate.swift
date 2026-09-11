@@ -58,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return controller
     }()
     private lazy var historyWindow = HistoryWindowController()
+    private lazy var meetingHistoryWindow = HistoryWindowController(scope: .meetings)
     private lazy var personalizationWindow = PersonalizationWindowController()
     private lazy var whatsNewWindow: WhatsNewWindowController = {
         let window = WhatsNewWindowController()
@@ -479,11 +480,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openFileTranscription() {
-        openWorkbench(section: .library, subpage: 2)
+        openWorkbench(section: .library, subpage: 3)
     }
 
     @objc private func openMeetingMode() {
-        openWorkbench(section: .library, subpage: 1)
+        openWorkbench(section: .library, subpage: 2)
     }
 
     @objc private func openTranscripts() { openWorkbench(section: .library) }
@@ -519,9 +520,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .library:
             switch route.subpage {
             case 1:
+                meetingHistoryWindow.prepareForEmbeddedDisplay()
+                return GuidedWorkbenchSurface(view: embeddedView(for: meetingHistoryWindow), sizing: .top(NSSize(width: 900, height: 620)))
+            case 2:
                 meetingWindow.prepareForEmbeddedDisplay()
                 return GuidedWorkbenchSurface(view: embeddedView(for: meetingWindow), sizing: .scroll(NSSize(width: 900, height: 700)))
-            case 2:
+            case 3:
                 return GuidedWorkbenchSurface(view: embeddedView(for: fileTranscriptionWindow), sizing: .top(NSSize(width: 760, height: 720)))
             default:
                 historyWindow.prepareForEmbeddedDisplay()

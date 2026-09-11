@@ -10,6 +10,7 @@ enum FeatureDiagnostics {
         try checkVoiceSnippets()
         try checkContextVocabulary()
         try checkMeetingExports()
+        try checkHistoryRetention()
         try checkFileTranscriptExports()
         try checkDictationMenuCopy()
         try checkKikiCheckup()
@@ -209,13 +210,15 @@ enum FeatureDiagnostics {
             MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Speaker 1", text: "Please schedule the review.")
         ]
         let meeting = MeetingTranscript(title: "Planning", createdAt: Date(timeIntervalSince1970: 0), duration: 12, segments: segments, actionItems: [])
-        guard meeting.markdown.contains("## Transcript"),
-              meeting.markdown.contains("I will send the proposal."),
-              !meeting.markdown.contains("## Summary"),
-              !meeting.markdown.contains("## Next steps"),
+        let summarized = meeting.addingSummary("## Summary\n\nThe team prepared a proposal review.\n\n## Key points\n\n- The proposal is ready.\n\n## Next steps\n\n- You will send the proposal.")
+        guard summarized.markdown.contains("## Summary"),
+              summarized.markdown.contains("## Next steps"),
+              summarized.markdown.range(of: "## Summary")!.lowerBound < summarized.markdown.range(of: "## Transcript")!.lowerBound,
+              summarized.markdown.contains("I will send the proposal."),
               meeting.srt.contains("00:00:00,000 --> 00:00:05,000"),
               meeting.vtt.hasPrefix("WEBVTT"),
-              meeting.renamingSpeaker(from: "Speaker 1", to: "Alex").plainText.contains("Alex: Please schedule") else { throw failure("transcript exports and speaker rename") }
+              summarized.renamingSpeaker(from: "Speaker 1", to: "Alex").plainText.contains("Alex: Please schedule"),
+              summarized.renamingSpeaker(from: "Speaker 1", to: "Alex").summaryMarkdown != nil else { throw failure("summary exports and speaker rename") }
 
         let exportFolder = temporaryFile("meeting-auto-export")
         try FileManager.default.createDirectory(at: exportFolder, withIntermediateDirectories: true)
@@ -272,6 +275,28 @@ enum FeatureDiagnostics {
               DictationMenuCopy.idleStatus.contains("Configured shortcut:"),
               DictationMenuCopy.recordingStatus.contains("hands-free action below") else {
             throw failure("self-explanatory dictation menu copy")
+        }
+    }
+
+    private static func checkHistoryRetention() throws {
+        let previousHistory = Settings.saveTranscriptionHistory
+        let previousRetention = Settings.dictationHistoryRetention
+        Settings.saveTranscriptionHistory = true
+        Settings.dictationHistoryRetention = .fifty
+        defer {
+            Settings.saveTranscriptionHistory = previousHistory
+            Settings.dictationHistoryRetention = previousRetention
+        }
+        let store = TranscriptionHistoryStore(fileURL: temporaryFile("bounded-history.json"))
+        for index in 0..<55 {
+            store.add(text: "Dictation \(index)", duration: 1, modelName: "Test", source: .dictation, context: "Test")
+        }
+        store.add(text: "Meeting", duration: 1, modelName: "Test", source: .meeting, context: "Planning")
+        store.add(text: "Imported", duration: 1, modelName: "Test", source: .file, context: "audio.wav")
+        guard store.records.filter({ $0.source == .dictation }).count == 50,
+              store.records.filter({ $0.source == .meeting }).count == 1,
+              store.records.filter({ $0.source == .file }).count == 1 else {
+            throw failure("bounded dictation retention must preserve intentional meeting and file transcripts")
         }
     }
 
@@ -705,6 +730,14 @@ enum FeatureDiagnostics {
               launchAtLogin.contentTintColor?.isEqual(KikiPalette.accentText) == true else {
             throw failure("checkbox labels must use the readable accent text token")
         }
+        let privacySettings = SettingsWindowController()
+        privacySettings.prepareForDiagnostics(page: 3)
+        guard let privacySettingsContent = privacySettings.window?.contentView,
+              let retention = findView(in: privacySettingsContent, identifier: "kiki.settings.dictation-retention") as? NSPopUpButton,
+              retention.numberOfItems == DictationHistoryRetention.allCases.count,
+              retention.isEnabled == Settings.saveTranscriptionHistory else {
+            throw failure("dictation history retention must be visible and follow the history setting")
+        }
         let checkup = KikiCheckupWindowController()
         guard let checkupContent = checkup.window?.contentView else {
             throw failure("Kiki Checkup content")
@@ -870,13 +903,17 @@ enum FeatureDiagnostics {
               let identifySpeakers = findButton(in: meetingContent, title: "Identify Speakers…") as? KikiActionButton,
               let meetingExport = findView(in: meetingContent, identifier: "kiki.meeting.export") as? KikiActionButton,
               let meetingCopy = findView(in: meetingContent, identifier: "kiki.meeting.copy") as? KikiActionButton,
+              let meetingSummary = findView(in: meetingContent, identifier: "kiki.meeting.summary") as? KikiActionButton,
               findView(in: meetingContent, identifier: "kiki.meeting.empty") is KikiEmptyStateView,
               !identifySpeakers.isEnabled,
               !meetingExport.isEnabled,
               !meetingCopy.isEnabled,
+              !meetingSummary.isEnabled,
               abs(meetingExport.frame.width - meetingCopy.frame.width) < 0.5,
               abs(meetingExport.frame.height - meetingCopy.frame.height) < 0.5,
               abs(meetingExport.frame.height - KikiMetrics.primaryControlHeight) < 0.5,
+              abs(identifySpeakers.frame.width - meetingSummary.frame.width) < 0.5,
+              abs(identifySpeakers.frame.height - meetingSummary.frame.height) < 0.5,
               identifySpeakers.contentTintColor?.isEqual(
                   KikiPalette.hardwareControlText.withAlphaComponent(0.88)
               ) == true else {

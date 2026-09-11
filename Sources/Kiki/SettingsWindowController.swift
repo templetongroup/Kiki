@@ -50,6 +50,7 @@ final class SettingsWindowController: NSWindowController {
     private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
     private let contextCheckbox = NSButton(checkboxWithTitle: "Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
     private let historyCheckbox = NSButton(checkboxWithTitle: "Save text-only transcription history", target: nil, action: nil)
+    private let dictationRetentionPopup = NSPopUpButton()
 
     private var pages: [NSView] = []
     private var modelCards: [ModelCardView] = []
@@ -306,6 +307,14 @@ final class SettingsWindowController: NSWindowController {
         contextCheckbox.action = #selector(contextChanged)
         historyCheckbox.target = self
         historyCheckbox.action = #selector(historyChanged)
+        dictationRetentionPopup.addItems(withTitles: DictationHistoryRetention.allCases.map(\.title))
+        dictationRetentionPopup.target = self
+        dictationRetentionPopup.action = #selector(dictationRetentionChanged)
+        dictationRetentionPopup.controlSize = .large
+        dictationRetentionPopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        dictationRetentionPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 190).isActive = true
+        dictationRetentionPopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.dictation-retention")
+        dictationRetentionPopup.setAccessibilityLabel("Dictation history retention")
 
         soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
         soundPopup.identifier = NSUserInterfaceItemIdentifier("kiki.sound-style")
@@ -459,11 +468,17 @@ final class SettingsWindowController: NSWindowController {
 
     private func makePrivacyPage() -> NSView {
         let manage = KikiActionButton("Manage Private Apps", kind: .secondary, target: self, action: #selector(openPersonalization))
+        let retentionRow = labeledRow(
+            "Keep routine dictations",
+            controls: [dictationRetentionPopup],
+            identifier: "kiki.settings.dictation-retention-row",
+            placesControlsAtTrailingEdge: false
+        )
         return page(with: [
             SettingsCard(
                 title: "Local History",
-                subtitle: "Kiki stores text only. Microphone audio is never added to dictation history.",
-                views: [historyCheckbox]
+                subtitle: "Kiki stores text only. Routine dictation is bounded; meetings and imported transcripts stay until you delete them.",
+                views: [historyCheckbox, retentionRow]
             ),
             SettingsCard(
                 title: "Private Zones",
@@ -610,6 +625,8 @@ final class SettingsWindowController: NSWindowController {
         continuationsCheckbox.state = Settings.enableVoiceContinuations ? .on : .off
         contextCheckbox.state = Settings.useContextVocabulary ? .on : .off
         historyCheckbox.state = Settings.saveTranscriptionHistory ? .on : .off
+        dictationRetentionPopup.selectItem(at: DictationHistoryRetention.allCases.firstIndex(of: Settings.dictationHistoryRetention) ?? 1)
+        dictationRetentionPopup.isEnabled = Settings.saveTranscriptionHistory
         modelCards.forEach { $0.refresh() }
         if let modelPreparationStatus {
             modelCards.forEach { $0.update(preparationStatus: modelPreparationStatus) }
@@ -756,7 +773,15 @@ final class SettingsWindowController: NSWindowController {
     @objc private func zeroWaitChanged() { Settings.enableZeroWaitChaining = zeroWaitCheckbox.state == .on; onSettingsChange?(Settings.dictationShortcut, Settings.activationMode) }
     @objc private func continuationsChanged() { Settings.enableVoiceContinuations = continuationsCheckbox.state == .on }
     @objc private func contextChanged() { Settings.useContextVocabulary = contextCheckbox.state == .on }
-    @objc private func historyChanged() { Settings.saveTranscriptionHistory = historyCheckbox.state == .on }
+    @objc private func historyChanged() {
+        Settings.saveTranscriptionHistory = historyCheckbox.state == .on
+        dictationRetentionPopup.isEnabled = Settings.saveTranscriptionHistory
+    }
+    @objc private func dictationRetentionChanged() {
+        guard DictationHistoryRetention.allCases.indices.contains(dictationRetentionPopup.indexOfSelectedItem) else { return }
+        Settings.dictationHistoryRetention = DictationHistoryRetention.allCases[dictationRetentionPopup.indexOfSelectedItem]
+        TranscriptionHistoryStore.shared.applyRetentionPolicy()
+    }
     @objc private func openPersonalization() { onOpenPrivateApps?() }
 }
 @MainActor

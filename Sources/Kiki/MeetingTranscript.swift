@@ -51,6 +51,26 @@ struct MeetingTranscript: Codable, Sendable {
     let duration: TimeInterval
     let segments: [MeetingTranscriptSegment]
     let actionItems: [String]
+    let summaryMarkdown: String?
+    let historyRecordID: UUID?
+
+    init(
+        title: String,
+        createdAt: Date,
+        duration: TimeInterval,
+        segments: [MeetingTranscriptSegment],
+        actionItems: [String],
+        summaryMarkdown: String? = nil,
+        historyRecordID: UUID? = nil
+    ) {
+        self.title = title
+        self.createdAt = createdAt
+        self.duration = duration
+        self.segments = segments
+        self.actionItems = actionItems
+        self.summaryMarkdown = summaryMarkdown
+        self.historyRecordID = historyRecordID
+    }
 
     var speakerNames: [String] {
         var seen = Set<String>()
@@ -91,7 +111,33 @@ struct MeetingTranscript: Codable, Sendable {
             createdAt: createdAt,
             duration: duration,
             segments: revised,
-            actionItems: actionItems
+            actionItems: actionItems,
+            summaryMarkdown: summaryMarkdown,
+            historyRecordID: historyRecordID
+        )
+    }
+
+    func addingSummary(_ markdown: String) -> MeetingTranscript {
+        MeetingTranscript(
+            title: title,
+            createdAt: createdAt,
+            duration: duration,
+            segments: segments,
+            actionItems: actionItems,
+            summaryMarkdown: markdown,
+            historyRecordID: historyRecordID
+        )
+    }
+
+    func linkingHistoryRecord(_ id: UUID?) -> MeetingTranscript {
+        MeetingTranscript(
+            title: title,
+            createdAt: createdAt,
+            duration: duration,
+            segments: segments,
+            actionItems: actionItems,
+            summaryMarkdown: summaryMarkdown,
+            historyRecordID: id
         )
     }
 
@@ -105,6 +151,11 @@ struct MeetingTranscript: Codable, Sendable {
         result += "- Date: \(DateFormatter.localizedString(from: createdAt, dateStyle: .medium, timeStyle: .short))\n"
         result += "- Duration: \(Self.timestamp(duration))\n"
         result += "- Processing: Fully local\n\n"
+
+        if let summaryMarkdown, !summaryMarkdown.isEmpty {
+            result += summaryMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
+            result += "\n\n"
+        }
 
         result += "## Transcript\n\n"
         var lastChapter = -1

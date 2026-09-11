@@ -15,6 +15,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private let textView = NSTextView()
     private let formatPopup = NSPopUpButton()
     private lazy var identifySpeakersButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: self, action: #selector(identifySpeakers))
+    private lazy var summaryButton = KikiActionButton("Create Summary", kind: .primary, target: self, action: #selector(createSummary))
     private lazy var exportButton = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
     private lazy var copyButton = KikiActionButton("Copy", kind: .hardware, target: self, action: #selector(copyTranscript))
     private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
@@ -32,6 +33,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private var transcript: MeetingTranscript?
     private var liveTranscription: MeetingLiveTranscription?
     private var speakerEditor: MeetingSpeakerEditorWindowController?
+    private var isSummarizing = false
 
     init() {
         let window = NSWindow(
@@ -75,6 +77,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             transcriptEmptyState.isHidden = false
             exportButton.isEnabled = false
             copyButton.isEnabled = false
+            summaryButton.isEnabled = false
         }
     }
 
@@ -85,6 +88,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         titleField.stringValue = transcript.title
         textView.string = transcript.markdown
         identifySpeakersButton.isEnabled = !transcript.segments.isEmpty
+        summaryButton.isEnabled = !transcript.segments.isEmpty
+        summaryButton.title = transcript.summaryMarkdown == nil ? "Create Summary" : "Refresh Summary"
         transcriptEmptyState.isHidden = true
         exportButton.isEnabled = true
         copyButton.isEnabled = true
@@ -219,6 +224,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         formatPopup.setAccessibilityLabel("Meeting export format")
         exportButton.isEnabled = false
         copyButton.isEnabled = false
+        summaryButton.isEnabled = false
         exportButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.export")
         copyButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.copy")
         let footer = NSStackView(views: [formatPopup, exportButton, copyButton, NSView()])
@@ -232,7 +238,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
         identifySpeakersButton.isEnabled = false
         identifySpeakersButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.identify-speakers")
-        let speakerTools = NSStackView(views: [identifySpeakersButton, kikiLabel("Rename once to update every transcript row and export.", size: 12, color: KikiPalette.secondaryText), NSView()])
+        summaryButton.isEnabled = false
+        summaryButton.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.summary")
+        summaryButton.toolTip = "Creates a local summary, key points, and next steps from this meeting transcript."
+        [identifySpeakersButton, summaryButton].forEach {
+            $0.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
+            $0.widthAnchor.constraint(equalToConstant: 160).isActive = true
+        }
+        let speakerTools = NSStackView(views: [identifySpeakersButton, summaryButton, kikiLabel("Both actions use only this transcript and stay on this Mac.", size: 12, color: KikiPalette.secondaryText), NSView()])
         speakerTools.orientation = .horizontal
         speakerTools.alignment = .centerY
         speakerTools.spacing = 10
@@ -273,10 +286,13 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func startCapture() {
+        transcript = nil
         recordButton.isEnabled = false
         identifySpeakersButton.isEnabled = false
         exportButton.isEnabled = false
         copyButton.isEnabled = false
+        summaryButton.isEnabled = false
+        summaryButton.title = "Create Summary"
         statusLabel.stringValue = "Starting local microphone and system-audio capture…"
         onCaptureStateChange?(true)
         Task { [weak self] in
@@ -373,6 +389,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 transcript = result
                 textView.string = result.markdown
                 identifySpeakersButton.isEnabled = !result.segments.isEmpty
+                summaryButton.isEnabled = !result.segments.isEmpty
+                summaryButton.title = "Create Summary"
                 transcriptEmptyState.isHidden = true
                 exportButton.isEnabled = !result.segments.isEmpty
                 copyButton.isEnabled = !result.segments.isEmpty
@@ -392,6 +410,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 textView.string = "Meeting transcription failed. \(error.localizedDescription)"
                 exportButton.isEnabled = false
                 copyButton.isEnabled = false
+                summaryButton.isEnabled = false
             }
             recordButton.isEnabled = true
         }
@@ -476,6 +495,42 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         statusLabel.stringValue = "Transcript copied."
     }
 
+    @objc private func createSummary() {
+        guard let transcript, !isSummarizing else {
+            statusLabel.stringValue = "Record and transcribe a meeting before creating a summary."
+            return
+        }
+        isSummarizing = true
+        summaryButton.isEnabled = false
+        summaryButton.title = "Creating Summary…"
+        statusLabel.stringValue = "Creating a private local summary from this meeting transcript…"
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let result = try await MeetingSummaryGenerator.generate(from: transcript)
+                let revised = transcript.addingSummary(result.markdown)
+                self.transcript = revised
+                self.textView.string = revised.markdown
+                self.textView.scrollToBeginningOfDocument(nil)
+                if let historyRecordID = revised.historyRecordID {
+                    TranscriptionHistoryStore.shared.update(
+                        id: historyRecordID,
+                        text: revised.markdown,
+                        context: revised.title
+                    )
+                }
+                _ = MeetingTranscriptAutoExporter.export(revised)
+                self.statusLabel.stringValue = "Summary created with \(result.methodDescription). Review or edit it before sharing."
+                self.summaryButton.title = "Refresh Summary"
+            } catch {
+                self.statusLabel.stringValue = "Summary could not be created: \(error.localizedDescription)"
+                self.summaryButton.title = transcript.summaryMarkdown == nil ? "Create Summary" : "Refresh Summary"
+            }
+            self.isSummarizing = false
+            self.summaryButton.isEnabled = true
+        }
+    }
+
     @objc private func identifySpeakers() {
         guard let transcript else {
             statusLabel.stringValue = "Record and transcribe a meeting before identifying speakers."
@@ -486,6 +541,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             guard let self else { return }
             self.transcript = revised
             self.textView.string = revised.markdown
+            if let historyRecordID = revised.historyRecordID {
+                TranscriptionHistoryStore.shared.update(id: historyRecordID, text: revised.markdown, context: revised.title)
+            }
             self.statusLabel.stringValue = "Speaker names updated everywhere and will be used by every export."
             self.speakerEditor = nil
         }

@@ -1,19 +1,54 @@
 import AppKit
 
+enum TranscriptionHistoryScope: Equatable {
+    case transcripts
+    case meetings
+
+    var sources: Set<TranscriptionSource> {
+        switch self {
+        case .transcripts: [.dictation, .file]
+        case .meetings: [.meeting]
+        }
+    }
+
+    var windowTitle: String { self == .meetings ? "Kiki Meetings" : "Kiki Transcripts" }
+    var title: String { self == .meetings ? "Meeting transcripts" : "Dictation & audio history" }
+    var subtitle: String {
+        self == .meetings
+            ? "Review, copy, or remove meetings Kiki recorded on this Mac."
+            : "Review routine dictation and imported-audio transcripts stored on this Mac."
+    }
+    var emptyTitle: String { self == .meetings ? "No meetings yet" : "No transcripts yet" }
+    var emptyDetail: String {
+        self == .meetings
+            ? "Use Capture Meeting above. Completed meetings appear here, separate from everyday dictation."
+            : "Dictate or import audio using the tabs above. Meetings have their own library."
+    }
+    var detailTitle: String { self == .meetings ? "Choose a meeting" : "Choose a transcription" }
+    var detailText: String {
+        self == .meetings
+            ? "Select a meeting to read its complete local transcript and summary."
+            : "Select a row to read the complete local transcript and model details."
+    }
+    var countNoun: String { self == .meetings ? "meeting" : "transcription" }
+    var clearTitle: String { self == .meetings ? "Clear Meetings…" : "Clear History…" }
+}
+
 @MainActor
 final class HistoryWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
+    private let scope: TranscriptionHistoryScope
     private let tableView = NSTableView()
     private let textView = NSTextView()
     private let countLabel = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(labelWithString: "")
     private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
     private lazy var deleteButton = KikiActionButton("Delete", kind: .danger, target: self, action: #selector(deleteSelected))
-    private lazy var clearButton = KikiActionButton("Clear History…", kind: .danger, target: self, action: #selector(clearAll))
+    private lazy var clearButton = KikiActionButton(scope.clearTitle, kind: .danger, target: self, action: #selector(clearAll))
     private var tableSurface: KikiDataSurfaceView?
-    private let detailEmptyState = KikiEmptyStateView(
-        symbol: "text.alignleft",
-        title: "Choose a transcription",
-        detail: "Select a row to read the complete local transcript and model details."
+    private lazy var detailEmptyState = KikiEmptyStateView(
+        symbol: scope == .meetings ? "person.2.wave.2" : "text.alignleft",
+        title: scope.detailTitle,
+        detail: scope.detailText
     )
     private var observer: NSObjectProtocol?
 
@@ -24,21 +59,22 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         return formatter
     }()
 
-    init() {
+    init(scope: TranscriptionHistoryScope = .transcripts) {
+        self.scope = scope
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 920, height: 620),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = "Kiki Transcripts"
+        window.title = scope.windowTitle
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         super.init(window: window)
         buildContent()
-        updateActionAvailability()
+        reload()
         observer = NotificationCenter.default.addObserver(
             forName: TranscriptionHistoryStore.didChangeNotification,
             object: nil,
@@ -82,7 +118,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         dateColumn.minWidth = 116
         dateColumn.maxWidth = 170
         let contextColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("context"))
-        contextColumn.title = "App / Source"
+        contextColumn.title = scope == .meetings ? "Meeting" : "App / Source"
         contextColumn.width = 128
         contextColumn.minWidth = 112
         contextColumn.maxWidth = 190
@@ -102,9 +138,9 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         configureKikiTable(tableView)
         let historySurface = KikiDataSurfaceView(
             table: tableView,
-            emptySymbol: "clock.arrow.circlepath",
-            emptyTitle: "No transcripts yet",
-            emptyDetail: "Record or import audio using the tabs above. With history enabled, completed dictations and transcripts appear here."
+            emptySymbol: scope == .meetings ? "person.2.wave.2" : "clock.arrow.circlepath",
+            emptyTitle: scope.emptyTitle,
+            emptyDetail: scope.emptyDetail
         )
         tableSurface = historySurface
 
@@ -162,14 +198,19 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         split.setHoldingPriority(.defaultHigh, forSubviewAt: 1)
 
         let eyebrow = kikiLabel("LOCAL LIBRARY", size: 10, weight: .bold, color: KikiPalette.accentText)
-        let title = kikiLabel("Recent transcripts", size: 27, weight: .bold)
-        let subtitle = kikiLabel("Review, copy, or remove the transcript text Kiki stores on this Mac.", size: 13, color: KikiPalette.secondaryText)
+        let title = kikiLabel(scope.title, size: 27, weight: .bold)
+        let subtitle = kikiLabel(scope.subtitle, size: 13, color: KikiPalette.secondaryText)
         let header = NSStackView(views: [eyebrow, title, subtitle])
         header.orientation = .vertical
         header.alignment = .leading
         header.spacing = 5
 
-        let privacy = NSTextField(labelWithString: "Text only · stored locally · no microphone audio saved")
+        let retentionText = Settings.dictationHistoryRetention.maximumCount.map {
+            "most recent \($0) routine dictations"
+        } ?? "routine dictations stay until you delete them"
+        let privacy = NSTextField(labelWithString: scope == .meetings
+            ? "Text only · meetings stay until you delete them"
+            : "Text only · \(retentionText) · meetings are separate")
         privacy.textColor = KikiPalette.secondaryText
         let footer = NSStackView(views: [countLabel, privacy, NSView(), clearButton])
         footer.spacing = 10
@@ -204,8 +245,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
     private func reload() {
         tableView.reloadData()
-        let count = TranscriptionHistoryStore.shared.records.count
-        countLabel.stringValue = "\(count) \(count == 1 ? "transcription" : "transcriptions")"
+        let count = visibleRecords.count
+        countLabel.stringValue = "\(count) \(count == 1 ? scope.countNoun : scope.countNoun + "s")"
         tableSurface?.isEmpty = count == 0
         clearButton.isEnabled = count > 0
         if count == 0 {
@@ -217,8 +258,12 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
     private var selectedRecord: TranscriptionRecord? {
         let row = tableView.selectedRow
-        guard row >= 0, row < TranscriptionHistoryStore.shared.records.count else { return nil }
-        return TranscriptionHistoryStore.shared.records[row]
+        guard row >= 0, row < visibleRecords.count else { return nil }
+        return visibleRecords[row]
+    }
+
+    private var visibleRecords: [TranscriptionRecord] {
+        TranscriptionHistoryStore.shared.records.filter { scope.sources.contains($0.source) }
     }
 
     @objc private func copySelected() {
@@ -249,20 +294,22 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
     @objc private func clearAll() {
         let alert = NSAlert()
-        alert.messageText = "Clear transcription history?"
-        alert.informativeText = "This permanently deletes Kiki's locally stored transcript text."
-        alert.addButton(withTitle: "Clear History")
+        alert.messageText = scope == .meetings ? "Clear meeting history?" : "Clear dictation and audio history?"
+        alert.informativeText = scope == .meetings
+            ? "This permanently deletes every locally stored meeting transcript. Other transcript history is not affected."
+            : "This permanently deletes locally stored dictation and imported-audio text. Meetings are not affected."
+        alert.addButton(withTitle: scope == .meetings ? "Clear Meetings" : "Clear History")
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        TranscriptionHistoryStore.shared.clear()
+        TranscriptionHistoryStore.shared.clear(sources: scope.sources)
         textView.string = ""
         detailEmptyState.isHidden = false
         statusLabel.stringValue = "Local transcription history cleared."
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int {
-        TranscriptionHistoryStore.shared.records.count
+        visibleRecords.count
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
@@ -288,7 +335,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let record = TranscriptionHistoryStore.shared.records[row]
+        let record = visibleRecords[row]
         let text: String
         switch tableColumn?.identifier.rawValue {
         case "date": text = Self.dateFormatter.string(from: record.createdAt)
