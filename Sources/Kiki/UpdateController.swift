@@ -21,6 +21,12 @@ final class UpdateController: NSObject, @preconcurrency SPUStandardUserDriverDel
         set { controller.updater.automaticallyDownloadsUpdates = newValue }
     }
 
+    func checkForUpdatesOnLaunchIfEnabled() {
+        let updater = controller.updater
+        guard updater.automaticallyChecksForUpdates else { return }
+        updater.checkForUpdatesInBackground()
+    }
+
     @objc func checkForUpdates(_ sender: Any?) {
         controller.checkForUpdates(sender)
     }

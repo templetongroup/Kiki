@@ -181,6 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateController.onUpdateAvailable = { [weak self] available in
             self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }
+        updateController.checkForUpdatesOnLaunchIfEnabled()
         setupStatusItem()
         activationPolicyCoordinator.start()
         requestPermissions()
