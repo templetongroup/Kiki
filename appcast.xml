@@ -6,6 +6,26 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.55</title>
+            <pubDate>Fri, 11 Sep 2026 13:56:38 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.55</link>
+            <sparkle:version>88</sparkle:version>
+            <sparkle:shortVersionString>0.6.55</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.55
+
+- Fixes automatic update checks so Kiki initializes Sparkle and checks its signed feed whenever the app launches and automatic checks are enabled.
+- Preserves the disabled setting: Kiki does not perform a launch check when automatic checks are turned off.
+- Adds an installed-app regression test that verifies a deliberately overdue update check runs on launch.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki-0.6.55-macOS.zip" length="8703549" type="application/octet-stream" sparkle:edSignature="aSaVtjJE5vTOBNs1UvLM92bNkx+Nb73/m9Rvy6hHaQL0jJR3RlISxHAWTmmYHSq/DDh6iBPrhDXMGk6wScoyCg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki88-87.delta" sparkle:deltaFrom="87" length="198374" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Eh86Aezy3J4iK9VnmQWyE/vGIypVz9gDWU1DTE0yZQy5ti70SVnc4dzwrxm5ztaZCii65dlkoVfi/dFFEGdhDw=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki88-86.delta" sparkle:deltaFrom="86" length="308662" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ADZ5o0hbyn2b0JGdSOI3M3fOXINshEJ2U9dG0xf5UrOwmJnq0AsFgunVupohO6tH/epPEtg0LN9x7X2xBvd1Dw=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.54</title>
             <pubDate>Thu, 10 Sep 2026 11:54:23 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.54</link>
@@ -73,25 +93,6 @@
 - Preserves transcripts, dictionary entries, approved replacements, settings, and other existing local user data.
 ]]></description>
             <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.51/Kiki-0.6.51-macOS.zip" length="8691605" type="application/octet-stream" sparkle:edSignature="9rIwvb/wAgGp02xYAGWvLlIKfwxWqERtFxV5Ek/WlpANn/Aj0v6gLFnSi5dhmBBJSXZBKlrveCVDsNQgrpaTCg=="/>
-        </item>
-        <item>
-            <title>0.6.50</title>
-            <pubDate>Tue, 08 Sep 2026 13:04:42 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.50</link>
-            <sparkle:version>83</sparkle:version>
-            <sparkle:shortVersionString>0.6.50</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.50
-
-- Reduces the main interface to Transcripts, Voice Studio, Words & Replacements, and Settings.
-- Groups recent transcripts, recording, and audio import together; moves models into Settings.
-- Replaces passive correction monitoring and the Learning inbox with explicit replacements, preserving existing dictionary entries and approved rules.
-- Removes Home, the dedicated Dictation page, Pawprints, background confidence comparisons, and heuristic meeting briefs.
-- Replaces typed private-app identifiers with a native app chooser and shortens the menu bar menu.
-- Preserves saved user files, dictation recovery, private sessions, local transcription, and Voice Studio.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.50/Kiki-0.6.50-macOS.zip" length="53854188" type="application/octet-stream" sparkle:edSignature="65/BoyQlXSIZd8Wt4ehnC8Bl3/qxU73As8H16aIAL2IQfG3nTYGntLEm1nlaT/jWWZ6ytQgyp+d4ZC42gWcnCQ=="/>
         </item>
     </channel>
 </rss>
