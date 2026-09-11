@@ -24,7 +24,6 @@ final class TranscriptionHistoryStore {
     static let didChangeNotification = Notification.Name("KikiHistoryDidChange")
 
     private(set) var records: [TranscriptionRecord] = []
-    private let maximumRecords = 1_000
     private let storageURL: URL
 
     private static var defaultFileURL: URL {
@@ -42,19 +41,24 @@ final class TranscriptionHistoryStore {
               let decoded = try? decoder.decode([TranscriptionRecord].self, from: data)
         else { return }
         records = decoded.sorted { $0.createdAt > $1.createdAt }
+        let originalCount = records.count
+        applyRetentionPolicy(notify: false)
+        if records.count != originalCount { save(notify: false) }
     }
 
+    @discardableResult
     func add(
         text: String,
         duration: TimeInterval,
         modelName: String,
         source: TranscriptionSource,
         context: String?
-    ) {
-        guard Settings.saveTranscriptionHistory, !text.isEmpty else { return }
+    ) -> UUID? {
+        guard Settings.saveTranscriptionHistory, !text.isEmpty else { return nil }
+        let id = UUID()
         records.insert(
             TranscriptionRecord(
-                id: UUID(),
+                id: id,
                 createdAt: Date(),
                 text: text,
                 duration: duration,
@@ -65,14 +69,29 @@ final class TranscriptionHistoryStore {
             ),
             at: 0
         )
-        if records.count > maximumRecords {
-            records.removeLast(records.count - maximumRecords)
-        }
+        applyRetentionPolicy(notify: false)
         save()
+        return id
     }
 
     func remove(id: UUID) {
         records.removeAll { $0.id == id }
+        save()
+    }
+
+    func update(id: UUID, text: String, context: String? = nil) {
+        guard let index = records.firstIndex(where: { $0.id == id }), !text.isEmpty else { return }
+        let existing = records[index]
+        records[index] = TranscriptionRecord(
+            id: existing.id,
+            createdAt: existing.createdAt,
+            text: text,
+            duration: existing.duration,
+            modelName: existing.modelName,
+            source: existing.source,
+            context: context ?? existing.context,
+            processedLocally: existing.processedLocally
+        )
         save()
     }
 
@@ -81,7 +100,30 @@ final class TranscriptionHistoryStore {
         save()
     }
 
-    private func save() {
+    func clear(sources: Set<TranscriptionSource>) {
+        records.removeAll { sources.contains($0.source) }
+        save()
+    }
+
+    func applyRetentionPolicy() {
+        applyRetentionPolicy(notify: true)
+    }
+
+    private func applyRetentionPolicy(notify: Bool) {
+        guard let maximum = Settings.dictationHistoryRetention.maximumCount else {
+            if notify { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }
+            return
+        }
+        var dictationCount = 0
+        records.removeAll { record in
+            guard record.source == .dictation else { return false }
+            dictationCount += 1
+            return dictationCount > maximum
+        }
+        if notify { save() }
+    }
+
+    private func save(notify: Bool = true) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(records) else { return }
@@ -90,6 +132,8 @@ final class TranscriptionHistoryStore {
             withIntermediateDirectories: true
         )
         try? data.write(to: storageURL, options: .atomic)
-        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+        if notify {
+            NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+        }
     }
 }

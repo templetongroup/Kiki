@@ -6,7 +6,7 @@
   <img src="Assets/kiki-portrait.png" alt="Kiki dog portrait" width="560">
 </p>
 
-A personal voice-intelligence menu bar app for macOS — dictate anywhere, capture meetings, and create speech in your own voice. Fully local: audio never leaves your Mac.
+A personal voice-intelligence menu bar app for macOS — dictate anywhere, capture meetings, and transcribe recordings. Fully local: audio never leaves your Mac.
 
 Built with Swift/AppKit, [FluidAudio](https://github.com/FluidInference/FluidAudio), and [whisper.cpp](https://github.com/ggml-org/whisper.cpp). Parakeet runs through Core ML on Apple Silicon; Whisper runs through Metal and remains available as a compatibility fallback.
 
@@ -27,8 +27,8 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 ## Features
 
 - Fully local dictation into any Mac app, with hold or hands-free shortcuts and a live listening display
-- **Transcripts**: recent text history, meeting recording with microphone and Mac audio, and audio-file imports
-- Editable transcripts with copy and export, source labels, speaker editing, and optional meeting-folder auto-export
+- **Transcripts**: bounded dictation/audio history, a separate meetings library, meeting capture with microphone and Mac audio, and audio-file imports
+- Editable meeting transcripts with an on-device Summary / Key points / Next steps brief, copy and export, speaker editing, and optional meeting-folder auto-export
 - **Words & Replacements**: explicit spelling replacements, approved legacy rules, optional context vocabulary, and voice snippets
 - **Guided start**: an orientation home explains setup, the menu-bar workflow, the shortcut, and the first dictation
 - **Settings**: microphone, shortcuts, speech style, local engines, privacy, updates, and troubleshooting
@@ -41,7 +41,7 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Di
 
 - Hold your configured shortcut in a text field, speak, and release to insert. **⌃⌥D** also toggles hands-free recording. Change the shortcut in **Settings → Dictation**.
 - Press **Esc** to cancel a recording. Use the menu-bar **Undo Last Dictation** or **Retry Last Dictation** actions for recovery.
-- Open **Transcripts → Recent** to review saved text; **Record** to capture microphone and Mac audio; or **Import Audio** to transcribe a file.
+- Open **Transcripts → History** for routine dictation and imported audio, **Meetings** for completed meetings, **Capture Meeting** to record microphone and Mac audio, or **Import Audio** to transcribe a file.
 - Open **Words & Replacements → Replacements** to enter an exact replacement. Existing dictionary entries and approved rules are shown together. Kiki does not monitor your edits or create a learning inbox.
 - **Vocabulary** imports names and terms only from sources you choose. **Snippets** insert saved text when a dictation exactly matches a trigger; templates support `{{date}}`, `{{time}}`, and `{{clipboard}}`.
 - Use **Start Private Session** in the menu bar to pause dictation history until you end the session or quit. Add private apps with the chooser in **Settings → Private Apps**.
@@ -50,7 +50,7 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Di
 
 ### Focused in 0.6.51
 
-Kiki opens to a concise Home guide so a new user knows how setup, the menu bar, the shortcut, dictation, meetings, and audio import fit together. Voice cloning, Pawprints usage tracking, background confidence comparisons, and passive correction learning are not part of the product. Models live in Settings; meeting capture and file import share Transcripts. Previously saved transcripts, dictionary entries, and approved rules are preserved; retired data files are not erased.
+Kiki opens to a concise Home guide so a new user knows how setup, the menu bar, the shortcut, dictation, meetings, and audio import fit together. Voice cloning, Pawprints usage tracking, background confidence comparisons, and passive correction learning are not part of the product. Models live in Settings; meeting history, meeting capture, and file import have distinct Transcripts pages. Routine dictation defaults to the most recent 250 entries, while intentional meeting and imported-audio transcripts stay until the user deletes them.
 
 ### Performance design
 

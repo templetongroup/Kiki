@@ -385,8 +385,9 @@ final class DictationController {
             segments: segments,
             actionItems: []
         )
+        var historyRecordID: UUID?
         capturePrivacy.persistHistoryIfAllowed {
-            TranscriptionHistoryStore.shared.add(
+            historyRecordID = TranscriptionHistoryStore.shared.add(
                 text: transcript.plainText,
                 duration: duration,
                 modelName: Settings.transcriptionModel.displayName,
@@ -394,7 +395,7 @@ final class DictationController {
                 context: title
             )
         }
-        return transcript
+        return transcript.linkingHistoryRecord(historyRecordID)
     }
 
     private func transcribeMeetingTrack(

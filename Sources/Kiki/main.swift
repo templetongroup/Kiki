@@ -24,6 +24,8 @@ if args.count >= 3, args[1] == "--render-product-screens" {
             let shell = GuidedWorkbenchWindowController()
             let file = FileTranscriptionWindowController()
             let meeting = MeetingWindowController()
+            let history = HistoryWindowController()
+            let meetingHistory = HistoryWindowController(scope: .meetings)
             func content(_ controller: NSWindowController) -> NSView {
                 let view = controller.window!.contentView!
                 controller.window!.contentView = NSView()
@@ -31,11 +33,18 @@ if args.count >= 3, args[1] == "--render-product-screens" {
             }
             let fileView = content(file)
             let meetingView = content(meeting)
+            let historyView = content(history)
+            let meetingHistoryView = content(meetingHistory)
             shell.onRouteChange = { route in
-                GuidedWorkbenchSurface(view: route.subpage == 1 ? meetingView : fileView, sizing: .fill)
+                switch route.subpage {
+                case 0: GuidedWorkbenchSurface(view: historyView, sizing: .fill)
+                case 1: GuidedWorkbenchSurface(view: meetingHistoryView, sizing: .fill)
+                case 2: GuidedWorkbenchSurface(view: meetingView, sizing: .fill)
+                default: GuidedWorkbenchSurface(view: fileView, sizing: .fill)
+                }
             }
             shell.updateDictationState(.idle)
-            for (name, page) in [("kiki-transcripts.png", 2), ("kiki-meeting.png", 1), ("kiki-file-transcription.png", 2)] {
+            for (name, page) in [("kiki-transcripts.png", 0), ("kiki-meetings-library.png", 1), ("kiki-meeting.png", 2), ("kiki-file-transcription.png", 3)] {
                 shell.select(GuidedWorkbenchRoute(section: .library, subpage: page))
                 shell.window?.setContentSize(NSSize(width: 1240, height: 840))
                 guard let view = shell.window?.contentView else { throw KikiError("Missing product view") }
@@ -203,6 +212,40 @@ if args.count >= 2, args[1] == "--self-test-features" {
             exit(1)
         }
     }
+}
+
+if args.count >= 2, args[1] == "--self-test-meeting-summary" {
+    let segments = [
+        MeetingTranscriptSegment(startTime: 0, endTime: 5, speaker: "Alex", text: "We agreed to launch on Friday."),
+        MeetingTranscriptSegment(startTime: 6, endTime: 12, speaker: "Jordan", text: "I will send the final artwork tomorrow."),
+        MeetingTranscriptSegment(startTime: 13, endTime: 18, speaker: "Alex", text: "Please schedule the review with the web team."),
+    ]
+    let meeting = MeetingTranscript(
+        title: "Summary Diagnostic",
+        createdAt: Date(),
+        duration: 18,
+        segments: segments,
+        actionItems: []
+    )
+    Task {
+        do {
+            let result = try await MeetingSummaryGenerator.generate(from: meeting)
+            guard result.markdown.contains("## Summary"),
+                  result.markdown.contains("## Key points"),
+                  result.markdown.contains("## Next steps") else {
+                throw KikiError("Meeting summary is missing required sections.")
+            }
+            if ProcessInfo.processInfo.environment["KIKI_DEBUG_SUMMARY"] == "1" {
+                print(result.markdown)
+            }
+            print("Kiki meeting summary diagnostic passed using \(result.methodDescription)")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
 }
 
 if args.count >= 2, args[1] == "--preview-waveform" {

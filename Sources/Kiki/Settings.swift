@@ -6,6 +6,24 @@ struct KikiError: LocalizedError {
     var errorDescription: String? { message }
 }
 
+enum DictationHistoryRetention: Int, CaseIterable {
+    case fifty = 50
+    case twoHundredFifty = 250
+    case oneThousand = 1_000
+    case unlimited = 0
+
+    var title: String {
+        switch self {
+        case .fifty: "Most recent 50"
+        case .twoHundredFifty: "Most recent 250"
+        case .oneThousand: "Most recent 1,000"
+        case .unlimited: "Until I delete them"
+        }
+    }
+
+    var maximumCount: Int? { self == .unlimited ? nil : rawValue }
+}
+
 enum Settings {
     /// Whisper language code ("en", "de", ...) or "auto" to detect per utterance.
     static var language: String {
@@ -108,6 +126,17 @@ enum Settings {
             return UserDefaults.standard.bool(forKey: key)
         }
         set { UserDefaults.standard.set(newValue, forKey: "saveTranscriptionHistory") }
+    }
+
+    static var dictationHistoryRetention: DictationHistoryRetention {
+        get {
+            let value = UserDefaults.standard.integer(forKey: "dictationHistoryRetention")
+            guard value != 0 || UserDefaults.standard.object(forKey: "dictationHistoryRetention") != nil else {
+                return .twoHundredFifty
+            }
+            return DictationHistoryRetention(rawValue: value) ?? .twoHundredFifty
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "dictationHistoryRetention") }
     }
 
 

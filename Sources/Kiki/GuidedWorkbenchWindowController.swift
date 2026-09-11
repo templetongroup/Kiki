@@ -14,7 +14,7 @@ enum GuidedWorkbenchSection: String, CaseIterable {
     var subtitle: String {
         switch self {
         case .home: "Setup and quick start"
-        case .library: "Recent, record, and import"
+        case .library: "History, meetings, and audio import"
         case .personalization: "Spellings and shortcuts"
         case .settings: "Input, privacy, and models"
         }
@@ -31,7 +31,7 @@ enum GuidedWorkbenchSection: String, CaseIterable {
     var subpages: [String] {
         switch self {
         case .home: ["Overview"]
-        case .library: ["Recent", "Record", "Import Audio"]
+        case .library: ["History", "Meetings", "Capture Meeting", "Import Audio"]
         case .personalization: ["Replacements", "Vocabulary", "Snippets"]
         case .settings: ["General", "Dictation", "Models", "Privacy", "Private Apps", "Troubleshoot", "Support", "About"]
         }
