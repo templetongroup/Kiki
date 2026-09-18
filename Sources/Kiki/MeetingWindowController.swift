@@ -141,7 +141,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         titleField.placeholderString = "Meeting title"
         titleField.setAccessibilityLabel("Meeting title")
         titleField.font = .systemFont(ofSize: 14, weight: .medium)
-        timerLabel.font = .monospacedDigitSystemFont(ofSize: 19, weight: .semibold)
+        timerLabel.font = KikiTypography.numeric(size: 19, weight: .semibold)
         timerLabel.textColor = KikiPalette.secondaryText
         statusLabel.textColor = KikiPalette.secondaryText
         statusLabel.font = .systemFont(ofSize: 12.5)

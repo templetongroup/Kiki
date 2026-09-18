@@ -168,12 +168,12 @@ final class GuidedWorkbenchHomeView: NSView {
     }
 
     private func setupStep(_ number: Int, title: String, detail: String) -> NSView {
-        let badge = NSView()
+        let badge = KikiThemeSurfaceView()
         badge.translatesAutoresizingMaskIntoConstraints = false
         let numeral = NSTextField(labelWithString: "\(number)")
         numeral.translatesAutoresizingMaskIntoConstraints = false
         numeral.alignment = .center
-        numeral.font = .monospacedDigitSystemFont(ofSize: 12, weight: .bold)
+        numeral.font = KikiTypography.numeric(size: 12, weight: .bold)
         numeral.textColor = KikiPalette.accentText
         badge.addSubview(numeral)
         NSLayoutConstraint.activate([
@@ -183,7 +183,7 @@ final class GuidedWorkbenchHomeView: NSView {
         badge.wantsLayer = true
         badge.layer?.cornerRadius = 13
         badge.layer?.borderWidth = 1
-        badge.layer?.borderColor = KikiPalette.accentText.withAlphaComponent(0.55).cgColor
+        badge.stroke = KikiPalette.accentText.withAlphaComponent(0.55)
         badge.widthAnchor.constraint(equalToConstant: 26).isActive = true
         badge.heightAnchor.constraint(equalToConstant: 26).isActive = true
         let titleLabel = kikiLabel(title, size: 13, weight: .semibold)
@@ -217,7 +217,7 @@ final class GuidedWorkbenchHomeView: NSView {
         let button = KikiActionButton(actionTitle, kind: .hardware, target: self, action: action)
         button.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.home.\(identifier)")
         button.widthAnchor.constraint(equalToConstant: 150).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        button.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight).isActive = true
         let heading = NSStackView(views: [icon, titleLabel])
         heading.orientation = .horizontal
         heading.alignment = .centerY

@@ -346,10 +346,10 @@ final class KikiCheckupWindowController: NSWindowController {
         practiceStack.spacing = 8
         let practiceCard = card(containing: practiceStack)
 
-        let refresh = KikiActionButton("Refresh Checks", kind: .hardware, target: self, action: #selector(refreshChecks))
+        let refresh = KikiActionButton("Refresh Checks", kind: .hardware, size: .compact, target: self, action: #selector(refreshChecks))
         refresh.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.footer.refresh")
         practiceButton.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        refresh.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        refresh.heightAnchor.constraint(equalToConstant: KikiMetrics.compactControlHeight).isActive = true
         refresh.widthAnchor.constraint(equalToConstant: 140).isActive = true
         let footer = NSStackView(views: [NSView(), refresh])
         footer.orientation = .horizontal
@@ -534,12 +534,12 @@ private final class KikiCheckupStatusRow: NSView {
         detail.spacing = 0
         let rows: [NSView] = [heading, detail, guidance]
         if let actionTitle, let action {
-            let button = KikiActionButton(actionTitle, kind: .hardware, target: target, action: action)
+            let button = KikiActionButton(actionTitle, kind: .hardware, size: .compact, target: target, action: action)
             if let actionIdentifier {
                 button.identifier = NSUserInterfaceItemIdentifier(actionIdentifier)
             }
             button.widthAnchor.constraint(equalToConstant: 128).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            button.heightAnchor.constraint(equalToConstant: KikiMetrics.compactControlHeight).isActive = true
             actionButton = button
             heading.addArrangedSubview(button)
         }

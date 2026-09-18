@@ -12,6 +12,81 @@ MainActor.assumeIsolated {
     ApplicationMenu.install()
 }
 
+// Deterministic native theme/layout captures without loading transcript history.
+// Appearance is overridden on NSApp only; the saved theme is never changed.
+if args.count >= 3, args[1] == "--render-theme-audit" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        app.finishLaunching()
+        let output = URL(fileURLWithPath: args[2], isDirectory: true)
+        let savedAppearance = app.appearance
+        defer { app.appearance = savedAppearance }
+        do {
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+            for mode in [AppAppearanceMode.light, .dark] {
+                app.appearance = mode.appearance
+                let shell = GuidedWorkbenchWindowController()
+                shell.window?.setFrameAutosaveName("")
+                let settings = SettingsWindowController()
+                let home = GuidedWorkbenchHomeView()
+                let about = GuidedWorkbenchAboutView()
+                let meeting = MeetingWindowController()
+                let file = FileTranscriptionWindowController()
+                let history = HistoryWindowController()
+                func detach(_ controller: NSWindowController) -> NSView {
+                    let view = controller.window!.contentView!
+                    controller.window!.contentView = NSView()
+                    return view
+                }
+                let meetingView = detach(meeting), fileView = detach(file), historyView = detach(history)
+                shell.onRouteChange = { route in
+                    switch route.section {
+                    case .home: return GuidedWorkbenchSurface(view: home, sizing: .top(NSSize(width: 920, height: 700)))
+                    case .library:
+                        if route.subpage == 2 { return GuidedWorkbenchSurface(view: meetingView, sizing: .scroll(NSSize(width: 900, height: 700))) }
+                        if route.subpage == 3 { return GuidedWorkbenchSurface(view: fileView, sizing: .top(NSSize(width: 760, height: 720))) }
+                        return GuidedWorkbenchSurface(view: historyView, sizing: .top(NSSize(width: 900, height: 620)))
+                    case .settings:
+                        if route.subpage == 7 { return GuidedWorkbenchSurface(view: about, sizing: .scroll(NSSize(width: 900, height: 830))) }
+                        return GuidedWorkbenchSurface(view: settings.workbenchPage(route.subpage), sizing: .fill)
+                    case .personalization: return nil
+                    }
+                }
+                let pages: [(String, GuidedWorkbenchRoute)] = [
+                    ("home", .init(section: .home)),
+                    ("general", .init(section: .settings)),
+                    ("dictation", .init(section: .settings, subpage: 1)),
+                    ("models", .init(section: .settings, subpage: 2)),
+                    ("privacy", .init(section: .settings, subpage: 3)),
+                    ("about", .init(section: .settings, subpage: 7)),
+                    ("history", .init(section: .library)),
+                    ("meeting", .init(section: .library, subpage: 2)),
+                    ("import", .init(section: .library, subpage: 3)),
+                ]
+                for (name, route) in pages {
+                    shell.select(route)
+                    for size in [NSSize(width: 900, height: 650), NSSize(width: 1240, height: 840), NSSize(width: 1440, height: 960)] {
+                        shell.window?.setContentSize(size)
+                        guard let view = shell.window?.contentView else { throw KikiError("Missing audit view") }
+                        view.layoutSubtreeIfNeeded()
+                        view.displayIfNeeded()
+                        guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw KikiError("Cannot render audit view") }
+                        view.cacheDisplay(in: view.bounds, to: bitmap)
+                        guard let data = bitmap.representation(using: .png, properties: [:]) else { throw KikiError("Cannot encode audit view") }
+                        try data.write(to: output.appendingPathComponent("\(mode.rawValue)-\(name)-\(Int(size.width)).png"))
+                    }
+                }
+            }
+            print("Rendered 54 native theme/size captures without transcript content.")
+            exit(0)
+        } catch {
+            fputs("Error: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+}
+
 if args.count >= 3, args[1] == "--render-product-screens" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared

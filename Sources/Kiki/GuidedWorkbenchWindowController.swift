@@ -65,7 +65,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
     var onCanClose: (() -> Bool)?
 
     private let contentHost = NSView()
-    private let tabRail = NSView()
+    private let tabRail = KikiThemeSurfaceView()
     private let sectionLabel = kikiLabel("WORKSPACE", size: 10, weight: .bold, color: KikiPalette.accentText)
     private let titleLabel = kikiLabel("Home", size: 15, weight: .semibold)
     private let readinessLabel = kikiLabel("● Ready", size: 11, weight: .semibold, color: KikiPalette.accentText)
@@ -93,7 +93,7 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
             defer: false
         )
         window.title = "Kiki"
-        window.appearance = Settings.appearanceMode.appearance
+        window.appearance = nil
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -297,12 +297,12 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
     private func makeMainArea() -> NSView {
         let main = NSView()
-        let contextBar = NSView()
+        let contextBar = KikiThemeSurfaceView()
         contextBar.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.context-bar")
         contextBar.wantsLayer = true
         contextBar.layer?.borderWidth = 1
-        contextBar.layer?.borderColor = KikiPalette.stroke.cgColor
-        contextBar.layer?.backgroundColor = KikiPalette.surface.cgColor
+        contextBar.stroke = KikiPalette.stroke
+        contextBar.fill = KikiPalette.surface
 
         let contextCopy = NSStackView(views: [sectionLabel, titleLabel])
         contextCopy.orientation = .horizontal
@@ -327,9 +327,9 @@ final class GuidedWorkbenchWindowController: NSWindowController, NSWindowDelegat
 
         tabRail.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.tab-rail")
         tabRail.wantsLayer = true
-        tabRail.layer?.backgroundColor = KikiPalette.sidebar.withAlphaComponent(0.56).cgColor
+        tabRail.fill = KikiPalette.sidebar.withAlphaComponent(0.56)
         tabRail.layer?.borderWidth = 1
-        tabRail.layer?.borderColor = KikiPalette.stroke.cgColor
+        tabRail.stroke = KikiPalette.stroke
         subnavigation.translatesAutoresizingMaskIntoConstraints = false
         tabRail.addSubview(subnavigation)
 
@@ -765,7 +765,7 @@ final class WorkbenchWindow: NSWindow {
 }
 
 @MainActor
-private final class WorkbenchNavigationButton: NSButton {
+private final class WorkbenchNavigationButton: KikiHoverButton {
     var isSelectedPage = false { didSet { updateStyle(animateSelection: oldValue != isSelectedPage) } }
     private var showsKeyboardFocus = false
     private let keyboardFocusLayer = CAShapeLayer()
@@ -853,8 +853,8 @@ private final class WorkbenchNavigationButton: NSButton {
         keyboardFocusLayer.frame = bounds
         keyboardFocusLayer.path = CGPath(
             roundedRect: bounds.insetBy(dx: 2.5, dy: 2.5),
-            cornerWidth: 5,
-            cornerHeight: 5,
+            cornerWidth: KikiMetrics.insetRadius(KikiMetrics.controlRadius, by: 2.5),
+            cornerHeight: KikiMetrics.insetRadius(KikiMetrics.controlRadius, by: 2.5),
             transform: nil
         )
         CATransaction.begin()
@@ -879,8 +879,12 @@ private final class WorkbenchNavigationButton: NSButton {
     }
 
     private func updateStyle(animateSelection: Bool = false) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = isSelectedPage ? KikiPalette.selectionSurface.cgColor : NSColor.clear.cgColor
+            layer?.backgroundColor = isSelectedPage || (isPointerInside && isEnabled)
+                ? KikiPalette.selectionSurface.cgColor : NSColor.clear.cgColor
             layer?.borderWidth = 0
             layer?.borderColor = NSColor.clear.cgColor
             let primary = isSelectedPage ? KikiPalette.primaryText : KikiPalette.secondaryText
@@ -894,6 +898,8 @@ private final class WorkbenchNavigationButton: NSButton {
             KikiMotion.setSelectionVisible(isSelectedPage, on: selectionIndicator, animated: animateSelection)
         }
     }
+
+    override func hoverStateDidChange() { updateStyle() }
 }
 
 @MainActor

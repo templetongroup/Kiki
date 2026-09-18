@@ -91,7 +91,8 @@ final class GuidedWorkbenchAboutView: NSView {
         let detail = kikiLabel("Private dictation, meeting intelligence, and local transcription for macOS.", size: 14, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 0
         let versionLabel = kikiLabel("Version \(version) · Build \(build) · Fully local", size: 12, weight: .semibold, color: KikiPalette.khaki)
-        let checkup = KikiActionButton("Troubleshoot Dictation", kind: .primary, target: self, action: #selector(runCheckup))
+        let checkup = KikiActionButton("Troubleshoot", kind: .primary, target: self, action: #selector(runCheckup))
+        checkup.setAccessibilityLabel("Troubleshoot Dictation")
         checkup.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.checkup")
         let checkUpdates = KikiActionButton("Check for Updates", kind: .secondary, target: self, action: #selector(checkUpdates))
         checkUpdates.identifier = NSUserInterfaceItemIdentifier("kiki.workbench.about.check-updates")

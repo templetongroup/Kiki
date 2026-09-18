@@ -17,6 +17,52 @@ enum KikiMetrics {
     static let navigationRowHeight: CGFloat = 40
     static let tableRowHeight: CGFloat = 36
     static let tableHorizontalInset: CGFloat = 10
+
+    /// Concentric corners: the inset edge follows the enclosing surface.
+    static func insetRadius(_ outer: CGFloat, by inset: CGFloat) -> CGFloat {
+        max(0, outer - inset)
+    }
+}
+
+enum KikiTypography {
+    static func numeric(size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        .monospacedDigitSystemFont(ofSize: size, weight: weight)
+    }
+}
+
+/// Frequent pointer feedback is immediate and never moves the hit target.
+@MainActor
+class KikiHoverButton: NSButton {
+    private var hoverTrackingArea: NSTrackingArea?
+    private(set) var isPointerInside = false
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let hoverTrackingArea { removeTrackingArea(hoverTrackingArea) }
+        let area = NSTrackingArea(rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self, userInfo: nil)
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isPointerInside = true
+        hoverStateDidChange()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isPointerInside = false
+        hoverStateDidChange()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        isPointerInside = false
+        hoverStateDidChange()
+    }
+
+    func hoverStateDidChange() {}
 }
 
 /// Shared motion tokens for Kiki's custom controls. Native AppKit menus and
@@ -82,26 +128,25 @@ enum KikiMotion {
 }
 
 enum KikiPalette {
-    private static func adaptive(dark: NSColor, light _: NSColor) -> NSColor {
-        // Kiki ships one Studio Hardware appearance. Returning the dark token
-        // directly also keeps layer-backed views from caching a light CGColor
-        // before they join the app's dark appearance hierarchy.
-        dark
+    private static func adaptive(dark: NSColor, light: NSColor) -> NSColor {
+        NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        }
     }
 
     // Beautiful UI uses a quiet, near-neutral dark ramp. Kiki keeps sage as its
     // brand signal while adopting the reference's clearer surface separation.
     static let canvas = adaptive(
         dark: NSColor(red: 0.100, green: 0.104, blue: 0.116, alpha: 1), // #1a1b1e
-        light: NSColor(red: 0.957, green: 0.945, blue: 0.918, alpha: 1) // #f4f1ea
+        light: NSColor(red: 0.955, green: 0.961, blue: 0.953, alpha: 1)
     )
     static let sidebar = adaptive(
         dark: NSColor(red: 0.082, green: 0.086, blue: 0.096, alpha: 1), // #151618
-        light: NSColor(red: 0.914, green: 0.898, blue: 0.859, alpha: 1) // #e9e5db
+        light: NSColor(red: 0.916, green: 0.929, blue: 0.910, alpha: 1)
     )
     static let surface = adaptive(
         dark: NSColor(red: 0.122, green: 0.127, blue: 0.141, alpha: 1), // #1f2024
-        light: NSColor(red: 0.925, green: 0.910, blue: 0.875, alpha: 1) // #ece8df
+        light: NSColor(red: 0.986, green: 0.988, blue: 0.980, alpha: 1)
     )
     static let cardTopTint = adaptive(
         dark: NSColor.white.withAlphaComponent(0.025),
@@ -117,11 +162,11 @@ enum KikiPalette {
     )
     static let elevatedSurface = adaptive(
         dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1), // #282a2e
-        light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
+        light: NSColor(red: 0.920, green: 0.935, blue: 0.910, alpha: 1)
     )
     static let stroke = adaptive(
         dark: NSColor(red: 0.190, green: 0.198, blue: 0.218, alpha: 1), // #303238
-        light: NSColor(red: 0.839, green: 0.816, blue: 0.761, alpha: 1) // #d6d0c2
+        light: NSColor(red: 0.800, green: 0.824, blue: 0.788, alpha: 1)
     )
     static let strongStroke = adaptive(
         dark: NSColor(red: 0.239, green: 0.249, blue: 0.274, alpha: 1),
@@ -129,15 +174,15 @@ enum KikiPalette {
     )
     static let primaryText = adaptive(
         dark: NSColor(red: 0.949, green: 0.953, blue: 0.961, alpha: 1), // #f2f3f5
-        light: NSColor(red: 0.204, green: 0.196, blue: 0.173, alpha: 1) // #34322c
+        light: NSColor(red: 0.145, green: 0.180, blue: 0.145, alpha: 1)
     )
     static let secondaryText = adaptive(
         dark: NSColor(red: 0.694, green: 0.710, blue: 0.741, alpha: 1), // #b1b5bd
-        light: NSColor(red: 0.420, green: 0.404, blue: 0.341, alpha: 1) // #6b6757
+        light: NSColor(red: 0.345, green: 0.388, blue: 0.337, alpha: 1)
     )
     static let tertiaryText = adaptive(
         dark: NSColor(red: 0.506, green: 0.525, blue: 0.561, alpha: 1), // #81868f
-        light: NSColor(red: 0.408, green: 0.384, blue: 0.325, alpha: 1) // #686253
+        light: NSColor(red: 0.376, green: 0.420, blue: 0.365, alpha: 1)
     )
     static let accent = adaptive(
         dark: NSColor(red: 0.322, green: 0.400, blue: 0.239, alpha: 1), // #52663d
@@ -153,7 +198,7 @@ enum KikiPalette {
     )
     static let selectionSurface = adaptive(
         dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1),
-        light: NSColor(red: 0.886, green: 0.867, blue: 0.820, alpha: 1) // #e2ddd1
+        light: NSColor(red: 0.850, green: 0.886, blue: 0.824, alpha: 1)
     )
     static let selectionTint = adaptive(
         dark: NSColor(red: 0.655, green: 0.753, blue: 0.502, alpha: 0.10),
@@ -161,13 +206,15 @@ enum KikiPalette {
     )
     static let khaki = adaptive(
         dark: NSColor(red: 0.671, green: 0.648, blue: 0.502, alpha: 1),
-        light: NSColor(red: 0.565, green: 0.545, blue: 0.420, alpha: 1)
+        light: NSColor(red: 0.400, green: 0.388, blue: 0.275, alpha: 1)
     )
-    static let hardwareControl = NSColor(red: 0.114, green: 0.118, blue: 0.129, alpha: 1)
-    static let hardwareControlText = NSColor(red: 0.949, green: 0.953, blue: 0.961, alpha: 1)
+    static let hardwareControl = adaptive(
+        dark: NSColor(red: 0.114, green: 0.118, blue: 0.129, alpha: 1),
+        light: NSColor(red: 0.970, green: 0.978, blue: 0.963, alpha: 1))
+    static let hardwareControlText = primaryText
     static let hardwareButtonSurface = adaptive(
         dark: NSColor(red: 0.157, green: 0.163, blue: 0.180, alpha: 1),
-        light: NSColor(red: 0.165, green: 0.184, blue: 0.216, alpha: 1)
+        light: NSColor(red: 0.920, green: 0.935, blue: 0.910, alpha: 1)
     )
     static let hardwareButtonBorder = adaptive(
         dark: NSColor(red: 0.239, green: 0.249, blue: 0.274, alpha: 1),
@@ -209,6 +256,34 @@ func confirmKikiDestructiveAction(message: String, detail: String, confirmTitle:
 @MainActor
 final class KikiFlippedView: NSView {
     override var isFlipped: Bool { true }
+}
+
+/// Retain semantic NSColors, not resolved CGColors, for layer-backed chrome.
+@MainActor
+final class KikiThemeSurfaceView: NSView {
+    var fill: NSColor = .clear { didSet { refreshColors() } }
+    var stroke: NSColor = .clear { didSet { refreshColors() } }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshColors()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshColors()
+    }
+
+    private func refreshColors() {
+        wantsLayer = true
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            layer?.backgroundColor = fill.cgColor
+            layer?.borderColor = stroke.cgColor
+            CATransaction.commit()
+        }
+    }
 }
 
 @MainActor
@@ -411,7 +486,7 @@ class KikiCardView: NSView {
 }
 
 @MainActor
-final class KikiNavButton: NSButton {
+final class KikiNavButton: KikiHoverButton {
     var isSelectedPage = false { didSet { updateStyle(animateSelection: oldValue != isSelectedPage) } }
     private var showsKeyboardFocus = false
     private let selectionIndicator = CALayer()
@@ -518,8 +593,11 @@ final class KikiNavButton: NSButton {
     }
 
     private func updateStyle(animateSelection: Bool = false) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = isSelectedPage
+            layer?.backgroundColor = isSelectedPage || (isPointerInside && isEnabled)
                 ? KikiPalette.selectionSurface.cgColor
                 : NSColor.clear.cgColor
             let keyboardFocused = showsKeyboardFocus && window?.firstResponder === self
@@ -536,6 +614,8 @@ final class KikiNavButton: NSButton {
             KikiMotion.setSelectionVisible(isSelectedPage, on: selectionIndicator, animated: animateSelection)
         }
     }
+
+    override func hoverStateDidChange() { updateStyle() }
 }
 
 @MainActor
@@ -585,14 +665,17 @@ final class KikiCircularPortraitView: NSView {
 }
 
 @MainActor
-final class KikiActionButton: NSButton {
+final class KikiActionButton: KikiHoverButton {
     enum Kind { case primary, secondary, hardware, quiet, danger }
+    enum Size { case regular, compact }
     private let kind: Kind
+    private let controlSizeRole: Size
     private let keyboardFocusLayer = CAShapeLayer()
     private var showsKeyboardFocus = false
 
-    init(_ title: String, kind: Kind = .secondary, target: AnyObject?, action: Selector?) {
+    init(_ title: String, kind: Kind = .secondary, size: Size = .regular, target: AnyObject?, action: Selector?) {
         self.kind = kind
+        self.controlSizeRole = size
         super.init(frame: .zero)
         self.title = title
         self.target = target
@@ -600,7 +683,7 @@ final class KikiActionButton: NSButton {
         setButtonType(.momentaryPushIn)
         isBordered = false
         focusRingType = .none
-        font = .systemFont(ofSize: kind == .hardware ? 12 : 12.5, weight: kind == .hardware ? .medium : .semibold)
+        font = .systemFont(ofSize: 12.5, weight: .semibold)
         lineBreakMode = .byTruncatingTail
         cell?.wraps = false
         setContentCompressionResistancePriority(.required, for: .vertical)
@@ -614,7 +697,7 @@ final class KikiActionButton: NSButton {
         keyboardFocusLayer.name = "kiki.button.keyboard-focus"
         layer?.addSublayer(keyboardFocusLayer)
         alignment = .center
-        heightAnchor.constraint(greaterThanOrEqualToConstant: kind == .hardware ? KikiMetrics.compactControlHeight : KikiMetrics.primaryControlHeight).isActive = true
+        heightAnchor.constraint(greaterThanOrEqualToConstant: size == .compact ? KikiMetrics.compactControlHeight : KikiMetrics.primaryControlHeight).isActive = true
         updateStyle()
     }
 
@@ -631,7 +714,7 @@ final class KikiActionButton: NSButton {
 
     override var intrinsicContentSize: NSSize {
         let base = super.intrinsicContentSize
-        if kind == .hardware {
+        if controlSizeRole == .compact {
             return NSSize(width: ceil(base.width) + 24, height: max(KikiMetrics.compactControlHeight, ceil(base.height) + 12))
         }
         return NSSize(width: ceil(base.width) + 32, height: max(KikiMetrics.primaryControlHeight, ceil(base.height) + 16))
@@ -660,8 +743,8 @@ final class KikiActionButton: NSButton {
         keyboardFocusLayer.frame = bounds
         keyboardFocusLayer.path = CGPath(
             roundedRect: bounds.insetBy(dx: 2.5, dy: 2.5),
-            cornerWidth: 4,
-            cornerHeight: 4,
+            cornerWidth: KikiMetrics.insetRadius(KikiMetrics.controlRadius, by: 2.5),
+            cornerHeight: KikiMetrics.insetRadius(KikiMetrics.controlRadius, by: 2.5),
             transform: nil
         )
         updateKeyboardFocus()
@@ -685,6 +768,9 @@ final class KikiActionButton: NSButton {
     }
 
     private func updateStyle() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
         effectiveAppearance.performAsCurrentDrawingAppearance {
             if !isEnabled {
                 alphaValue = 1
@@ -734,8 +820,14 @@ final class KikiActionButton: NSButton {
                 layer?.borderColor = NSColor.systemRed.withAlphaComponent(0.68).cgColor
                 applyTitleColor(NSColor.systemRed.blended(withFraction: 0.18, of: KikiPalette.primaryText) ?? .systemRed)
             }
+            if isPointerInside, let color = layer?.backgroundColor {
+                layer?.backgroundColor = NSColor(cgColor: color)?
+                    .blended(withFraction: 0.08, of: KikiPalette.primaryText)?.cgColor
+            }
         }
     }
+
+    override func hoverStateDidChange() { updateStyle() }
 
     private func applyTitleColor(_ color: NSColor) {
         contentTintColor = color
@@ -1123,6 +1215,8 @@ final class KikiDataSurfaceView: KikiCardView {
         scrollView.documentView = table
         scrollView.hasVerticalScroller = true
         scrollView.fillsBackground = false
+        scrollView.layer?.cornerRadius = KikiMetrics.insetRadius(cardCornerRadius, by: 1)
+        scrollView.layer?.masksToBounds = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         emptyState.translatesAutoresizingMaskIntoConstraints = false
         addSubview(scrollView)
@@ -1215,14 +1309,15 @@ final class KikiGuidedStepView: KikiCardView {
     init(number: Int, title: String, detail: String, trailing: NSView? = nil) {
         super.init(frame: .zero)
 
-        let numberBadge = NSView()
+        let numberBadge = KikiThemeSurfaceView()
         numberBadge.identifier = NSUserInterfaceItemIdentifier("kiki.guided-step.badge")
         numberBadge.wantsLayer = true
         numberBadge.layer?.cornerRadius = 15
         numberBadge.layer?.borderWidth = 1
-        numberBadge.layer?.borderColor = KikiPalette.strongStroke.cgColor
+        numberBadge.stroke = KikiPalette.strongStroke
 
         let numberLabel = kikiLabel("\(number)", size: 12, weight: .semibold, color: KikiPalette.accentText)
+        numberLabel.font = KikiTypography.numeric(size: 12, weight: .semibold)
         numberLabel.identifier = NSUserInterfaceItemIdentifier("kiki.guided-step.number")
         numberLabel.alignment = .center
         numberLabel.translatesAutoresizingMaskIntoConstraints = false

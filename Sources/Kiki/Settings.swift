@@ -96,7 +96,7 @@ enum Settings {
             }
             return AppAppearanceMode(rawValue: raw) ?? .dark
         }
-        set { UserDefaults.standard.set(AppAppearanceMode.dark.rawValue, forKey: "appearanceMode") }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "appearanceMode") }
     }
 
     static var accentColor: KikiAccentColor {

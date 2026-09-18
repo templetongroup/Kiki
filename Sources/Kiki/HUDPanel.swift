@@ -9,7 +9,7 @@ final class HUDPanel {
     static let voiceOrbUsesClearSurface = true
 
     private let panel: NSPanel
-    private let effect: NSView
+    private let effect: KikiThemeSurfaceView
     private let logoView: NSImageView
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
@@ -40,7 +40,7 @@ final class HUDPanel {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.setAccessibilityTitle("Kiki Live Transcription")
 
-        effect = NSView()
+        effect = KikiThemeSurfaceView()
         effect.wantsLayer = true
         effect.layer?.cornerRadius = 9
         effect.layer?.cornerCurve = .continuous
@@ -333,17 +333,17 @@ final class HUDPanel {
     }
 
     private func applyAppearance() {
-        panel.appearance = Settings.appearanceMode.appearance
+        panel.appearance = nil
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
             let usesClearSurface = presentation == .waveform && Self.voiceOrbUsesClearSurface
             panel.hasShadow = !usesClearSurface
-            effect.layer?.backgroundColor = usesClearSurface
-                ? NSColor.clear.cgColor
-                : KikiPalette.elevatedSurface.withAlphaComponent(0.98).cgColor
+            effect.fill = usesClearSurface
+                ? NSColor.clear
+                : KikiPalette.elevatedSurface.withAlphaComponent(0.98)
             effect.layer?.borderWidth = usesClearSurface ? 0 : 1
-            effect.layer?.borderColor = usesClearSurface
-                ? NSColor.clear.cgColor
-                : KikiPalette.strongStroke.cgColor
+            effect.stroke = usesClearSurface
+                ? NSColor.clear
+                : KikiPalette.strongStroke
             effect.layer?.shadowColor = NSColor.black.cgColor
             effect.layer?.shadowOpacity = usesClearSurface ? 0 : 0.18
             effect.layer?.shadowRadius = 16

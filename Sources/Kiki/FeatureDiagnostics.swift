@@ -5,7 +5,8 @@ import ObjectiveC.runtime
 @MainActor
 enum FeatureDiagnostics {
     static func run() throws {
-        try checkDarkOnlyAppearance()
+        try checkAppearanceModes()
+        try checkCraftControls()
         try checkCorrectionMemory()
         try checkVoiceSnippets()
         try checkContextVocabulary()
@@ -59,13 +60,63 @@ enum FeatureDiagnostics {
         return sqrt(samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count))
     }
 
-    private static func checkDarkOnlyAppearance() throws {
-        AppearanceController.apply()
-        guard Settings.appearanceMode == .dark,
-              AppAppearanceMode.allCases == [.dark],
-              NSApp.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua else {
-            throw failure("dark-only application appearance")
+    private static func checkAppearanceModes() throws {
+        let saved = UserDefaults.standard.object(forKey: "appearanceMode")
+        defer {
+            if let saved { UserDefaults.standard.set(saved, forKey: "appearanceMode") }
+            else { UserDefaults.standard.removeObject(forKey: "appearanceMode") }
+            AppearanceController.apply()
         }
+        for mode in AppAppearanceMode.allCases {
+            Settings.appearanceMode = mode
+            AppearanceController.apply()
+            guard Settings.appearanceMode == mode else { throw failure("appearance preference persistence") }
+            if mode == .system {
+                guard NSApp.appearance == nil else { throw failure("system appearance must inherit macOS") }
+            } else {
+                guard NSApp.appearance?.name == mode.appearance?.name else { throw failure("explicit appearance") }
+            }
+        }
+        for name in [NSAppearance.Name.aqua, .darkAqua] {
+            var contrastFailure = false
+            NSAppearance(named: name)!.performAsCurrentDrawingAppearance {
+                func luminance(_ color: NSColor) -> CGFloat {
+                    let rgb = color.usingColorSpace(.sRGB)!
+                    func linear(_ v: CGFloat) -> CGFloat { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+                    return 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+                }
+                for (ink, paper) in [
+                    (KikiPalette.primaryText, KikiPalette.canvas),
+                    (KikiPalette.secondaryText, KikiPalette.surface),
+                    (KikiPalette.tertiaryText, KikiPalette.sidebar),
+                    (KikiPalette.hardwareControlText, KikiPalette.hardwareButtonSurface),
+                    (KikiPalette.onAccentText, KikiPalette.accent),
+                ] {
+                    let a = luminance(ink), b = luminance(paper)
+                    if (max(a, b) + 0.05) / (min(a, b) + 0.05) < 4.5 { contrastFailure = true }
+                }
+            }
+            guard !contrastFailure else { throw failure("text contrast in \(name.rawValue)") }
+        }
+    }
+
+    private static func checkCraftControls() throws {
+        let kinds: [KikiActionButton.Kind] = [.primary, .secondary, .hardware, .quiet, .danger]
+        let buttons = kinds.map { KikiActionButton("Review transcript", kind: $0, target: nil, action: nil) }
+        let expected = buttons[0].intrinsicContentSize
+        for button in buttons {
+            guard button.intrinsicContentSize == expected, button.font == buttons[0].font else {
+                throw failure("action emphasis must not change control geometry")
+            }
+            button.isEnabled = false
+            guard button.intrinsicContentSize == expected else { throw failure("disabled button geometry") }
+        }
+        guard KikiMetrics.insetRadius(12, by: 4) == 8,
+              KikiMetrics.insetRadius(4, by: 8) == 0 else { throw failure("concentric corner geometry") }
+        let font = KikiTypography.numeric(size: 13)
+        let narrow = ("11:11:11" as NSString).size(withAttributes: [.font: font]).width
+        let wide = ("08:58:08" as NSString).size(withAttributes: [.font: font]).width
+        guard abs(narrow - wide) < 0.1 else { throw failure("numeric labels must not shift width") }
     }
 
     private static func checkGuidedWorkbench() throws {
@@ -894,7 +945,7 @@ enum FeatureDiagnostics {
                   identifier: "kiki.checkup.footer.refresh"
               ) as? KikiActionButton,
               abs(refreshButton.frame.width - 140) <= 1,
-              abs(refreshButton.frame.height - 36) <= 1,
+              abs(refreshButton.frame.height - KikiMetrics.compactControlHeight) <= 1,
               let practiceButton = findView(in: checkupContent, identifier: "kiki.checkup.practice"),
               practiceButton.frame.width > refreshButton.frame.width,
               abs(practiceButton.frame.height - 40) <= 1 else {
@@ -1081,7 +1132,7 @@ enum FeatureDiagnostics {
               !activeLabel.isHidden,
               abs(analogMeter.bounds.width - 100) < 1,
               abs(analogMeter.bounds.height - 34) < 1,
-              abs(modelAction.bounds.width - 65) < 1,
+              abs(modelAction.bounds.width - 144) < 1,
               !modelAction.isEnabled,
               modelAction.contentTintColor?.isEqual(
                   KikiPalette.hardwareControlText.withAlphaComponent(0.88)
@@ -1092,11 +1143,21 @@ enum FeatureDiagnostics {
             throw failure("Models must preserve the approved compact Studio Hardware layout")
         }
 
+        for model in TranscriptionModelID.allCases {
+            if let card = findView(in: settingsContent, identifier: "kiki.model.card.\(model.rawValue)"),
+               let action = findView(in: card, identifier: "kiki.model.action") as? KikiActionButton {
+                guard abs(action.bounds.width - 144) < 1,
+                      action.bounds.width >= action.intrinsicContentSize.width else {
+                    throw failure("Model actions must have equal widths and preserve label padding")
+                }
+            }
+        }
+
         let hardwareCard = KikiCardView()
         hardwareCard.frame = NSRect(x: 0, y: 0, width: 240, height: 100)
         hardwareCard.layoutSubtreeIfNeeded()
         let depthLayerNames = Set((hardwareCard.layer?.sublayers ?? []).compactMap(\.name))
-        let hardwareButton = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
+        let hardwareButton = KikiActionButton("Use Model", kind: .hardware, size: .compact, target: nil, action: nil)
         let disabledHardwareButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: nil, action: nil)
         disabledHardwareButton.isEnabled = false
         guard depthLayerNames.isSuperset(of: [
@@ -1106,7 +1167,7 @@ enum FeatureDiagnostics {
               !depthLayerNames.contains("kiki.card.radial-depth"),
               !depthLayerNames.contains("kiki.card.texture"),
               hardwareButton.intrinsicContentSize.height < 40,
-              abs((hardwareButton.font?.pointSize ?? 0) - 12) < 0.1,
+              abs((hardwareButton.font?.pointSize ?? 0) - 12.5) < 0.1,
               hardwareButton.layer?.borderWidth == 1,
               hardwareButton.contentTintColor?.isEqual(KikiPalette.hardwareControlText) == true,
               disabledHardwareButton.contentTintColor?.isEqual(

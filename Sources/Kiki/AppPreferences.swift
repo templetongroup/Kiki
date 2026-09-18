@@ -2,14 +2,22 @@ import AppKit
 import ServiceManagement
 
 enum AppAppearanceMode: String, CaseIterable {
-    case dark
+    case dark, light, system
 
     var title: String {
-        "Dark"
+        switch self {
+        case .dark: "Dark"
+        case .light: "Light"
+        case .system: "Follow System"
+        }
     }
 
     var appearance: NSAppearance? {
-        NSAppearance(named: .darkAqua)
+        switch self {
+        case .dark: NSAppearance(named: .darkAqua)
+        case .light: NSAppearance(named: .aqua)
+        case .system: nil
+        }
     }
 }
 
@@ -52,8 +60,12 @@ enum DictationSoundStyle: String, CaseIterable {
 @MainActor
 enum AppearanceController {
     static func apply() {
-        Settings.appearanceMode = .dark
-        NSApp.appearance = NSAppearance(named: .darkAqua)
+        NSApp.appearance = Settings.appearanceMode.appearance
+        // Windows inherit the app; nil also lets Follow System update live.
+        for window in NSApp.windows {
+            window.appearance = nil
+            window.contentView?.needsDisplay = true
+        }
     }
 }
 

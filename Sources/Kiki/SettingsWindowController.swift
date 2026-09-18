@@ -13,6 +13,7 @@ final class SettingsWindowController: NSWindowController {
     private let modePopup = NSPopUpButton()
     private let speechProfilePopup = NSPopUpButton()
     private let soundPopup = NSPopUpButton()
+    private let appearancePopup = NSPopUpButton()
     private let microphonePopup = NSPopUpButton()
     private let listeningPositionPopup = NSPopUpButton()
     private let listeningDisplayControl = NSSegmentedControl(
@@ -68,7 +69,7 @@ final class SettingsWindowController: NSWindowController {
             defer: false
         )
         window.title = "Kiki Settings"
-        window.appearance = NSAppearance(named: .darkAqua)
+        window.appearance = nil
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = false
@@ -208,9 +209,9 @@ final class SettingsWindowController: NSWindowController {
             $0.widthAnchor.constraint(equalTo: navigation.widthAnchor).isActive = true
         }
 
-        let localDot = NSView()
+        let localDot = KikiThemeSurfaceView()
         localDot.wantsLayer = true
-        localDot.layer?.backgroundColor = KikiPalette.success.cgColor
+        localDot.fill = KikiPalette.success
         localDot.layer?.cornerRadius = 4
         let localLabel = kikiLabel("100% local", size: 11.5, weight: .medium, color: KikiPalette.secondaryText)
         let localRow = NSStackView(views: [localDot, localLabel])
@@ -317,6 +318,15 @@ final class SettingsWindowController: NSWindowController {
         dictationRetentionPopup.setAccessibilityLabel("Dictation history retention")
 
         soundPopup.addItems(withTitles: DictationSoundStyle.allCases.map(\.title))
+        appearancePopup.addItems(withTitles: AppAppearanceMode.allCases.map(\.title))
+        appearancePopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.appearance")
+        appearancePopup.setAccessibilityLabel("Appearance")
+        appearancePopup.toolTip = "Choose Light, Dark, or follow your Mac’s appearance."
+        appearancePopup.target = self
+        appearancePopup.action = #selector(appearanceChanged)
+        appearancePopup.controlSize = .large
+        appearancePopup.font = .systemFont(ofSize: 12.5, weight: .medium)
+        appearancePopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
         soundPopup.identifier = NSUserInterfaceItemIdentifier("kiki.sound-style")
         soundPopup.target = self
         soundPopup.action = #selector(soundChanged)
@@ -366,6 +376,12 @@ final class SettingsWindowController: NSWindowController {
             placesControlsAtTrailingEdge: false
         )
         return page(with: [
+            SettingsCard(
+                title: "Appearance",
+                subtitle: "Choose a light or dark workspace, or match your Mac automatically.",
+                views: [labeledRow("Theme", controls: [appearancePopup],
+                    identifier: "kiki.settings.appearance-row", placesControlsAtTrailingEdge: false)]
+            ),
             SettingsCard(
                 title: "Startup & Updates",
                 subtitle: "Keep Kiki ready and securely up to date.",
@@ -582,6 +598,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func refresh() {
         shortcutButton.title = Settings.dictationShortcut.displayString
+        appearancePopup.selectItem(at: AppAppearanceMode.allCases.firstIndex(of: Settings.appearanceMode) ?? 0)
         messageLabel.stringValue = Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut)
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled ? .on : .off
         let automaticallyChecksForUpdates = UserDefaults.standard.object(forKey: "SUEnableAutomaticChecks") == nil
@@ -706,6 +723,11 @@ final class SettingsWindowController: NSWindowController {
     }
 
     @objc private func resetShortcut() { save(.rightOption) }
+    @objc private func appearanceChanged() {
+        guard AppAppearanceMode.allCases.indices.contains(appearancePopup.indexOfSelectedItem) else { return }
+        Settings.appearanceMode = AppAppearanceMode.allCases[appearancePopup.indexOfSelectedItem]
+        AppearanceController.apply()
+    }
     @objc private func modeChanged() {
         Settings.activationMode = ActivationMode.allCases[modePopup.indexOfSelectedItem]
         refresh()
@@ -838,7 +860,7 @@ private final class ModelCardView: KikiCardView {
             : model.detail
         let detail = kikiLabel(detailText, size: 11, color: KikiPalette.secondaryText)
         detail.maximumNumberOfLines = 2
-        statusLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        statusLabel.font = KikiTypography.numeric(size: 11)
         downloadProgress.style = .bar
         downloadProgress.isIndeterminate = false
         downloadProgress.minValue = 0
@@ -866,11 +888,11 @@ private final class ModelCardView: KikiCardView {
         let bay = NSView()
         bay.translatesAutoresizingMaskIntoConstraints = false
         bay.identifier = NSUserInterfaceItemIdentifier("kiki.model.control-bay")
-        let divider = NSView()
+        let divider = KikiThemeSurfaceView()
         divider.wantsLayer = true
         divider.translatesAutoresizingMaskIntoConstraints = false
         divider.identifier = NSUserInterfaceItemIdentifier("kiki.model.divider")
-        divider.layer?.backgroundColor = KikiPalette.stroke.cgColor
+        divider.fill = KikiPalette.stroke
 
         let controlStack = NSStackView(views: [dial, activeLabel])
         controlStack.orientation = .vertical
@@ -913,13 +935,9 @@ private final class ModelCardView: KikiCardView {
             downloadProgress.widthAnchor.constraint(equalTo: labels.widthAnchor),
             downloadProgress.heightAnchor.constraint(equalToConstant: 6),
         ])
-        let targetButtonWidth: CGFloat
-        switch model {
-        case .parakeetEnglish: targetButtonWidth = 65
-        case .parakeetMultilingual: targetButtonWidth = 78
-        default: targetButtonWidth = 101
-        }
-        button.widthAnchor.constraint(equalToConstant: targetButtonWidth).isActive = true
+        // Reserve equal space for the longest action, including its padding.
+        // Status changes must not resize the model rows or crowd their labels.
+        button.widthAnchor.constraint(equalToConstant: 144).isActive = true
         refresh()
     }
 

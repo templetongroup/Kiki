@@ -10,6 +10,8 @@ A personal voice-intelligence menu bar app for macOS — dictate anywhere, captu
 
 Built with Swift/AppKit, [FluidAudio](https://github.com/FluidInference/FluidAudio), and [whisper.cpp](https://github.com/ggml-org/whisper.cpp). Parakeet runs through Core ML on Apple Silicon; Whisper runs through Metal and remains available as a compatibility fallback.
 
+Choose **Light**, **Dark**, or **Follow System** in **Settings → General → Appearance**. The theme changes immediately and is remembered across launches; Dark remains the default.
+
 ## Local models
 
 Choose and download a model from **Settings → Models**. All inference stays on your Mac.

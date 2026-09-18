@@ -114,9 +114,9 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
 
         let dateColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("date"))
         dateColumn.title = "Date"
-        dateColumn.width = 132
-        dateColumn.minWidth = 116
-        dateColumn.maxWidth = 170
+        dateColumn.width = 170
+        dateColumn.minWidth = 170
+        dateColumn.maxWidth = 210
         let contextColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("context"))
         contextColumn.title = scope == .meetings ? "Meeting" : "App / Source"
         contextColumn.width = 128
@@ -344,7 +344,9 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         }
         return kikiTableCell(
             text,
-            font: .systemFont(ofSize: 13, weight: tableColumn?.identifier.rawValue == "context" ? .medium : .regular)
+            font: tableColumn?.identifier.rawValue == "date"
+                ? KikiTypography.numeric(size: 13)
+                : .systemFont(ofSize: 13, weight: tableColumn?.identifier.rawValue == "context" ? .medium : .regular)
         )
     }
 }

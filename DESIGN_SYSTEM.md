@@ -30,6 +30,8 @@ Use the 4, 8, 12, 16, 24, 32 point scale. Intra-group spacing must be smaller th
 
 - Primary controls: 40 pt high, 8 pt radius.
 - Compact controls: 34 pt high, 8 pt radius.
+- Size is independent of emphasis: primary and neutral peers use the same font, padding, and height. Compact sizing is an explicit choice for dense utility rows.
+- Inset corners follow the parent: inner radius = max(0, outer radius minus inset), including focus rings and data surfaces.
 - Navigation rows: 40 pt single-line; 48 pt only when a subtitle materially improves comprehension.
 - Table rows: 36 pt with content vertically centered.
 - Cards/data surfaces: 10 pt radius, one hairline border, no stacked borders.
@@ -37,7 +39,9 @@ Use the 4, 8, 12, 16, 24, 32 point scale. Intra-group spacing must be smaller th
 
 ### Surfaces and color
 
-- Use one near-neutral dark ramp for canvas, sidebar, surface, elevated surface, border, and divider.
+- Support Dark (the existing default), Light, and Follow System in Settings > General > Appearance.
+- Dark uses the existing near-neutral ramp; Light uses pale sage-neutral surfaces with dark green-gray text. Preserve sage action emphasis in both.
+- Store semantic NSColors on controls. Layer-backed chrome must resolve colors again when its effective appearance changes; do not freeze CGColors at construction time.
 - Sage is reserved for focus, readiness, selected indicators, and primary action emphasis.
 - Danger uses system red only for destructive actions.
 - Prefer spacing and a single hairline over gradients, inner strokes, and decorative shadows.
@@ -63,6 +67,13 @@ Use the 4, 8, 12, 16, 24, 32 point scale. Intra-group spacing must be smaller th
 - Current location uses a quiet elevated surface, not a large block of accent color.
 - Icons share one SF Symbols family and optical size.
 - Keyboard focus is visible independently of selection.
+- Hover feedback is immediate and does not shift hit targets. Preserve native menu and tooltip behavior.
+
+### Numbers and optical alignment
+
+- Use `KikiTypography.numeric` for changing counters, timestamps, model progress, and numbered badges. Body text remains proportional.
+- Align labels and SF Symbols by their rendered optical weight. Do not introduce arbitrary global icon offsets.
+- Craft references: [optical alignment](https://craft.gustavofior.com/optical-alignment), [tabular numbers](https://craft.gustavofior.com/tabular-numbers), [nested radii](https://craft.gustavofior.com/nested-border-radius), and [hover restraint](https://craft.gustavofior.com/hover-restraint). Adapt the published principles to AppKit; unpublished placeholder articles are not specifications.
 
 ### Cards and panels
 
@@ -85,4 +96,3 @@ Before shipping any interface change:
 3. Verify table-cell vertical centering, peer-button geometry, shared edges, card nesting, and scroll ownership.
 4. Traverse with keyboard and inspect the Accessibility tree.
 5. Recheck the installed updater-delivered app; source and preview screenshots are not release proof.
-
