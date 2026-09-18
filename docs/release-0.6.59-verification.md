@@ -11,4 +11,10 @@ Extends the [0.6.58 verification](release-0.6.58-verification.md) with a fix for
 - Installed executable SHA-256 matches the signed build: `332dbc009cbec2c117b9d0a7235dd4fc470d44f26ef288ae2702345daaed11b4`.
 - Dark remains the saved/default preference after testing. The appearance-only scope and manual coverage limits in the previous report still apply.
 
-Final public artifact, updater, landing-page, and Git verification are tracked in Linear TG-479.
+## Public release checks
+
+- Public ZIP downloaded without authentication and matched the SHA-256 above; Sparkle's EdDSA verification succeeded against the public feed signature.
+- GitHub latest release is 0.6.59, not a draft. Public appcast advertises build 92; full archive and all referenced delta assets are uploaded.
+- Landing page publication succeeded (Sites version 29); live HTML shows 0.6.59 and the matching download URL.
+- After the hosting cache refreshed, the installed app's **Check for Updates** reported: “Kiki 0.6.59 is currently the newest version available.”
+- Git and Linear TG-479 are synchronized. Existing unrelated untracked research/upload files were left untouched.
