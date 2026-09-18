@@ -18,8 +18,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private lazy var summaryButton = KikiActionButton("Create Summary", kind: .primary, target: self, action: #selector(createSummary))
     private lazy var exportButton = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
     private lazy var copyButton = KikiActionButton("Copy", kind: .hardware, target: self, action: #selector(copyTranscript))
-    private let saveAudioCheckbox = NSButton(checkboxWithTitle: "Keep local WAV files for this meeting", target: nil, action: nil)
-    private let autoExportCheckbox = NSButton(checkboxWithTitle: "Automatically save a Markdown transcript to a folder", target: nil, action: nil)
+    private let saveAudioCheckbox = KikiCheckbox("Keep local WAV files for this meeting", target: nil, action: nil)
+    private let autoExportCheckbox = KikiCheckbox("Automatically save a Markdown transcript to a folder", target: nil, action: nil)
     private lazy var chooseAutoExportFolderButton = KikiActionButton("Choose Folder…", kind: .hardware, target: self, action: #selector(chooseAutoExportFolder))
     private let autoExportFolderLabel = kikiLabel("No folder selected", size: 12, color: KikiPalette.secondaryText)
     private let transcriptEmptyState = KikiEmptyStateView(

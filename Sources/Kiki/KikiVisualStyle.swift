@@ -30,6 +30,46 @@ enum KikiTypography {
     }
 }
 
+/// Keep the native checkbox and its accessibility behavior, but explicitly
+/// refresh label ink when the app overrides the system appearance.
+@MainActor
+final class KikiCheckbox: NSButton {
+    init(_ title: String, target: AnyObject?, action: Selector?) {
+        super.init(frame: .zero)
+        setButtonType(.switch)
+        self.title = title
+        self.target = target
+        self.action = action
+        font = .systemFont(ofSize: 13)
+        refreshLabel()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var isEnabled: Bool { didSet { refreshLabel() } }
+    override var font: NSFont? { didSet { refreshLabel() } }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshLabel()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        refreshLabel()
+    }
+
+    private func refreshLabel() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            contentTintColor = KikiPalette.accentText
+            attributedTitle = NSAttributedString(string: title, attributes: [
+                .font: font ?? NSFont.systemFont(ofSize: 13),
+                .foregroundColor: isEnabled ? KikiPalette.primaryText : KikiPalette.secondaryText,
+            ])
+        }
+    }
+}
+
 /// Frequent pointer feedback is immediate and never moves the hit target.
 @MainActor
 class KikiHoverButton: NSButton {

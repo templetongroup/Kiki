@@ -80,6 +80,10 @@ enum FeatureDiagnostics {
         for name in [NSAppearance.Name.aqua, .darkAqua] {
             var contrastFailure = false
             NSAppearance(named: name)!.performAsCurrentDrawingAppearance {
+                let checkbox = KikiCheckbox("Automatically check for signed updates", target: nil, action: nil)
+                checkbox.appearance = NSAppearance(named: name)
+                let checkboxInk = checkbox.attributedTitle.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+                if checkboxInk != KikiPalette.primaryText { contrastFailure = true }
                 func luminance(_ color: NSColor) -> CGFloat {
                     let rgb = color.usingColorSpace(.sRGB)!
                     func linear(_ v: CGFloat) -> CGFloat { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
@@ -91,6 +95,7 @@ enum FeatureDiagnostics {
                     (KikiPalette.tertiaryText, KikiPalette.sidebar),
                     (KikiPalette.hardwareControlText, KikiPalette.hardwareButtonSurface),
                     (KikiPalette.onAccentText, KikiPalette.accent),
+                    (checkboxInk ?? .clear, KikiPalette.surface),
                 ] {
                     let a = luminance(ink), b = luminance(paper)
                     if (max(a, b) + 0.05) / (min(a, b) + 0.05) < 4.5 { contrastFailure = true }

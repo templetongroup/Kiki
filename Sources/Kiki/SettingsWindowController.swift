@@ -43,14 +43,14 @@ final class SettingsWindowController: NSWindowController {
         ("Privacy", "Control exactly what Kiki remembers—and where it remembers nothing.", "lock.shield"),
     ]
 
-    private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch Kiki at login", target: nil, action: nil)
-    private let automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "Automatically check for signed updates", target: nil, action: nil)
-    private let automaticDownloadsCheckbox = NSButton(checkboxWithTitle: "Download and install signed updates automatically", target: nil, action: nil)
-    private let silenceAudioCheckbox = NSButton(checkboxWithTitle: "Mute all Mac audio while recording", target: nil, action: nil)
-    private let zeroWaitCheckbox = NSButton(checkboxWithTitle: "Start another dictation immediately", target: nil, action: nil)
-    private let continuationsCheckbox = NSButton(checkboxWithTitle: "Join back-to-back dictations", target: nil, action: nil)
-    private let contextCheckbox = NSButton(checkboxWithTitle: "Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
-    private let historyCheckbox = NSButton(checkboxWithTitle: "Save text-only transcription history", target: nil, action: nil)
+    private let launchAtLoginCheckbox = KikiCheckbox("Launch Kiki at login", target: nil, action: nil)
+    private let automaticUpdatesCheckbox = KikiCheckbox("Automatically check for signed updates", target: nil, action: nil)
+    private let automaticDownloadsCheckbox = KikiCheckbox("Download and install signed updates automatically", target: nil, action: nil)
+    private let silenceAudioCheckbox = KikiCheckbox("Mute all Mac audio while recording", target: nil, action: nil)
+    private let zeroWaitCheckbox = KikiCheckbox("Start another dictation immediately", target: nil, action: nil)
+    private let continuationsCheckbox = KikiCheckbox("Join back-to-back dictations", target: nil, action: nil)
+    private let contextCheckbox = KikiCheckbox("Use approved Contacts, Calendar, and project vocabulary", target: nil, action: nil)
+    private let historyCheckbox = KikiCheckbox("Save text-only transcription history", target: nil, action: nil)
     private let dictationRetentionPopup = NSPopUpButton()
 
     private var pages: [NSView] = []
