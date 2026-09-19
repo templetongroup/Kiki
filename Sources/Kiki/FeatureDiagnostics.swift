@@ -7,6 +7,7 @@ enum FeatureDiagnostics {
     static func run() throws {
         try checkAppearanceModes()
         try checkCraftControls()
+        try checkTableHeaderAlignment()
         try checkCorrectionMemory()
         try checkVoiceSnippets()
         try checkContextVocabulary()
@@ -58,6 +59,23 @@ enum FeatureDiagnostics {
     private static func rms(_ samples: [Float]) -> Float {
         guard !samples.isEmpty else { return 0 }
         return sqrt(samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count))
+    }
+
+    private static func checkTableHeaderAlignment() throws {
+        let table = NSTableView()
+        let column = NSTableColumn(identifier: .init("date"))
+        column.title = "Date"
+        table.addTableColumn(column)
+        configureKikiTable(table)
+        guard column.headerCell is KikiTableHeaderCell else { throw failure("shared table header styling") }
+        for width: CGFloat in [112, 170, 320, 600] {
+            let bounds = NSRect(x: 20, y: 0, width: width, height: 28)
+            let title = column.headerCell.titleRect(forBounds: bounds)
+            guard title.minX == bounds.minX + KikiMetrics.tableHorizontalInset,
+                  title.maxX == bounds.maxX - KikiMetrics.tableHorizontalInset else {
+                throw failure("table header and row horizontal insets")
+            }
+        }
     }
 
     private static func checkAppearanceModes() throws {

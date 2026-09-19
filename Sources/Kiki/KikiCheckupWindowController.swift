@@ -355,11 +355,19 @@ final class KikiCheckupWindowController: NSWindowController {
         footer.orientation = .horizontal
         footer.alignment = .centerY
 
-        let bodyColumns = KikiCheckupBodyStack(statusCard: statusCard, practiceCard: practiceCard)
+        let practiceColumn = NSStackView(views: [practiceCard, footer])
+        practiceColumn.orientation = .vertical
+        practiceColumn.alignment = .leading
+        practiceColumn.spacing = 14
+        practiceColumn.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.practice-column")
+        practiceCard.widthAnchor.constraint(equalTo: practiceColumn.widthAnchor).isActive = true
+        footer.widthAnchor.constraint(equalTo: practiceColumn.widthAnchor).isActive = true
+
+        let bodyColumns = KikiCheckupBodyStack(statusCard: statusCard, practiceCard: practiceColumn)
         bodyColumns.identifier = NSUserInterfaceItemIdentifier("kiki.checkup.body")
         statusCard.widthAnchor.constraint(equalTo: practiceCard.widthAnchor).isActive = true
 
-        let stack = NSStackView(views: [header, deviceCard, bodyColumns, footer])
+        let stack = NSStackView(views: [header, deviceCard, bodyColumns])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 14
@@ -386,7 +394,6 @@ final class KikiCheckupWindowController: NSWindowController {
             practiceStack.widthAnchor.constraint(equalTo: practiceCard.widthAnchor, constant: -28),
             practiceScroll.widthAnchor.constraint(equalTo: practiceStack.widthAnchor),
             practiceButton.widthAnchor.constraint(equalTo: practiceStack.widthAnchor),
-            footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
     }
 

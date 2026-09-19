@@ -1332,6 +1332,31 @@ func kikiTableCell(
 }
 
 @MainActor
+final class KikiTableHeaderCell: NSTableHeaderCell {
+    override func titleRect(forBounds rect: NSRect) -> NSRect {
+        let native = super.titleRect(forBounds: rect)
+        return NSRect(
+            x: rect.minX + KikiMetrics.tableHorizontalInset,
+            y: native.minY,
+            width: max(0, rect.width - 2 * KikiMetrics.tableHorizontalInset),
+            height: native.height
+        )
+    }
+
+    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        paragraph.alignment = alignment
+        let title = NSAttributedString(string: stringValue, attributes: [
+            .font: font ?? NSFont.systemFont(ofSize: 12),
+            .foregroundColor: KikiPalette.primaryText,
+            .paragraphStyle: paragraph,
+        ])
+        title.draw(in: titleRect(forBounds: cellFrame))
+    }
+}
+
+@MainActor
 func configureKikiTable(_ table: NSTableView, allowsMultipleSelection: Bool = false) {
     table.style = .plain
     table.usesAlternatingRowBackgroundColors = false
@@ -1342,6 +1367,13 @@ func configureKikiTable(_ table: NSTableView, allowsMultipleSelection: Bool = fa
     table.rowHeight = KikiMetrics.tableRowHeight
     table.allowsMultipleSelection = allowsMultipleSelection
     table.selectionHighlightStyle = .regular
+    for column in table.tableColumns {
+        let original = column.headerCell
+        let header = KikiTableHeaderCell(textCell: original.stringValue)
+        header.font = original.font
+        header.alignment = original.alignment
+        column.headerCell = header
+    }
 }
 
 @MainActor

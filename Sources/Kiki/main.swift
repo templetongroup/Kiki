@@ -34,12 +34,14 @@ if args.count >= 3, args[1] == "--render-theme-audit" {
                 let meeting = MeetingWindowController()
                 let file = FileTranscriptionWindowController()
                 let history = HistoryWindowController()
+                let checkup = KikiCheckupWindowController()
                 func detach(_ controller: NSWindowController) -> NSView {
                     let view = controller.window!.contentView!
                     controller.window!.contentView = NSView()
                     return view
                 }
                 let meetingView = detach(meeting), fileView = detach(file), historyView = detach(history)
+                let checkupView = detach(checkup)
                 shell.onRouteChange = { route in
                     switch route.section {
                     case .home: return GuidedWorkbenchSurface(view: home, sizing: .top(NSSize(width: 920, height: 700)))
@@ -48,6 +50,7 @@ if args.count >= 3, args[1] == "--render-theme-audit" {
                         if route.subpage == 3 { return GuidedWorkbenchSurface(view: fileView, sizing: .top(NSSize(width: 760, height: 720))) }
                         return GuidedWorkbenchSurface(view: historyView, sizing: .top(NSSize(width: 900, height: 620)))
                     case .settings:
+                        if route.subpage == 5 { return GuidedWorkbenchSurface(view: checkupView, sizing: .top(NSSize(width: 900, height: 700))) }
                         if route.subpage == 7 { return GuidedWorkbenchSurface(view: about, sizing: .scroll(NSSize(width: 900, height: 830))) }
                         return GuidedWorkbenchSurface(view: settings.workbenchPage(route.subpage), sizing: .fill)
                     case .personalization: return nil
@@ -59,6 +62,7 @@ if args.count >= 3, args[1] == "--render-theme-audit" {
                     ("dictation", .init(section: .settings, subpage: 1)),
                     ("models", .init(section: .settings, subpage: 2)),
                     ("privacy", .init(section: .settings, subpage: 3)),
+                    ("checkup", .init(section: .settings, subpage: 5)),
                     ("about", .init(section: .settings, subpage: 7)),
                     ("history", .init(section: .library)),
                     ("meeting", .init(section: .library, subpage: 2)),
@@ -78,7 +82,7 @@ if args.count >= 3, args[1] == "--render-theme-audit" {
                     }
                 }
             }
-            print("Rendered 54 native theme/size captures without transcript content.")
+            print("Rendered 60 native theme/size captures for local review.")
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
