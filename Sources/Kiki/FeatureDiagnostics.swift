@@ -67,6 +67,12 @@ enum FeatureDiagnostics {
             else { UserDefaults.standard.removeObject(forKey: "appearanceMode") }
             AppearanceController.apply()
         }
+        UserDefaults.standard.removeObject(forKey: "appearanceMode")
+        guard Settings.appearanceMode == .light else { throw failure("new users must default to light appearance") }
+        AppearanceController.apply()
+        guard NSApp.appearance?.name == NSAppearance.Name.aqua else { throw failure("default light appearance must be applied") }
+        UserDefaults.standard.set("invalid-appearance", forKey: "appearanceMode")
+        guard Settings.appearanceMode == .light else { throw failure("invalid appearance must fall back to light") }
         for mode in AppAppearanceMode.allCases {
             Settings.appearanceMode = mode
             AppearanceController.apply()

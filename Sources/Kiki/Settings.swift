@@ -92,9 +92,9 @@ enum Settings {
     static var appearanceMode: AppAppearanceMode {
         get {
             guard let raw = UserDefaults.standard.string(forKey: "appearanceMode") else {
-                return .dark
+                return .light
             }
-            return AppAppearanceMode(rawValue: raw) ?? .dark
+            return AppAppearanceMode(rawValue: raw) ?? .light
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "appearanceMode") }
     }

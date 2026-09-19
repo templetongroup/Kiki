@@ -39,7 +39,7 @@ Use the 4, 8, 12, 16, 24, 32 point scale. Intra-group spacing must be smaller th
 
 ### Surfaces and color
 
-- Support Dark (the existing default), Light, and Follow System in Settings > General > Appearance.
+- Support Light (the default when no appearance is saved), Dark, and Follow System in Settings > General > Appearance. Preserve existing saved choices.
 - Dark uses the existing near-neutral ramp; Light uses pale sage-neutral surfaces with dark green-gray text. Preserve sage action emphasis in both.
 - Store semantic NSColors on controls. Layer-backed chrome must resolve colors again when its effective appearance changes; do not freeze CGColors at construction time.
 - Sage is reserved for focus, readiness, selected indicators, and primary action emphasis.
