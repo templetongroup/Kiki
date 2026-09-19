@@ -6,6 +6,31 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.60</title>
+            <pubDate>Fri, 18 Sep 2026 20:18:56 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.60</link>
+            <sparkle:version>93</sparkle:version>
+            <sparkle:shortVersionString>0.6.60</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.60
+
+- Light is now the default appearance for users who have not saved an appearance preference.
+- Existing Light, Dark, and Follow System choices are preserved.
+- Appearance can still be changed in Settings → General → Appearance.
+
+This release does not include a fix for the reported sustained Zoom meeting performance issue; that investigation remains open.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki-0.6.60-macOS.zip" length="8735322" type="application/octet-stream" sparkle:edSignature="cbRI3Gn2nMn7eUrFITXUJPElKr8sT6wpS7o6yb0fCIo9artdQWT968shIFpqoz6b0qLFWj84Y8x9d6djjh4kDw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-92.delta" sparkle:deltaFrom="92" length="235734" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="6wAmZNytwx+o4x9SG07Mo8tiD8MTXAAn4voHQj6Ybg83QDu3Soya3FdSttAlOKw/X/6tYZj2GNj+7IVXFOi4Aw=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-91.delta" sparkle:deltaFrom="91" length="337354" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ZlYDHpjQgzP0KseWUSSPI8O+lDe4fxsEJVne6MGnjG6JhX8piGuxpyo0/ZthND9JrtMGUyloP1LdUqaHA28UBQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-90.delta" sparkle:deltaFrom="90" length="1433690" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="/iMAjWJYuVDIQdGXy9ZJu4hP7pX1ZOXI2OtB4YmgXewRSsLYpmmsC5DP28ii5DkP5S7BLbg/Wlc/Zds2Uq1GCg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-89.delta" sparkle:deltaFrom="89" length="1430442" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="b3eFrZ7JciE7tJJ4wAxTXyWAThs0E0cwjYsAHgn1I7kEloc0DrHt/eiysbQdBeX+kzUl0hcMZpJq7A8LmGSvAA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-88.delta" sparkle:deltaFrom="88" length="1446046" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="vuIsHyPMdrZR/ztkg2isVJ44+LWWQicyzZOEMqfWjvj7dgnm4RnY8Ppol6gA5e4+Hr3ZpGtbEKaSHQCbzD3VBg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.59</title>
             <pubDate>Fri, 18 Sep 2026 13:38:02 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.59</link>
@@ -92,26 +117,6 @@
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-88.delta" sparkle:deltaFrom="88" length="476474" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="HUd5mbK+NKIZ/sNZ9ltdB/gG4SY973wHaKRY4Gn8dlWjF7858B01rjC+egRMFdhxHrzjQQ7hxSYYK6+ClmubCQ=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-87.delta" sparkle:deltaFrom="87" length="462470" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="bND0OOhANw8qziCkWm6aNwFiZ6BZvHgDEdsHEQW3r8dj9F0xc7KjOnEXBraFHmVg6kU1FcAyISiNjPc5scjuAg=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.56/Kiki89-86.delta" sparkle:deltaFrom="86" length="493326" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="w41vGsdZP169hyiKXiiZMe80uiFxohggbW2Cjk2+Ine0WuMzcpl7fm5MWm/4UlAth4F9uFLg/ldaCW33MimZDA=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.55</title>
-            <pubDate>Fri, 11 Sep 2026 13:56:38 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.55</link>
-            <sparkle:version>88</sparkle:version>
-            <sparkle:shortVersionString>0.6.55</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.55
-
-- Fixes automatic update checks so Kiki initializes Sparkle and checks its signed feed whenever the app launches and automatic checks are enabled.
-- Preserves the disabled setting: Kiki does not perform a launch check when automatic checks are turned off.
-- Adds an installed-app regression test that verifies a deliberately overdue update check runs on launch.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki-0.6.55-macOS.zip" length="8703549" type="application/octet-stream" sparkle:edSignature="aSaVtjJE5vTOBNs1UvLM92bNkx+Nb73/m9Rvy6hHaQL0jJR3RlISxHAWTmmYHSq/DDh6iBPrhDXMGk6wScoyCg=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki88-87.delta" sparkle:deltaFrom="87" length="198374" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Eh86Aezy3J4iK9VnmQWyE/vGIypVz9gDWU1DTE0yZQy5ti70SVnc4dzwrxm5ztaZCii65dlkoVfi/dFFEGdhDw=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.55/Kiki88-86.delta" sparkle:deltaFrom="86" length="308662" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ADZ5o0hbyn2b0JGdSOI3M3fOXINshEJ2U9dG0xf5UrOwmJnq0AsFgunVupohO6tH/epPEtg0LN9x7X2xBvd1Dw=="/>
             </sparkle:deltas>
         </item>
     </channel>
