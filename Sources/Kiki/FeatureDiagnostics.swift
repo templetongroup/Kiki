@@ -1146,7 +1146,7 @@ enum FeatureDiagnostics {
               let controlStack = findView(in: selectedCard, identifier: "kiki.model.control-stack"),
               let dial = findView(in: selectedCard, identifier: "kiki.model.dial"),
               let activeLabel = findView(in: selectedCard, identifier: "kiki.model.active-label"),
-              let analogMeter = findView(in: selectedCard, identifier: "kiki.model.analog-meter"),
+              let analogMeter = findView(in: selectedCard, identifier: "kiki.model.silk-waveform") as? KikiModelWaveformView,
               let modelAction = findView(in: selectedCard, identifier: "kiki.model.action") as? KikiActionButton,
               abs(selectedCard.bounds.width - 440) < 1,
               abs(selectedCard.bounds.height - 109) < 1,
@@ -1169,7 +1169,15 @@ enum FeatureDiagnostics {
               !analogMeter.isHidden,
               modelsScroll.scrollerStyle == .overlay,
               modelsScroll.autohidesScrollers else {
-            throw failure("Models must preserve the approved compact Studio Hardware layout")
+            throw failure("Models must preserve compact layout with the selected silk waveform")
+        }
+
+        let waveform = KikiModelWaveformView(frame: NSRect(x: 0, y: 0, width: 100, height: 34))
+        waveform.layoutSubtreeIfNeeded()
+        waveform.processing = true
+        guard waveform.layer?.sublayers?.count == 5,
+              waveform.layer?.sublayers?.allSatisfy({ $0.animationKeys()?.isEmpty ?? true }) == true else {
+            throw failure("detached model waveform must not animate")
         }
 
         for model in TranscriptionModelID.allCases {

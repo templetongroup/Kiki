@@ -340,6 +340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func render(_ state: DictationState) {
+        if settingsWindowHasLoaded { settingsWindow.updateDictationState(state) }
         let model = controller.activeModelName ?? "none installed"
         modelMenuItem.title = "Model: \(model)"
         undoLastDictationMenuItem.isEnabled = state == .idle && controller.canUndoLastDictation

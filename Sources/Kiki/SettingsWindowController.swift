@@ -110,6 +110,10 @@ final class SettingsWindowController: NSWindowController {
         return page
     }
 
+    func updateDictationState(_ state: DictationState) {
+        modelCards.forEach { $0.updateActivity(state) }
+    }
+
     func updateModelPreparationStatus(_ status: ModelPreparationStatus) {
         modelPreparationStatus = status
         modelCards.forEach { $0.refresh() }
@@ -840,7 +844,7 @@ private final class ModelCardView: KikiCardView {
     private let button = KikiActionButton("Use Model", kind: .hardware, target: nil, action: nil)
     private let dial = KikiHardwareDialView()
     private let activeLabel = kikiLabel("ACTIVE", size: 10.5, weight: .semibold, color: KikiPalette.accentText)
-    private let meter = KikiAnalogMeterView()
+    private let meter = KikiModelWaveformView()
 
     init(model: TranscriptionModelID) {
         self.model = model
@@ -968,8 +972,13 @@ private final class ModelCardView: KikiCardView {
         }
     }
 
+    func updateActivity(_ state: DictationState) {
+        meter.processing = Settings.transcriptionModel == model && state == .transcribing
+    }
+
     func update(preparationStatus status: ModelPreparationStatus) {
         guard status.model == model else { return }
+        meter.processing = false
         switch status {
         case .downloading:
             statusLabel.stringValue = status.modelsDetail
@@ -979,6 +988,7 @@ private final class ModelCardView: KikiCardView {
             button.title = "Downloading…"
             button.isEnabled = false
         case .loading:
+            meter.processing = true
             statusLabel.stringValue = status.modelsDetail
             statusLabel.textColor = KikiPalette.secondaryText
             downloadProgress.isHidden = true
