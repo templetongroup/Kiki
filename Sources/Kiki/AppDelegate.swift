@@ -179,6 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceController.apply()
         ApplicationMenu.setSettingsTarget(self)
+        ApplicationMenu.setUpdateTarget(updateController)
         updateController.onUpdateAvailable = { [weak self] available in
             self?.updateMenuItem.title = available ? "Update Available" : "Check for Updates"
         }
@@ -280,12 +281,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(menuItem("Words & Replacements", symbol: "textformat.abc", action: #selector(openPersonalization)))
         menu.addItem(menuItem("Settings", symbol: "gearshape", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(updateMenuItem)
         let help = NSMenuItem(title: "Help", action: nil, keyEquivalent: "")
         let helpMenu = NSMenu()
         helpMenu.addItem(menuItem("Troubleshoot Dictation", symbol: "checkmark.shield", action: #selector(openCheckup)))
         helpMenu.addItem(menuItem("Create Support Bundle…", symbol: "wrench.and.screwdriver", action: #selector(createSupportBundle)))
         helpMenu.addItem(menuItem("About Kiki", symbol: "info.circle", action: #selector(openWhatsNew)))
-        helpMenu.addItem(updateMenuItem)
         help.submenu = helpMenu
         menu.addItem(help)
         menu.addItem(.separator())

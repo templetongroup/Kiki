@@ -11,6 +11,7 @@ enum ApplicationMenu {
         appItem.submenu = appMenu
         let about = appMenu.addItem(withTitle: "About Kiki", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         about.target = NSApp
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(UpdateController.checkForUpdates(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Settings…", action: NSSelectorFromString("openSettings"), keyEquivalent: ",")
         appMenu.addItem(.separator())
@@ -68,5 +69,10 @@ enum ApplicationMenu {
         NSApp.mainMenu?.items.first?.submenu?
             .item(withTitle: "Settings…")?
             .target = target
+    }
+
+    static func setUpdateTarget(_ target: UpdateController) {
+        NSApp.mainMenu?.items.first?.submenu?
+            .item(withTitle: "Check for Updates…")?.target = target
     }
 }
