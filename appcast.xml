@@ -6,6 +6,29 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.64</title>
+            <pubDate>Sun, 20 Sep 2026 12:38:13 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.64</link>
+            <sparkle:version>97</sparkle:version>
+            <sparkle:shortVersionString>0.6.64</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.64
+
+- Make Silk Stream float on a transparent background, without a box, border, or panel shadow.
+- Add fine dark outlines and stronger green strands for visibility over light and dark content.
+- Keep the existing microphone-reactive motion and Reduce Motion behavior unchanged.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki-0.6.64-macOS.zip" length="8747600" type="application/octet-stream" sparkle:edSignature="2PcwChhwKELZTV1WuzFlntwqHmXt3eOAy+KGexEMpZJh4RR7Lw3BVq8ao0Vkqbj0paVMc/kl5td5m6nRrjIfCA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-96.delta" sparkle:deltaFrom="96" length="239914" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="gaSnugK9a6ruRq3ILvTULPH26YcEJxPeuVMqaUjnFCSl6rqqTdiQv0gjnnDhOCckRzrxIHPUfPloWd0+sYesBQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-95.delta" sparkle:deltaFrom="95" length="381210" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="eCLVxJFZG9bzNKFFkZ60iqIMY7o5RwgJxtfUpGEBEYu/3iup3yYYL2hk3dhb0t/YKPokob3v+HqWZYUat/LoCg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-94.delta" sparkle:deltaFrom="94" length="410358" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="a5XA7o0Igri0FvyYgW8lGhZL7wVZy//O5Yxe83xyP2mfGJUkgCM9UgCZwWI3sMBV4iuUlrb1ZUubrn7DWStVCg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-93.delta" sparkle:deltaFrom="93" length="429538" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="SAQc7V7910uzrt7MY2Z9L2KIfezuxbECi+XA90nz0oLTwtjk+ocl8icwQ/RjqBKICqrTvlwC3juPwXsulKS8CA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-92.delta" sparkle:deltaFrom="92" length="432594" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="G6N+HLAAKy1pmx+GdPLtdOgIANTYvfpcMZE42iMj3HxTMfDzc2X660B7OoM3NmIAa7UZCkTznk9KA6x5lfOJAQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.63</title>
             <pubDate>Sun, 20 Sep 2026 11:02:59 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.63</link>
@@ -103,29 +126,6 @@ This release does not include a fix for the reported sustained Zoom meeting perf
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-90.delta" sparkle:deltaFrom="90" length="1433690" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="/iMAjWJYuVDIQdGXy9ZJu4hP7pX1ZOXI2OtB4YmgXewRSsLYpmmsC5DP28ii5DkP5S7BLbg/Wlc/Zds2Uq1GCg=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-89.delta" sparkle:deltaFrom="89" length="1430442" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="b3eFrZ7JciE7tJJ4wAxTXyWAThs0E0cwjYsAHgn1I7kEloc0DrHt/eiysbQdBeX+kzUl0hcMZpJq7A8LmGSvAA=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-88.delta" sparkle:deltaFrom="88" length="1446046" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="vuIsHyPMdrZR/ztkg2isVJ44+LWWQicyzZOEMqfWjvj7dgnm4RnY8Ppol6gA5e4+Hr3ZpGtbEKaSHQCbzD3VBg=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.59</title>
-            <pubDate>Fri, 18 Sep 2026 13:38:02 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.59</link>
-            <sparkle:version>92</sparkle:version>
-            <sparkle:shortVersionString>0.6.59</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.59
-
-- Fixes native checkbox label contrast when Kiki uses Dark mode while macOS uses Light mode, including the automatic-update controls.
-- Includes Light, Dark, and Follow System in Settings → General → Appearance, with a saved preference and Dark as the default.
-- Includes consistent button sizing, better model-action spacing, immediate hover feedback, and steadier numeric labels from 0.6.58.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki-0.6.59-macOS.zip" length="8734590" type="application/octet-stream" sparkle:edSignature="sZETRg0HSXGZwP4GDqN9PcJix1N4M9cpbQ2twT6/+PZ8tNYVPyjS2KFpbRZzI+0zc43CksNEqxc8FAJ3WJ/5Ag=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki92-91.delta" sparkle:deltaFrom="91" length="332758" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="NUxzde8txNCNo4TUUPj9OdVIp1pIdIB4zvQWDDHpylzdJF68NJm2GnCOpeLGpfH0hXvOobARrk9EshZT09HADQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki92-90.delta" sparkle:deltaFrom="90" length="1413302" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Q9gSORUjHWP0w7VST//MBEJLzEVW24Mnqf3e6p08q4J0jSwYYseTZvcKf1lUM29a+aY7IVC81S9E+uLHUOlSDg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki92-89.delta" sparkle:deltaFrom="89" length="1418278" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="vQXdrnHgOGcEQOsj6NdfDifOUJxzSkglh2Rh2rht1nJ8RL3TlpqtM+dg3bQWNGz5mOfYO2FTLZo6H5JrVnz7BA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki92-88.delta" sparkle:deltaFrom="88" length="1454158" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ZjXyYCPw0dc6mVG9vDOpX21ibUmy2exMxNydkXM/OHD5Tk8gWaNfVR4Fvi85effvjV0tWh/DiikH3o7CPVCzBQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.59/Kiki92-87.delta" sparkle:deltaFrom="87" length="1458886" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="7S9IqWtV1iN8ZsS/0yq8hZq2ZVgNrTOv+o0s4A6AIR1QCun7bwEcEA9MspZPm1aOSo3FZ2FXo7nA5/O5aLG2Ag=="/>
             </sparkle:deltas>
         </item>
     </channel>
