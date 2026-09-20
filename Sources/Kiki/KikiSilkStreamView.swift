@@ -7,6 +7,7 @@ final class KikiSilkStreamView: NSView {
     static let preferredSize = NSSize(width: 240, height: 88)
     private let ribbon = CALayer()
     private var strands: [CAShapeLayer] = []
+    private var outlines: [CAShapeLayer] = []
     private var active = false
     private var thinking = false
 
@@ -21,11 +22,18 @@ final class KikiSilkStreamView: NSView {
         setAccessibilityElement(false)
         layer?.addSublayer(ribbon)
         for index in 0..<9 {
+            let outline = CAShapeLayer()
+            outline.fillColor = nil
+            outline.strokeColor = NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.08, alpha: 0.80).cgColor
+            outline.lineWidth = index == 8 ? 4 : 2.9
+            outline.lineCap = .round
+            ribbon.addSublayer(outline)
+            outlines.append(outline)
             let strand = CAShapeLayer()
             strand.fillColor = nil
             strand.strokeColor = NSColor(calibratedRed: CGFloat(106 + index * 10) / 255,
                 green: CGFloat(140 + index * 8) / 255, blue: CGFloat(74 + index * 8) / 255,
-                alpha: 0.25 + CGFloat(index) * 0.06).cgColor
+                alpha: 0.65 + CGFloat(index) * 0.04).cgColor
             strand.lineWidth = index == 8 ? 2.4 : 1.3
             strand.lineCap = .round
             ribbon.addSublayer(strand)
@@ -91,14 +99,15 @@ final class KikiSilkStreamView: NSView {
         CATransaction.setDisableActions(true)
         ribbon.bounds = bounds
         ribbon.position = CGPoint(x: bounds.midX, y: bounds.midY)
-        for (index, strand) in strands.enumerated() {
+        for (index, strand) in (outlines + strands).enumerated() {
+            let strandIndex = index % strands.count
             strand.frame = bounds
-            strand.path = path(phase: 0, strand: index)
+            strand.path = path(phase: 0, strand: strandIndex)
             strand.removeAnimation(forKey: "flow")
             if active && window != nil && !isHiddenOrHasHiddenAncestor
                 && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
                 let flow = CAKeyframeAnimation(keyPath: "path")
-                flow.values = (0...48).map { path(phase: CGFloat($0) / 48 * 2 * .pi, strand: index) }
+                flow.values = (0...48).map { path(phase: CGFloat($0) / 48 * 2 * .pi, strand: strandIndex) }
                 flow.duration = thinking ? 3.2 : 5.7
                 flow.calculationMode = .linear
                 flow.repeatCount = .infinity
