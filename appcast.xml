@@ -6,6 +6,28 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.65</title>
+            <pubDate>Sun, 20 Sep 2026 19:24:13 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.65</link>
+            <sparkle:version>98</sparkle:version>
+            <sparkle:shortVersionString>0.6.65</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.65
+
+- Restore Check for Updates directly in the Kiki application menu and the menu-bar icon menu, without opening Help.
+- Both commands use Kiki's existing signed updater. Automatic-update preferences are unchanged.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki-0.6.65-macOS.zip" length="8747717" type="application/octet-stream" sparkle:edSignature="LGUjYy9uiUvdgcpSWD1OKn0QhlFNn1qMZ6HgBa/fbMSKC1q33jGtVcYPuA8CQoKCsxsbULTYnX46nCvHxcA6DA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki98-97.delta" sparkle:deltaFrom="97" length="183658" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="I1iDm6AZxg9nGQNNYm0DTQp8vgM40XJeBn0+Bw5mU20L0InahqzvDFrPrtEL0bwu3rdytCRIboxNdqR8XLFZCQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki98-96.delta" sparkle:deltaFrom="96" length="255046" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="LoJk3Utn3zP6jK45sfYf90LK2ghC/jG+yg0hDqj2eukEcRQaiQ13aYbz4nZYMhm7yt8EgWzQBODA9Ws7nGlKDg=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki98-95.delta" sparkle:deltaFrom="95" length="389622" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="37gKfe0xl+CWtM6huSo4sm5TG6yIhRAsysAgMAVH4RrAx4jf1I3Jarn7k5GZ5XQgAN6Fx1//0wC9YTW7GUU6DQ=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki98-94.delta" sparkle:deltaFrom="94" length="423858" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="O91cJy0obUEQBURi5vvDGsxA0NeA/ORw38JqG+pIYPKJQ6zbF6bQpJo8jdxT3u/KmUq8b/aUGDFcw+uLrF0zCA=="/>
+                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.65/Kiki98-93.delta" sparkle:deltaFrom="93" length="430210" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="inR4hK+83/dKQ7uVkaF0dUN2XZDdDH65lL+ksQK5/rir1YzQrDhZDOuJkc4LEkvCGL6k2GsUuPXMQwG5Z15CAQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.6.64</title>
             <pubDate>Sun, 20 Sep 2026 12:38:13 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.64</link>
@@ -101,31 +123,6 @@ The reported sustained Zoom meeting performance issue remains under investigatio
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.61/Kiki94-91.delta" sparkle:deltaFrom="91" length="361778" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="1FstVlZpDdkIio3YFb2wHYAcWGIKKOMQmVMmbLyYfUKwkkGntNoT4g6XjBXTT5ws2/GtVtPv/woHh9ZaIA76Bg=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.61/Kiki94-90.delta" sparkle:deltaFrom="90" length="1434702" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="4T5Ek5Hy19L2yuPhFYnnqmunY7YAd7bk6p21Zing9T84Z/ubOHUcJTo9XEVZMBhVampUmfHNx+ISksq20pAnAQ=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.61/Kiki94-89.delta" sparkle:deltaFrom="89" length="1434570" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="KW1jXS2ds9AyfxpqlvX1k9Nbpxf+eSiAeJ+dz8HvX/I+4aS6dVTRmWuZQ+a77aKyoOoZUG3YEDIN9kVh3vL2Bw=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.60</title>
-            <pubDate>Fri, 18 Sep 2026 20:18:56 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.60</link>
-            <sparkle:version>93</sparkle:version>
-            <sparkle:shortVersionString>0.6.60</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.60
-
-- Light is now the default appearance for users who have not saved an appearance preference.
-- Existing Light, Dark, and Follow System choices are preserved.
-- Appearance can still be changed in Settings → General → Appearance.
-
-This release does not include a fix for the reported sustained Zoom meeting performance issue; that investigation remains open.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki-0.6.60-macOS.zip" length="8735322" type="application/octet-stream" sparkle:edSignature="cbRI3Gn2nMn7eUrFITXUJPElKr8sT6wpS7o6yb0fCIo9artdQWT968shIFpqoz6b0qLFWj84Y8x9d6djjh4kDw=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-92.delta" sparkle:deltaFrom="92" length="235734" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="6wAmZNytwx+o4x9SG07Mo8tiD8MTXAAn4voHQj6Ybg83QDu3Soya3FdSttAlOKw/X/6tYZj2GNj+7IVXFOi4Aw=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-91.delta" sparkle:deltaFrom="91" length="337354" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ZlYDHpjQgzP0KseWUSSPI8O+lDe4fxsEJVne6MGnjG6JhX8piGuxpyo0/ZthND9JrtMGUyloP1LdUqaHA28UBQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-90.delta" sparkle:deltaFrom="90" length="1433690" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="/iMAjWJYuVDIQdGXy9ZJu4hP7pX1ZOXI2OtB4YmgXewRSsLYpmmsC5DP28ii5DkP5S7BLbg/Wlc/Zds2Uq1GCg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-89.delta" sparkle:deltaFrom="89" length="1430442" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="b3eFrZ7JciE7tJJ4wAxTXyWAThs0E0cwjYsAHgn1I7kEloc0DrHt/eiysbQdBeX+kzUl0hcMZpJq7A8LmGSvAA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.60/Kiki93-88.delta" sparkle:deltaFrom="88" length="1446046" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="vuIsHyPMdrZR/ztkg2isVJ44+LWWQicyzZOEMqfWjvj7dgnm4RnY8Ppol6gA5e4+Hr3ZpGtbEKaSHQCbzD3VBg=="/>
             </sparkle:deltas>
         </item>
     </channel>
