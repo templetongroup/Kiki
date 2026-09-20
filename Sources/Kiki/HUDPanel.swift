@@ -6,7 +6,7 @@ import CoreImage
 /// Small floating pill near the bottom of the screen showing recording state.
 @MainActor
 final class HUDPanel {
-    static let voiceOrbUsesClearSurface = true
+    static let voiceOrbUsesClearSurface = false
 
     private let panel: NSPanel
     private let effect: KikiThemeSurfaceView
@@ -337,7 +337,9 @@ final class HUDPanel {
         panel.effectiveAppearance.performAsCurrentDrawingAppearance {
             let usesClearSurface = presentation == .waveform && Self.voiceOrbUsesClearSurface
             panel.hasShadow = !usesClearSurface
-            effect.fill = usesClearSurface
+            effect.fill = presentation == .waveform
+                ? NSColor(calibratedRed: 0.125, green: 0.153, blue: 0.122, alpha: 0.98)
+                : usesClearSurface
                 ? NSColor.clear
                 : KikiPalette.elevatedSurface.withAlphaComponent(0.98)
             effect.layer?.borderWidth = usesClearSurface ? 0 : 1
