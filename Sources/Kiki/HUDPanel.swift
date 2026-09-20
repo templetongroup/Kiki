@@ -14,7 +14,7 @@ final class HUDPanel {
     private let statusLabel: NSTextField
     private let transcriptLabel: NSTextField
     private let modelProgress = NSProgressIndicator()
-    private let voiceOrbView = KikiVoiceOrbView()
+    private let voiceOrbView = KikiSilkStreamView()
     private let signalMeterView = KikiSignalMeterView()
     private let textStack = NSStackView()
     private var hasLogo = false
@@ -93,8 +93,8 @@ final class HUDPanel {
             logoView.widthAnchor.constraint(equalToConstant: 34),
             logoView.heightAnchor.constraint(equalToConstant: 34),
             transcriptLabel.widthAnchor.constraint(equalToConstant: 300),
-            voiceOrbView.widthAnchor.constraint(equalToConstant: KikiVoiceOrbView.preferredSize.width),
-            voiceOrbView.heightAnchor.constraint(equalToConstant: KikiVoiceOrbView.preferredSize.height),
+            voiceOrbView.widthAnchor.constraint(equalToConstant: KikiSilkStreamView.preferredSize.width),
+            voiceOrbView.heightAnchor.constraint(equalToConstant: KikiSilkStreamView.preferredSize.height),
             signalMeterView.widthAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.width),
             signalMeterView.heightAnchor.constraint(equalToConstant: KikiSignalMeterView.preferredSize.height),
             content.leadingAnchor.constraint(equalTo: effect.leadingAnchor, constant: 12),
@@ -185,7 +185,7 @@ final class HUDPanel {
         if reset { voiceOrbView.reset() }
         if let state { voiceOrbView.setState(state) }
         else { voiceOrbView.update(samples: samples) }
-        if needsPresentation { present(width: 136, height: 136) }
+        if needsPresentation { present(width: 264, height: 112) }
     }
 
     func showSignalMeter(samples: [Float], reset: Bool = false) {

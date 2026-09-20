@@ -717,6 +717,10 @@ enum FeatureDiagnostics {
               normalSpeechLevel < 0.40,
               forcefulSpeechLevel > 0.65,
               forcefulSpeechLevel < 0.85,
+              KikiSilkStreamView.amplitude(for: [Float](repeating: 0, count: 341)) == 0.12,
+              KikiSilkStreamView.amplitude(for: [Float](repeating: 0.01, count: 341))
+                < KikiSilkStreamView.amplitude(for: [Float](repeating: 0.1, count: 341)),
+              KikiSilkStreamView.amplitude(for: [Float](repeating: 1, count: 341)) <= 1,
               HUDPanel.voiceOrbUsesClearSurface,
               KikiVoiceOrbView.usesTempletonMaterialPalette,
               KikiVoiceOrbView.preferredSize == NSSize(width: 112, height: 112),
