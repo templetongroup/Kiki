@@ -38,7 +38,7 @@ enum TranscriptionHistoryScope: Equatable {
 final class HistoryWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
     private let scope: TranscriptionHistoryScope
     private let tableView = NSTableView()
-    private let textView = NSTextView()
+    private let textView = TranscriptReaderView()
     private let countLabel = NSTextField(labelWithString: "")
     private let statusLabel = NSTextField(labelWithString: "")
     private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
@@ -313,6 +313,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
+        statusLabel.stringValue = ""
         guard let record = selectedRecord else {
             textView.string = ""
             detailEmptyState.isHidden = false
@@ -321,6 +322,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         }
         detailEmptyState.isHidden = true
         textView.string = "\(record.text)\n\n— \(record.modelName) • \(String(format: "%.1f", record.duration))s • Local"
+        textView.scrollToBeginningOfDocument(nil)
         updateActionAvailability()
     }
 
