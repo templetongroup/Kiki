@@ -41,8 +41,10 @@ as a clean recognition benchmark. No retained WAV or automatic export was enable
 
 ## Explicit limitations / follow-up
 
-- A paced real-model preview soak is required before publication; record its
-  outcome separately. It does not reproduce Zoom plus microphone/system capture
+- A 12-minute paced synthetic-audio Parakeet preview soak completed and drained
+  cleanly (exit 0): 752.07 seconds wall time, 15.97 user / 3.13 system CPU
+  seconds, maximum RSS 184,369,152 bytes, peak footprint 136,922,072 bytes.
+  This does not reproduce Zoom plus microphone/system capture
   on the tester's hardware and cannot establish a fan-noise fix by itself.
 - Full meeting capture is still held in memory; incremental checkpoints remain
   separate work requiring deliberate retention/privacy design.
