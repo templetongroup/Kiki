@@ -282,6 +282,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func toggleRecording() {
+        guard !isSummarizing else { return }
         if isRecording { stopCapture() } else { startCapture() }
     }
 
@@ -503,13 +504,17 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             return
         }
         isSummarizing = true
+        recordButton.isEnabled = false
+        identifySpeakersButton.isEnabled = false
         summaryButton.isEnabled = false
         summaryButton.title = "Creating Summary…"
         statusLabel.stringValue = "Creating a private local summary from this meeting transcript…"
         Task { [weak self] in
             guard let self else { return }
             do {
-                let result = try await MeetingSummaryGenerator.generate(from: transcript)
+                let result = try await MeetingSummaryGenerator.generate(from: transcript) { [weak self] progress in
+                    self?.statusLabel.stringValue = progress
+                }
                 let revised = transcript.addingSummary(result.markdown)
                 self.transcript = revised
                 self.textView.string = revised.markdown
@@ -522,7 +527,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                     )
                 }
                 _ = MeetingTranscriptAutoExporter.export(revised)
-                self.statusLabel.stringValue = "Summary created with \(result.methodDescription). Review or edit it before sharing."
+                self.statusLabel.stringValue = result.warnings.isEmpty
+                    ? "Summary created with \(result.methodDescription). Review or edit it before sharing."
+                    : "Incomplete draft: some sections need manual review. See Review required in the notes; full transcript preserved."
                 self.summaryButton.title = "Refresh Summary"
             } catch {
                 self.statusLabel.stringValue = "Summary could not be created: \(error.localizedDescription)"
@@ -530,6 +537,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             }
             self.isSummarizing = false
             self.summaryButton.isEnabled = true
+            self.recordButton.isEnabled = true
+            self.identifySpeakersButton.isEnabled = true
         }
     }
 

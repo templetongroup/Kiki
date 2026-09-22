@@ -27,12 +27,13 @@ struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
         speaker: String,
         text: String
     ) -> [MeetingTranscriptSegment] {
-        let pattern = "[^.!?]+[.!?]+|[^.!?]+$"
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        let pieces = (try? NSRegularExpression(pattern: pattern))?
-            .matches(in: text, range: range)
-            .compactMap { Range($0.range, in: text).map { String(text[$0]).trimmingCharacters(in: .whitespacesAndNewlines) } }
-            .filter { !$0.isEmpty } ?? [text]
+        var pieces: [String] = []
+        text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: .bySentences) { sentence, _, _, _ in
+            if let sentence {
+                let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { pieces.append(trimmed) }
+            }
+        }
         guard pieces.count > 1 else {
             return [MeetingTranscriptSegment(startTime: startTime, endTime: endTime, speaker: speaker, text: text)]
         }
@@ -75,6 +76,39 @@ struct MeetingTranscript: Codable, Sendable {
     var speakerNames: [String] {
         var seen = Set<String>()
         return segments.compactMap { seen.insert($0.speaker).inserted ? $0.speaker : nil }
+    }
+
+    static func restoringSavedText(_ text: String, title: String, createdAt: Date, duration: TimeInterval) -> MeetingTranscript? {
+        let body = text.range(of: "## Transcript\n").map { String(text[$0.upperBound...]) } ?? text
+        let pattern = #"(?m)^(?:\*\*|\[)(\d{2,}):(\d\d):(\d\d)(?: — |\] )([^\n]+?):(?:\*\*)?\s*"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let ns = body as NSString
+        let matches = regex.matches(in: body, range: NSRange(location: 0, length: ns.length))
+        var segments: [MeetingTranscriptSegment] = []
+        for (index, match) in matches.enumerated() {
+            let start = NSMaxRange(match.range)
+            let end = index + 1 < matches.count ? matches[index + 1].range.location : ns.length
+            var speech = ns.substring(with: NSRange(location: start, length: end - start))
+            if let heading = speech.range(of: "\n\n### ") { speech = String(speech[..<heading.lowerBound]) }
+            speech = speech.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !speech.isEmpty else { continue }
+            let seconds = (Double(ns.substring(with: match.range(at: 1))) ?? 0) * 3600
+                + (Double(ns.substring(with: match.range(at: 2))) ?? 0) * 60
+                + (Double(ns.substring(with: match.range(at: 3))) ?? 0)
+            segments.append(.init(startTime: seconds, endTime: min(duration, seconds + 1), speaker: ns.substring(with: match.range(at: 4)), text: speech))
+        }
+        guard !segments.isEmpty else { return nil }
+        return MeetingTranscript(title: title, createdAt: createdAt, duration: duration, segments: segments, actionItems: [])
+    }
+
+    /// Updating notes must not rewrite or re-segment the saved transcript.
+    static func replacingSummary(in savedText: String, with summary: String) -> String {
+        if let transcript = savedText.range(of: "## Transcript\n") {
+            let prefix = String(savedText[..<transcript.lowerBound])
+            let metadata = prefix.range(of: "## Summary").map { String(prefix[..<$0.lowerBound]) } ?? prefix
+            return metadata + summary.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n" + savedText[transcript.lowerBound...]
+        }
+        return summary.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n## Transcript\n\n" + savedText
     }
 
     func renamingSpeaker(from oldName: String, to newName: String) -> MeetingTranscript {
@@ -146,6 +180,35 @@ struct MeetingTranscript: Codable, Sendable {
             .joined(separator: "\n\n")
     }
 
+    /// A conservative review hint, never a deletion boundary. A late exchange of
+    /// farewells can signal a finished call, but it can also be one person leaving.
+    var possiblePostMeetingStart: UUID? {
+        guard duration >= 120 else { return nil }
+        let closing = segments.enumerated().filter { _, segment in
+            guard segment.startTime >= duration * 0.8 else { return false }
+            let words = Self.normalizedWords(segment.text)
+            guard words.count <= 5 else { return false }
+            return words.first == "bye" || words.first == "goodbye"
+                || Array(words.prefix(2)) == ["take", "care"]
+                || Array(words.prefix(2)) == ["be", "well"]
+        }
+        guard let last = closing.last,
+              closing.contains(where: { $0.element.speaker != last.element.speaker && abs($0.element.startTime - last.element.startTime) <= 20 }),
+              last.offset + 1 < segments.count,
+              let final = segments.last, final.startTime - last.element.endTime >= 20 else { return nil }
+        return segments[last.offset + 1].id
+    }
+
+    var summarySource: String {
+        let reviewStart = possiblePostMeetingStart
+        return segments.map { segment in
+            let warning = segment.id == reviewStart
+                ? "[REVIEW NOTE: A late farewell exchange occurred. Following speech may be post-meeting material. Do not infer new commitments from unrelated or garbled speech; retain genuine continued meeting discussion.]\n\n"
+                : ""
+            return warning + "[\(Self.timestamp(segment.startTime))] \(segment.speaker): \(segment.text)"
+        }.joined(separator: "\n\n")
+    }
+
     var markdown: String {
         var result = "# \(title)\n\n"
         result += "- Date: \(DateFormatter.localizedString(from: createdAt, dateStyle: .medium, timeStyle: .short))\n"
@@ -159,7 +222,11 @@ struct MeetingTranscript: Codable, Sendable {
 
         result += "## Transcript\n\n"
         var lastChapter = -1
+        let reviewStart = possiblePostMeetingStart
         for segment in segments {
+            if segment.id == reviewStart {
+                result += "### Possible post-meeting content — review before sharing\n\nA late farewell exchange was detected. The remaining speech is preserved below; check whether it belongs to the meeting.\n\n"
+            }
             let chapter = Int(segment.startTime / 300)
             if chapter != lastChapter {
                 result += "### Chapter \(chapter + 1) · \(Self.timestamp(TimeInterval(chapter * 300)))\n\n"
@@ -206,15 +273,21 @@ struct MeetingTranscript: Codable, Sendable {
         of remote: [MeetingTranscriptSegment]
     ) -> Bool {
         let microphoneTokens = normalizedWords(microphone.text)
-        guard !microphoneTokens.isEmpty, !remote.isEmpty else { return false }
+        guard microphoneTokens.count >= 4, !remote.isEmpty else { return false }
 
         for segment in remote where abs(segment.startTime - microphone.startTime) <= 3 {
             let remoteTokens = normalizedWords(segment.text)
             if microphoneTokens == remoteTokens { return true }
         }
-        guard microphoneTokens.count >= 4 else { return false }
-
-        let remoteTokens = remote.flatMap { normalizedWords($0.text) }
+        // Compare with nearby source material only when its negation agrees.
+        // Similar wording with "don't" or "not" can be a genuine disagreement,
+        // not echo; dropping it would reverse the meeting's meaning.
+        let negations: Set<String> = ["no", "not", "never", "cannot", "t"]
+        let microphoneNegations = Set(microphoneTokens).intersection(negations)
+        let compatibleRemote = remote.filter {
+            Set(normalizedWords($0.text)).intersection(negations) == microphoneNegations
+        }
+        let remoteTokens = compatibleRemote.flatMap { normalizedWords($0.text) }
         guard remoteTokens.count >= 4 else { return false }
         let microphoneText = microphoneTokens.joined(separator: " ")
         let remoteText = remoteTokens.joined(separator: " ")
@@ -230,7 +303,7 @@ struct MeetingTranscript: Codable, Sendable {
     private static func normalizedWords(_ text: String) -> [String] {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && $0 != "uh" && $0 != "um" }
     }
 
     private static func adjacentPairs(_ words: [String]) -> [String] {

@@ -40,10 +40,12 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private let tableView = NSTableView()
     private let textView = TranscriptReaderView()
     private let countLabel = NSTextField(labelWithString: "")
-    private let statusLabel = NSTextField(labelWithString: "")
+    private let statusLabel = NSTextField(wrappingLabelWithString: "")
     private lazy var copyButton = KikiActionButton("Copy", kind: .primary, target: self, action: #selector(copySelected))
     private lazy var deleteButton = KikiActionButton("Delete", kind: .danger, target: self, action: #selector(deleteSelected))
     private lazy var clearButton = KikiActionButton(scope.clearTitle, kind: .danger, target: self, action: #selector(clearAll))
+    private lazy var summaryButton = KikiActionButton("Create Summary", kind: .primary, target: self, action: #selector(summarizeSelected))
+    private var isSummarizing = false
     private var tableSurface: KikiDataSurfaceView?
     private lazy var detailEmptyState = KikiEmptyStateView(
         symbol: scope == .meetings ? "person.2.wave.2" : "text.alignleft",
@@ -175,13 +177,24 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         detailCard.addSubview(detailHeader)
         detailCard.addSubview(textScroll)
         detailCard.addSubview(detailEmptyState)
+        if scope == .meetings {
+            summaryButton.identifier = NSUserInterfaceItemIdentifier("kiki.history.summary")
+            summaryButton.translatesAutoresizingMaskIntoConstraints = false
+            detailCard.addSubview(summaryButton)
+            NSLayoutConstraint.activate([
+                summaryButton.topAnchor.constraint(equalTo: detailHeader.bottomAnchor, constant: 10),
+                summaryButton.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 12),
+                summaryButton.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -12),
+                summaryButton.heightAnchor.constraint(equalToConstant: KikiMetrics.primaryControlHeight),
+            ])
+        }
         NSLayoutConstraint.activate([
             detailHeader.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 14),
             detailHeader.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -12),
             detailHeader.topAnchor.constraint(equalTo: detailCard.topAnchor, constant: 10),
             textScroll.leadingAnchor.constraint(equalTo: detailCard.leadingAnchor, constant: 1),
             textScroll.trailingAnchor.constraint(equalTo: detailCard.trailingAnchor, constant: -1),
-            textScroll.topAnchor.constraint(equalTo: detailHeader.bottomAnchor, constant: 10),
+            textScroll.topAnchor.constraint(equalTo: scope == .meetings ? summaryButton.bottomAnchor : detailHeader.bottomAnchor, constant: 10),
             textScroll.bottomAnchor.constraint(equalTo: detailCard.bottomAnchor, constant: -1),
             detailEmptyState.leadingAnchor.constraint(equalTo: textScroll.leadingAnchor),
             detailEmptyState.trailingAnchor.constraint(equalTo: textScroll.trailingAnchor),
@@ -276,6 +289,48 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         statusLabel.stringValue = "Transcript copied."
     }
 
+    @objc private func summarizeSelected() {
+        guard !isSummarizing, let record = selectedRecord,
+              let meeting = MeetingTranscript.restoringSavedText(record.text, title: record.context ?? "Meeting", createdAt: record.createdAt, duration: record.duration) else {
+            statusLabel.stringValue = "Select a saved meeting with timestamped speech first."
+            return
+        }
+        isSummarizing = true
+        tableView.isEnabled = false
+        updateActionAvailability()
+        statusLabel.stringValue = "Creating a local summary; your transcript stays unchanged…"
+        Task { [weak self] in
+            guard let self else { return }
+            defer {
+                self.isSummarizing = false
+                self.tableView.isEnabled = true
+                self.updateActionAvailability()
+            }
+            do {
+                let result = try await MeetingSummaryGenerator.generate(from: meeting) { [weak self] progress in
+                    self?.statusLabel.stringValue = progress
+                }
+                guard TranscriptionHistoryStore.shared.records.contains(where: { $0.id == record.id && $0.text == record.text }) else {
+                    self.statusLabel.stringValue = "This meeting changed during generation. Select it and try again; nothing was overwritten."
+                    return
+                }
+                let updated = MeetingTranscript.replacingSummary(in: record.text, with: result.markdown)
+                TranscriptionHistoryStore.shared.update(id: record.id, text: updated)
+                if let row = self.visibleRecords.firstIndex(where: { $0.id == record.id }) {
+                    self.tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                }
+                self.textView.string = updated
+                self.textView.scrollToBeginningOfDocument(nil)
+                self.detailEmptyState.isHidden = true
+                self.statusLabel.stringValue = result.warnings.isEmpty
+                    ? "Summary updated locally. Review it before sharing; original transcript preserved."
+                    : "Incomplete draft saved: some sections need manual review. See Review required in the notes. Full transcript preserved."
+            } catch {
+                self.statusLabel.stringValue = error.localizedDescription
+            }
+        }
+    }
+
     @objc private func deleteSelected() {
         guard let record = selectedRecord else {
             statusLabel.stringValue = "Choose a transcription before deleting."
@@ -333,7 +388,10 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private func updateActionAvailability() {
         let hasSelection = selectedRecord != nil
         copyButton.isEnabled = hasSelection
-        deleteButton.isEnabled = hasSelection
+        deleteButton.isEnabled = hasSelection && !isSummarizing
+        clearButton.isEnabled = !visibleRecords.isEmpty && !isSummarizing
+        summaryButton.isEnabled = hasSelection && !isSummarizing
+        summaryButton.title = isSummarizing ? "Creating Summary…" : (selectedRecord?.text.contains("## Summary") == true ? "Refresh Summary" : "Create Summary")
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {

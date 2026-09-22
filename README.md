@@ -30,7 +30,7 @@ Kiki recommends Parakeet TDT v2 on Apple Silicon and Whisper Small English on In
 
 - Fully local dictation into any Mac app, with hold or hands-free shortcuts and a live listening display
 - **Transcripts**: bounded dictation/audio history, a separate meetings library, meeting capture with microphone and Mac audio, and audio-file imports
-- Editable meeting transcripts with an on-device Summary / Key points / Next steps brief, copy and export, speaker editing, and optional meeting-folder auto-export
+- Editable meeting transcripts with an on-device Summary / Key points / Next steps brief, copy and export, speaker editing, and optional meeting-folder auto-export. Summary generation requires macOS 26+ with Apple Intelligence available; transcription remains available independently.
 - **Words & Replacements**: explicit spelling replacements, approved legacy rules, optional context vocabulary, and voice snippets
 - **Guided start**: an orientation home explains setup, the menu-bar workflow, the shortcut, and the first dictation
 - **Settings**: microphone, shortcuts, speech style, local engines, privacy, updates, and troubleshooting
@@ -44,6 +44,8 @@ Kiki does not upload recordings, transcripts, dictionary entries, or history. Di
 - Hold your configured shortcut in a text field, speak, and release to insert. **⌃⌥D** also toggles hands-free recording. Change the shortcut in **Settings → Dictation**.
 - Press **Esc** to cancel a recording. Use the menu-bar **Undo Last Dictation** or **Retry Last Dictation** actions for recovery.
 - Open **Transcripts → History** for routine dictation and imported audio, **Meetings** for completed meetings, **Capture Meeting** to record microphone and Mac audio, or **Import Audio** to transcribe a file.
+- In **Transcripts → Meetings**, select a saved meeting and choose **Create Summary** or **Refresh Summary**. Generation shows progress and preserves the original transcript. Long meetings are processed in bounded parts; extracted next steps include verbatim source entries for review. If the model declines a section, the result is explicitly marked as an **incomplete draft** with review gaps, not a complete summary. Other generation failures leave saved notes untouched instead of substituting opening remarks. Always review generated notes before sharing.
+- A late exchange of farewells may mark subsequent speech as **Possible post-meeting content** in new exports. This is a review hint, not a confirmed meeting boundary; no speech is automatically deleted. Speaker labels are source-based and sentence timestamps are estimates, not word-level alignment.
 - Open **Words & Replacements → Replacements** to enter an exact replacement. Existing dictionary entries and approved rules are shown together. Kiki does not monitor your edits or create a learning inbox.
 - **Vocabulary** imports names and terms only from sources you choose. **Snippets** insert saved text when a dictation exactly matches a trigger; templates support `{{date}}`, `{{time}}`, and `{{clipboard}}`.
 - Use **Start Private Session** in the menu bar to pause dictation history until you end the session or quit. Add private apps with the chooser in **Settings → Private Apps**.

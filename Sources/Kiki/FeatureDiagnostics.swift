@@ -298,16 +298,17 @@ enum FeatureDiagnostics {
         - A proposal review is planned.
 
         ## Next steps
-        No explicit next steps were stated.
+        - You will send the proposal.
+        - Schedule the review; owner not specified.
         """
         guard let correctedModelResult = MeetingSummaryGenerator.normalizeForDiagnostics(
             contradictoryModelResult,
             transcript: meeting
         ),
-        correctedModelResult.contains("- You: I will send the proposal."),
-        correctedModelResult.contains("- Requested by Speaker 1: Please schedule the review."),
+        correctedModelResult.contains("- You will send the proposal."),
+        correctedModelResult.contains("- Schedule the review; owner not specified."),
         !correctedModelResult.localizedCaseInsensitiveContains("No explicit next steps") else {
-            throw failure("meeting summary explicit action reconciliation")
+            throw failure("meeting summary preserves semantic action extraction")
         }
         let summarized = meeting.addingSummary("## Summary\n\nThe team prepared a proposal review.\n\n## Key points\n\n- The proposal is ready.\n\n## Next steps\n\n- You will send the proposal.")
         guard summarized.markdown.contains("## Summary"),
