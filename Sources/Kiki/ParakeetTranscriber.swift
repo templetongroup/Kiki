@@ -64,10 +64,11 @@ final class ParakeetTranscriber {
     /// Kiki still runs the normal batch pass afterward for final accuracy.
     func makeLiveSession(
         audio: AsyncStream<[Float]>,
+        rollingMeetingWindows: Bool = false,
         onUpdate: @escaping @MainActor (String) -> Void
     ) -> ParakeetLiveSession {
         let session = ParakeetLiveSession(manager: AsrManager(models: models))
-        session.start(audio: audio, onUpdate: onUpdate)
+        session.start(audio: audio, rollingMeetingWindows: rollingMeetingWindows, onUpdate: onUpdate)
         return session
     }
 }
@@ -119,10 +120,10 @@ final class AudioSampleFeed: @unchecked Sendable {
 /// Owns the streaming bridge used by long-running surfaces such as Meeting Mode.
 /// Final transcription still uses the complete recording for maximum accuracy.
 final class MeetingLiveTranscription: @unchecked Sendable {
-    private let feed: AudioSampleFeed
+    private let feed: MeetingPreviewFeed
     private let session: ParakeetLiveSession
 
-    init(feed: AudioSampleFeed, session: ParakeetLiveSession) {
+    init(feed: MeetingPreviewFeed, session: ParakeetLiveSession) {
         self.feed = feed
         self.session = session
     }
@@ -146,6 +147,7 @@ final class ParakeetLiveSession: @unchecked Sendable {
 
     func start(
         audio: AsyncStream<[Float]>,
+        rollingMeetingWindows: Bool = false,
         onUpdate: @escaping @MainActor (String) -> Void
     ) {
         previewTask = Task { [manager] in
@@ -157,8 +159,14 @@ final class ParakeetLiveSession: @unchecked Sendable {
 
             for await chunk in audio {
                 guard !Task.isCancelled else { return }
-                accumulated.append(contentsOf: chunk)
-                guard accumulated.count >= nextPreviewAt else { continue }
+                if rollingMeetingWindows {
+                    // Already a continuous, bounded snapshot from the capture
+                    // feed. Never append overlapping snapshots to one another.
+                    accumulated = chunk
+                } else {
+                    accumulated.append(contentsOf: chunk)
+                }
+                guard rollingMeetingWindows || accumulated.count >= nextPreviewAt else { continue }
 
                 // Refresh quickly at the start so short dictations get visible
                 // text, then back off for longer passages to limit inference work.

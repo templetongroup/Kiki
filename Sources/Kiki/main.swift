@@ -584,7 +584,7 @@ if args.count >= 2, args[1] == "--benchmark-postprocessing" {
     }
 }
 
-if args.count >= 3, args[1] == "--transcribe-live-file" {
+if args.count >= 3, ["--transcribe-live-file", "--transcribe-meeting-preview-file"].contains(args[1]) {
     let audioURL = URL(fileURLWithPath: args[2])
     Task { @MainActor in
         do {
@@ -598,18 +598,30 @@ if args.count >= 3, args[1] == "--transcribe-live-file" {
             fputs("Loading model: \(selectedModel.displayName)\n", stderr)
             let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
             let feed = AudioSampleFeed()
+            let meetingFeed = MeetingPreviewFeed()
+            let meetingPreview = args[1] == "--transcribe-meeting-preview-file"
             let startedAt = Date()
-            let session = transcriber.makeLiveSession(audio: feed.stream) { text in
+            fputs("Model ready; starting paced preview\n", stderr)
+            let session = transcriber.makeLiveSession(
+                audio: meetingPreview ? meetingFeed.stream : feed.stream,
+                rollingMeetingWindows: meetingPreview
+            ) { text in
                 let elapsed = Date().timeIntervalSince(startedAt)
                 print(String(format: "PARTIAL +%.2fs: %@", elapsed, text))
+                fflush(stdout)
             }
             let chunkSize = 1600
             for start in stride(from: 0, to: samples.count, by: chunkSize) {
-                feed.yield(Array(samples[start..<min(start + chunkSize, samples.count)]))
+                let chunk = Array(samples[start..<min(start + chunkSize, samples.count)])
+                if meetingPreview { meetingFeed.yield(chunk) }
+                else { feed.yield(chunk) }
                 try await Task.sleep(for: .milliseconds(100))
             }
             feed.finish()
+            meetingFeed.finish()
+            fputs("Audio feed finished; draining preview\n", stderr)
             await session.finish()
+            fputs("Preview drained\n", stderr)
             exit(0)
         } catch {
             fputs("Error: \(error)\n", stderr)
@@ -619,7 +631,7 @@ if args.count >= 3, args[1] == "--transcribe-live-file" {
     RunLoop.main.run()
 }
 
-if args.count >= 3, args[1] == "--transcribe-file" {
+if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file"].contains(args[1]) {
     do {
         let samples = try AudioFileLoader.load16kMono(url: URL(fileURLWithPath: args[2]))
         fputs("Audio: \(String(format: "%.1f", Double(samples.count) / 16000))s\n", stderr)
@@ -630,7 +642,13 @@ if args.count >= 3, args[1] == "--transcribe-file" {
             Task {
                 do {
                     let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
-                    print(await transcriber.transcribe(samples))
+                    if args[1] == "--transcribe-meeting-file" {
+                        for range in MeetingAudioChunks.ranges(samples) {
+                            print(await transcriber.transcribe(Array(samples[range])))
+                        }
+                    } else {
+                        print(await transcriber.transcribe(samples))
+                    }
                     exit(0)
                 } catch {
                     fputs("Error: \(error)\n", stderr)

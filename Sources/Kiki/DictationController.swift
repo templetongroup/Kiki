@@ -342,8 +342,8 @@ final class DictationController {
         onUpdate: @escaping @MainActor (String) -> Void
     ) -> MeetingLiveTranscription? {
         guard let parakeetTranscriber else { return nil }
-        let feed = AudioSampleFeed()
-        let session = parakeetTranscriber.makeLiveSession(audio: feed.stream, onUpdate: onUpdate)
+        let feed = MeetingPreviewFeed()
+        let session = parakeetTranscriber.makeLiveSession(audio: feed.stream, rollingMeetingWindows: true, onUpdate: onUpdate)
         return MeetingLiveTranscription(feed: feed, session: session)
     }
 
@@ -403,16 +403,12 @@ final class DictationController {
         speaker: String
     ) async throws -> [MeetingTranscriptSegment] {
         guard !samples.isEmpty else { return [] }
-        let chunkSize = Int(30 * AudioRecorder.sampleRate)
+        let ranges = MeetingAudioChunks.ranges(samples)
         var segments: [MeetingTranscriptSegment] = []
-        var offset = 0
-        let total = Int(ceil(Double(samples.count) / Double(chunkSize)))
-        var index = 0
-        while offset < samples.count {
-            let end = min(samples.count, offset + chunkSize)
-            let chunk = Array(samples[offset..<end])
-            offset = end
-            index += 1
+        let total = ranges.count
+        for (chunkIndex, range) in ranges.enumerated() {
+            let chunk = Array(samples[range])
+            let index = chunkIndex + 1
             if state != .recording {
                 hud.show("Transcribing meeting · \(speaker) · \(index)/\(total)")
             }
@@ -435,8 +431,8 @@ final class DictationController {
             guard !text.isEmpty else { continue }
             segments.append(contentsOf:
                 MeetingTranscriptSegment.sentenceSegments(
-                    startTime: Double(end - chunk.count) / AudioRecorder.sampleRate,
-                    endTime: Double(end) / AudioRecorder.sampleRate,
+                    startTime: Double(range.lowerBound) / AudioRecorder.sampleRate,
+                    endTime: Double(range.upperBound) / AudioRecorder.sampleRate,
                     speaker: speaker,
                     text: text
                 )

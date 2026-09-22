@@ -300,7 +300,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             do {
                 let preview = onBeginLiveTranscription? { [weak self] text in
                     guard let self, self.isRecording else { return }
-                    self.textView.string = "LIVE DRAFT · YOU\n\n\(text)"
+                    self.textView.string = "LIVE PREVIEW · YOU · LAST 12 SECONDS\n\n\(text)"
                 }
                 liveTranscription = preview
                 captureSession.setMicrophoneSamplesHandler { [weak preview] samples in
@@ -315,8 +315,8 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 transcriptEmptyState.isHidden = true
                 textView.string = preview == nil
                     ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
-                    : "LIVE DRAFT · YOU\n\nListening…"
-                statusLabel.stringValue = "Recording locally — remote audio is active. Live draft shows You; identify the other speakers after transcription."
+                    : "LIVE PREVIEW · YOU · LAST 12 SECONDS\n\nListening…"
+                statusLabel.stringValue = "Recording both sides locally. Preview shows your recent speech; the complete transcript appears after Stop & Transcribe."
                 startTimer()
             } catch {
                 captureSession.setMicrophoneSamplesHandler(nil)
@@ -367,12 +367,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         captureSession.setMicrophoneSamplesHandler(nil)
         let preview = liveTranscription
         liveTranscription = nil
-        Task { await preview?.stop() }
         let title = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         Task { [weak self] in
             guard let self else { return }
             defer { onCaptureStateChange?(false) }
             let capture = await captureSession.stop()
+            // Finish preview inference before starting the final pass. Capturing
+            // stops first so waiting for the model cannot extend the recording.
+            await preview?.stop()
             var archiveMessage = ""
             if Settings.saveMeetingAudio {
                 do {
