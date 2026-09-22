@@ -6,6 +6,23 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.67</title>
+            <pubDate>Tue, 22 Sep 2026 16:23:00 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.67</link>
+            <sparkle:version>100</sparkle:version>
+            <sparkle:shortVersionString>0.6.67</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.67
+
+- Fix the blank reading panel when selecting a saved meeting or transcript.
+- Start selected transcripts at the top so existing meeting summaries are visible first.
+- Clear stale copy/delete status when selecting another record.
+- Preserve saved text and summaries without migration or rewriting.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.67/Kiki-0.6.67-macOS.zip" length="8753790" type="application/octet-stream" sparkle:edSignature="oeegjts3bJhz/5DI3EKFcevmW+hWH+ON1dysGgNewqUtNCqW7BhcJmNVwRdFaoTY37sVie1zISBA0z9XIxmKCg=="/>
+        </item>
+        <item>
             <title>0.6.66</title>
             <pubDate>Tue, 22 Sep 2026 11:44:30 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.66</link>
