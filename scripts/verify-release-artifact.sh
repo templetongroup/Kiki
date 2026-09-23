@@ -30,6 +30,7 @@ if [[ ! -d "$APP" || ! -x "$EXECUTABLE" || ! -f "$PLIST" ]]; then
 fi
 
 plutil -lint "$PLIST" >/dev/null
+bash scripts/test-whisper-metal.sh "$APP/Contents/Resources/ggml-metal.metal"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")"
 BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")"
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")"
