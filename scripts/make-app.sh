@@ -43,7 +43,8 @@ cp Assets/templeton-technologies-logo.png "$APP/Contents/Resources/TempletonTech
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 
 # Metal shader source: ggml compiles this at runtime for GPU acceleration.
-cp Vendor/whisper.cpp/ggml/src/ggml-metal.metal "$APP/Contents/Resources/"
+bash scripts/prepare-whisper-metal.sh "$APP/Contents/Resources/ggml-metal.metal"
+bash scripts/test-whisper-metal.sh "$APP/Contents/Resources/ggml-metal.metal"
 
 # SwiftPM resource bundles, if any were produced.
 for bundle in .build/release/*.bundle; do
