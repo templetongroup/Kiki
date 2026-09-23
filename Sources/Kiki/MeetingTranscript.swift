@@ -1,5 +1,11 @@
 import Foundation
 
+struct MeetingWordTiming: Codable, Sendable {
+    let text: String
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+}
+
 struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
     let id: UUID
     let startTime: TimeInterval
@@ -25,7 +31,8 @@ struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
         startTime: TimeInterval,
         endTime: TimeInterval,
         speaker: String,
-        text: String
+        text: String,
+        words: [MeetingWordTiming] = []
     ) -> [MeetingTranscriptSegment] {
         var pieces: [String] = []
         text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: .bySentences) { sentence, _, _, _ in
@@ -34,10 +41,38 @@ struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
                 if !trimmed.isEmpty { pieces.append(trimmed) }
             }
         }
+        // Map sentences back to recognizer word spans, including leading/interior
+        // silence. Only use timing when the recognized words account for the
+        // complete displayed text; post-processing must not misalign evidence.
+        func characters(_ value: String) -> String {
+            String(value.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        }
+        let spoken = words.filter { !characters($0.text).isEmpty }
+        let duration = max(0.001, endTime - startTime)
+        if !spoken.isEmpty,
+           spoken.map({ characters($0.text) }).joined() == characters(text),
+           spoken.allSatisfy({ $0.startTime.isFinite && $0.endTime.isFinite && $0.startTime >= 0 && $0.startTime <= duration && $0.endTime >= $0.startTime && $0.endTime <= duration + 0.1 }),
+           zip(spoken, spoken.dropFirst()).allSatisfy({ $0.startTime <= $1.startTime }) {
+            var offset = 0
+            let spans = spoken.map { word -> (Int, Int, MeetingWordTiming) in
+                let lower = offset
+                offset += characters(word.text).count
+                return (lower, offset, word)
+            }
+            var position = 0
+            let timed = pieces.compactMap { piece -> MeetingTranscriptSegment? in
+                let lower = position
+                position += characters(piece).count
+                let matching = spans.filter { $0.1 > lower && $0.0 < position }
+                guard let first = matching.first?.2, let last = matching.last?.2 else { return nil }
+                return MeetingTranscriptSegment(startTime: startTime + first.startTime,
+                    endTime: min(endTime, startTime + last.endTime), speaker: speaker, text: piece)
+            }
+            if timed.count == pieces.count { return timed }
+        }
         guard pieces.count > 1 else {
             return [MeetingTranscriptSegment(startTime: startTime, endTime: endTime, speaker: speaker, text: text)]
         }
-        let duration = max(0.001, endTime - startTime)
         return pieces.enumerated().map { index, piece in
             let pieceStart = startTime + duration * Double(index) / Double(pieces.count)
             let pieceEnd = startTime + duration * Double(index + 1) / Double(pieces.count)

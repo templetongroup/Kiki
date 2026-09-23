@@ -631,7 +631,7 @@ if args.count >= 3, ["--transcribe-live-file", "--transcribe-meeting-preview-fil
     RunLoop.main.run()
 }
 
-if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file"].contains(args[1]) {
+if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file", "--transcribe-meeting-json"].contains(args[1]) {
     do {
         let samples = try AudioFileLoader.load16kMono(url: URL(fileURLWithPath: args[2]))
         fputs("Audio: \(String(format: "%.1f", Double(samples.count) / 16000))s\n", stderr)
@@ -642,7 +642,21 @@ if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file"].contains(
             Task {
                 do {
                     let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
-                    if args[1] == "--transcribe-meeting-file" {
+                    if args[1] == "--transcribe-meeting-json" {
+                        var segments: [MeetingTranscriptSegment] = []
+                        for (index, range) in MeetingAudioChunks.ranges(samples).enumerated() {
+                            let result = try await transcriber.transcribeMeetingChunk(Array(samples[range]))
+                            guard !result.text.isEmpty else { continue }
+                            segments += MeetingTranscriptSegment.sentenceSegments(
+                                startTime: Double(range.lowerBound) / 16000,
+                                endTime: Double(range.upperBound) / 16000,
+                                speaker: "Unassigned", text: result.text, words: result.words)
+                            fputs("Completed audio chunk \(index + 1)\n", stderr)
+                        }
+                        let encoder = JSONEncoder()
+                        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                        print(String(decoding: try encoder.encode(segments), as: UTF8.self))
+                    } else if args[1] == "--transcribe-meeting-file" {
                         for range in MeetingAudioChunks.ranges(samples) {
                             print(await transcriber.transcribe(Array(samples[range])))
                         }
@@ -657,11 +671,21 @@ if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file"].contains(
             }
             RunLoop.main.run()
         } else {
+            guard args[1] != "--transcribe-meeting-json" else {
+                throw KikiError("Word-timed meeting JSON currently requires a Parakeet model.")
+            }
             guard let modelURL = ModelStore.modelURL(for: selectedModel) else {
                 throw KikiError("Selected Whisper model is not installed.")
             }
             let transcriber = try WhisperTranscriber(modelPath: modelURL.path, language: Settings.language)
-            print(transcriber.transcribe(samples))
+            if args[1] == "--transcribe-meeting-file" {
+                for (index, range) in MeetingAudioChunks.ranges(samples).enumerated() {
+                    print(transcriber.transcribe(Array(samples[range])))
+                    fputs("Completed audio chunk \(index + 1)\n", stderr)
+                }
+            } else {
+                print(transcriber.transcribe(samples))
+            }
         }
         exit(0)
     } catch {

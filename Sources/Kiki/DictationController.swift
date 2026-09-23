@@ -416,8 +416,11 @@ final class DictationController {
             guard energy.squareRoot() > 0.002 else { continue }
 
             let raw: String
+            var wordTimings: [MeetingWordTiming] = []
             if let parakeetTranscriber {
-                raw = await parakeetTranscriber.transcribe(chunk)
+                let recognized = try await parakeetTranscriber.transcribeMeetingChunk(chunk)
+                raw = recognized.text
+                wordTimings = recognized.words
             } else if let whisperTranscriber {
                 raw = await withCheckedContinuation { continuation in
                     transcribeQueue.async {
@@ -434,7 +437,8 @@ final class DictationController {
                     startTime: Double(range.lowerBound) / AudioRecorder.sampleRate,
                     endTime: Double(range.upperBound) / AudioRecorder.sampleRate,
                     speaker: speaker,
-                    text: text
+                    text: text,
+                    words: wordTimings
                 )
             )
         }

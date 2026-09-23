@@ -52,6 +52,28 @@ struct KikiError: LocalizedError {
             exit(1)
         }
         print("PASS: summary actions preserved; instruction leakage rejected")
+        let timed = MeetingTranscriptSegment.sentenceSegments(startTime: 100, endTime: 130, speaker: "Alex", text: "Ready. Send it tomorrow.", words: [
+            .init(text: "Ready.", startTime: 2, endTime: 3),
+            .init(text: "Send", startTime: 25, endTime: 25.5),
+            .init(text: "it", startTime: 25.5, endTime: 26),
+            .init(text: "tomorrow.", startTime: 26, endTime: 27)
+        ])
+        precondition(timed.map(\.startTime) == [102, 125], "Sentence times must follow recognized speech, not divide the chunk evenly")
+        precondition(timed.map(\.endTime) == [103, 127], "Silence must not stretch sentence times")
+        let mismatched = MeetingTranscriptSegment.sentenceSegments(startTime: 100, endTime: 130, speaker: "Alex", text: "Different words.", words: [
+            .init(text: "Ready.", startTime: 2, endTime: 3)
+        ])
+        precondition(mismatched.first?.text == "Different words." && mismatched.first?.startTime == 100,
+                     "A post-processing text change must not inherit unrelated word timings")
+        let invalid = MeetingTranscriptSegment.sentenceSegments(startTime: 100, endTime: 130, speaker: "Alex", text: "Ready.", words: [
+            .init(text: "Ready.", startTime: .nan, endTime: 3)
+        ])
+        precondition(invalid.first?.startTime == 100, "Invalid acoustic times must not enter saved data")
+        let outside = MeetingTranscriptSegment.sentenceSegments(startTime: 100, endTime: 130, speaker: "Alex", text: "Ready.", words: [
+            .init(text: "Ready.", startTime: 30.05, endTime: 30.09)
+        ])
+        precondition(outside.first?.startTime == 100, "Words beginning outside a chunk must not create inverted time ranges")
+        print("PASS: acoustic sentence times preserve pauses and reject mismatched or invalid timing")
         let version = MeetingTranscriptSegment.sentenceSegments(startTime: 0, endTime: 10, speaker: "Alex", text: "Use version 2.5 for the pilot. Then review it.")
         guard version.count == 2, version[0].text == "Use version 2.5 for the pilot." else {
             fputs("FAIL: decimal version split into separate transcript entries\n", stderr)

@@ -60,6 +60,17 @@ final class ParakeetTranscriber {
         }
     }
 
+    /// Meeting finalization keeps acoustic timing and surfaces failures instead
+    /// of silently dropping a failed chunk from an otherwise complete transcript.
+    func transcribeMeetingChunk(_ samples: [Float]) async throws -> (text: String, words: [MeetingWordTiming]) {
+        var decoderState = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
+        let result = try await manager.transcribe(samples, decoderState: &decoderState)
+        let words = buildWordTimings(from: result.tokenTimings ?? []).map {
+            MeetingWordTiming(text: $0.word, startTime: $0.startTime, endTime: $0.endTime)
+        }
+        return (WhisperTranscriber.cleaned(result.text), words)
+    }
+
     /// Creates a low-latency preview session. The preview uses short windows;
     /// Kiki still runs the normal batch pass afterward for final accuracy.
     func makeLiveSession(
