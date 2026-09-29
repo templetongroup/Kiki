@@ -28,17 +28,14 @@ enum MeetingSummaryGenerator {
                         methodDescription: "Apple Intelligence on this Mac"
                     )
                 }
+                throw KikiError("The local model returned incomplete notes.")
             } catch {
-                // A usable local brief is still better than losing the action when
-                // the system model is temporarily busy or its context is unavailable.
+                throw KikiError("Summary generation failed. Your full transcript is preserved; no replacement summary was saved. (\(error.localizedDescription))")
             }
         }
 #endif
 
-        return MeetingSummaryResult(
-            markdown: extractiveSummary(from: transcript),
-            methodDescription: "local transcript highlights"
-        )
+        throw KikiError("Summary generation requires macOS 26 or later with Apple Intelligence enabled and its model ready. Your full transcript is preserved.")
     }
 
 #if canImport(FoundationModels)

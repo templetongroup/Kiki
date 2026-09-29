@@ -12,7 +12,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private lazy var recordButton = KikiActionButton("Start Meeting Capture", kind: .primary, target: self, action: #selector(toggleRecording))
     private let timerLabel = NSTextField(labelWithString: "00:00:00")
     private let statusLabel = NSTextField(wrappingLabelWithString: "Ready — Kiki verifies both your microphone and remote meeting audio before recording.")
-    private let textView = NSTextView()
+    private let textView = TranscriptReaderView()
     private let formatPopup = NSPopUpButton()
     private lazy var identifySpeakersButton = KikiActionButton("Identify Speakers…", kind: .hardware, target: self, action: #selector(identifySpeakers))
     private lazy var summaryButton = KikiActionButton("Create Summary", kind: .primary, target: self, action: #selector(createSummary))
@@ -82,6 +82,44 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     var preventsWorkbenchClose: Bool { isRecording }
+
+    func verifyReaderForDiagnostics(output: String, savedText: String? = nil) throws -> String {
+        guard let root = window?.contentView else { throw KikiError("Missing capture view") }
+        // Match the workbench's detach-and-embed lifecycle, not just a bare text view.
+        window?.contentView = NSView(frame: root.frame)
+        let host = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 740), styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        let container = host.contentView!
+        root.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(root)
+        NSLayoutConstraint.activate([
+            root.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            root.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            root.topAnchor.constraint(equalTo: container.topAnchor),
+            root.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        textView.string = savedText ?? ("## Summary\nDiagnostic summary\n\n## Transcript\n" + String(repeating: "Speaker: A saved meeting line.\n", count: 959))
+        transcriptEmptyState.isHidden = true
+        var states: [String] = []
+        for width in [960.0, 820.0, 1200.0] {
+        host.setContentSize(NSSize(width: width, height: 740))
+        container.layoutSubtreeIfNeeded()
+        textView.layoutManager?.ensureLayout(for: textView.textContainer!)
+        let state = "document=\(textView.frame) container=\(String(describing: textView.textContainer?.containerSize)) viewport=\(String(describing: textView.enclosingScrollView?.contentSize))"
+        guard textView.frame.width > 300, textView.frame.height > 220 else { throw KikiError("Blank capture reader: \(state)") }
+        textView.scrollToEndOfDocument(nil)
+        guard textView.visibleRect.maxY >= textView.frame.height - 1 else { throw KikiError("Transcript end unreachable") }
+        textView.scrollToBeginningOfDocument(nil)
+        guard textView.visibleRect.minY < 15 else { throw KikiError("Summary beginning unreachable") }
+        states.append(state)
+        }
+        if let image = root.bitmapImageRepForCachingDisplay(in: root.bounds) {
+            root.cacheDisplay(in: root.bounds, to: image)
+            if let png = image.representation(using: .png, properties: [:]) {
+                try png.write(to: URL(fileURLWithPath: output + ".png"))
+            }
+        }
+        return states.joined(separator: "\n")
+    }
 
     func showPreview(transcript: MeetingTranscript) {
         self.transcript = transcript
