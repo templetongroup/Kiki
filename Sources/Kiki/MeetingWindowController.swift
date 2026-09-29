@@ -34,6 +34,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private var liveTranscription: MeetingLiveTranscription?
     private var speakerEditor: MeetingSpeakerEditorWindowController?
     private var isSummarizing = false
+    private var summaryTask: Task<Void, Never>?
 
     init() {
         let window = NSWindow(
@@ -82,6 +83,31 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     var preventsWorkbenchClose: Bool { isRecording }
+
+    func verifySummaryCancellationForDiagnostics() async throws -> String {
+        let savedSummary = "## Summary\n\nExisting notes.\n\n## Key points\n\n- Existing point.\n\n## Next steps\n\n- Existing task."
+        let meeting = MeetingTranscript(title: "Cancellation diagnostic", createdAt: Date(), duration: 10,
+            segments: [.init(startTime: 0, endTime: 10, speaker: "Sam", text: "I will send the quote tomorrow.")],
+            actionItems: [], summaryMarkdown: savedSummary)
+        transcript = meeting
+        textView.string = meeting.markdown
+        for _ in 0..<2 {
+            createSummary()
+            guard isSummarizing, summaryButton.isEnabled, summaryButton.title == "Cancel Summary", !textView.isEditable else {
+                throw KikiError("Summary generation does not expose cancellation or protect editing.")
+            }
+            let job = summaryTask
+            createSummary()
+            await job?.value
+            guard !isSummarizing, summaryTask == nil, summaryButton.isEnabled,
+                  summaryButton.title == "Refresh Summary", textView.isEditable,
+                  transcript?.markdown == meeting.markdown, textView.string == meeting.markdown,
+                  statusLabel.stringValue.contains("cancelled") else {
+                throw KikiError("Cancelling changed saved notes or left the controls stuck.")
+            }
+        }
+        return "PASS: cancel and retry restore controls; existing summary and full transcript unchanged; no inference started"
+    }
 
     func verifyReaderForDiagnostics(output: String, savedText: String? = nil) throws -> String {
         guard let root = window?.contentView else { throw KikiError("Missing capture view") }
@@ -537,6 +563,13 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func createSummary() {
+        if isSummarizing {
+            summaryTask?.cancel()
+            summaryButton.isEnabled = false
+            summaryButton.title = "Cancelling…"
+            statusLabel.stringValue = "Cancelling summary; the transcript and saved notes will stay unchanged."
+            return
+        }
         guard let transcript, !isSummarizing else {
             statusLabel.stringValue = "Record and transcribe a meeting before creating a summary."
             return
@@ -544,15 +577,27 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         isSummarizing = true
         recordButton.isEnabled = false
         identifySpeakersButton.isEnabled = false
-        summaryButton.isEnabled = false
-        summaryButton.title = "Creating Summary…"
+        summaryButton.isEnabled = true
+        summaryButton.title = "Cancel Summary"
+        textView.isEditable = false
         statusLabel.stringValue = "Creating a private local summary from this meeting transcript…"
-        Task { [weak self] in
+        summaryTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                self.isSummarizing = false
+                self.summaryTask = nil
+                self.summaryButton.isEnabled = true
+                self.recordButton.isEnabled = true
+                self.identifySpeakersButton.isEnabled = true
+                self.textView.isEditable = true
+                self.summaryButton.title = self.transcript?.summaryMarkdown == nil ? "Create Summary" : "Refresh Summary"
+            }
             do {
                 let result = try await MeetingSummaryGenerator.generate(from: transcript) { [weak self] progress in
+                    guard !Task.isCancelled else { return }
                     self?.statusLabel.stringValue = progress
                 }
+                try Task.checkCancellation()
                 let revised = transcript.addingSummary(result.markdown)
                 self.transcript = revised
                 self.textView.string = revised.markdown
@@ -569,14 +614,13 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                     ? "Summary created with \(result.methodDescription). Review or edit it before sharing."
                     : "Incomplete draft: some sections need manual review. See Review required in the notes; full transcript preserved."
                 self.summaryButton.title = "Refresh Summary"
+            } catch is CancellationError {
+                self.statusLabel.stringValue = "Summary cancelled. Your transcript and existing notes are unchanged."
             } catch {
-                self.statusLabel.stringValue = "Summary could not be created: \(error.localizedDescription)"
-                self.summaryButton.title = transcript.summaryMarkdown == nil ? "Create Summary" : "Refresh Summary"
+                self.statusLabel.stringValue = Task.isCancelled
+                    ? "Summary cancelled. Your transcript and existing notes are unchanged."
+                    : "Summary could not be created: \(error.localizedDescription)"
             }
-            self.isSummarizing = false
-            self.summaryButton.isEnabled = true
-            self.recordButton.isEnabled = true
-            self.identifySpeakersButton.isEnabled = true
         }
     }
 

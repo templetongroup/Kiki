@@ -7,6 +7,23 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 3, args[1] == "--verify-summary-cancellation" {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.accessory)
+    app.finishLaunching()
+    Task { @MainActor in
+        do {
+            let controller = MeetingWindowController()
+            let result = try await controller.verifySummaryCancellationForDiagnostics()
+            try result.write(toFile: args[2], atomically: true, encoding: .utf8)
+            exit(0)
+        } catch {
+            try? ("FAIL: " + error.localizedDescription).write(toFile: args[2], atomically: true, encoding: .utf8)
+            exit(1)
+        }
+    }
+    RunLoop.main.run()
+}
 if args.count >= 3, args[1] == "--verify-capture-reader" {
     MainActor.assumeIsolated {
         let app = NSApplication.shared

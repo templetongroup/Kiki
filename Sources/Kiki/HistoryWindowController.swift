@@ -46,6 +46,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     private lazy var clearButton = KikiActionButton(scope.clearTitle, kind: .danger, target: self, action: #selector(clearAll))
     private lazy var summaryButton = KikiActionButton("Create Summary", kind: .primary, target: self, action: #selector(summarizeSelected))
     private var isSummarizing = false
+    private var summaryTask: Task<Void, Never>?
     private var tableSurface: KikiDataSurfaceView?
     private lazy var detailEmptyState = KikiEmptyStateView(
         symbol: scope == .meetings ? "person.2.wave.2" : "text.alignleft",
@@ -290,6 +291,13 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     @objc private func summarizeSelected() {
+        if isSummarizing {
+            summaryTask?.cancel()
+            summaryButton.isEnabled = false
+            summaryButton.title = "Cancelling…"
+            statusLabel.stringValue = "Cancelling summary; your saved transcript and notes will stay unchanged."
+            return
+        }
         guard !isSummarizing, let record = selectedRecord,
               let meeting = MeetingTranscript.restoringSavedText(record.text, title: record.context ?? "Meeting", createdAt: record.createdAt, duration: record.duration) else {
             statusLabel.stringValue = "Select a saved meeting with timestamped speech first."
@@ -299,17 +307,20 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         tableView.isEnabled = false
         updateActionAvailability()
         statusLabel.stringValue = "Creating a local summary; your transcript stays unchanged…"
-        Task { [weak self] in
+        summaryTask = Task { [weak self] in
             guard let self else { return }
             defer {
                 self.isSummarizing = false
+                self.summaryTask = nil
                 self.tableView.isEnabled = true
                 self.updateActionAvailability()
             }
             do {
                 let result = try await MeetingSummaryGenerator.generate(from: meeting) { [weak self] progress in
+                    guard !Task.isCancelled else { return }
                     self?.statusLabel.stringValue = progress
                 }
+                try Task.checkCancellation()
                 guard TranscriptionHistoryStore.shared.records.contains(where: { $0.id == record.id && $0.text == record.text }) else {
                     self.statusLabel.stringValue = "This meeting changed during generation. Select it and try again; nothing was overwritten."
                     return
@@ -325,8 +336,12 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
                 self.statusLabel.stringValue = result.warnings.isEmpty
                     ? "Summary updated locally. Review it before sharing; original transcript preserved."
                     : "Incomplete draft saved: some sections need manual review. See Review required in the notes. Full transcript preserved."
+            } catch is CancellationError {
+                self.statusLabel.stringValue = "Summary cancelled. Your transcript and existing notes are unchanged."
             } catch {
-                self.statusLabel.stringValue = error.localizedDescription
+                self.statusLabel.stringValue = Task.isCancelled
+                    ? "Summary cancelled. Your transcript and existing notes are unchanged."
+                    : error.localizedDescription
             }
         }
     }
@@ -390,8 +405,8 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         copyButton.isEnabled = hasSelection
         deleteButton.isEnabled = hasSelection && !isSummarizing
         clearButton.isEnabled = !visibleRecords.isEmpty && !isSummarizing
-        summaryButton.isEnabled = hasSelection && !isSummarizing
-        summaryButton.title = isSummarizing ? "Creating Summary…" : (selectedRecord?.text.contains("## Summary") == true ? "Refresh Summary" : "Create Summary")
+        summaryButton.isEnabled = isSummarizing || hasSelection
+        summaryButton.title = isSummarizing ? "Cancel Summary" : (selectedRecord?.text.contains("## Summary") == true ? "Refresh Summary" : "Create Summary")
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {

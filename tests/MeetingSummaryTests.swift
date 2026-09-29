@@ -9,7 +9,8 @@ struct KikiError: LocalizedError {
 @main struct MeetingSummaryTests {
     static func main() async throws {
         if (CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--evaluate") ||
-           (CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--render-draft") {
+           (CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--render-draft") ||
+           (CommandLine.arguments.count == 5 && ["--audit-action", "--audit-source"].contains(CommandLine.arguments[1])) {
             let text = try String(contentsOfFile: CommandLine.arguments[2], encoding: .utf8)
             let expression = try NSRegularExpression(pattern: #"(?m)^- Duration: (\d{2,}):(\d\d):(\d\d)"#)
             let ns = text as NSString
@@ -21,6 +22,27 @@ struct KikiError: LocalizedError {
                 throw KikiError("No timestamped transcript entries found.")
             }
             do {
+                if ["--audit-action", "--audit-source"].contains(CommandLine.arguments[1]) {
+                    let prefix = CommandLine.arguments[3]
+                    var actions: [LocalMeetingSummarizer.Action] = []
+                    for index in 1...32 {
+                        let path = prefix + "-\(index).json"
+                        guard FileManager.default.fileExists(atPath: path) else { break }
+                        actions += try JSONDecoder().decode(LocalMeetingSummarizer.Notes.self, from: Data(contentsOf: URL(fileURLWithPath: path))).actions
+                    }
+                    guard let index = Int(CommandLine.arguments[4]), index > 0, index <= actions.count else { throw KikiError("Invalid evaluation candidate index") }
+                    if CommandLine.arguments[1] == "--audit-source" {
+                        let candidate = actions[index - 1]
+                        print(LocalMeetingSummarizer.reviewSource(text: candidate.task, references: candidate.entries ?? [], quotes: candidate.quotes,
+                            entries: input.summarySource.components(separatedBy: "\n\n").filter { !$0.isEmpty }))
+                        return
+                    }
+                    let result = try await LocalMeetingSummarizer.reviewAction(actions[index - 1],
+                        entries: input.summarySource.components(separatedBy: "\n\n").filter { !$0.isEmpty },
+                        model: ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"] ?? "apple")
+                    print(String(decoding: try JSONEncoder().encode(result.map { [$0] } ?? []), as: UTF8.self))
+                    return
+                }
                 let result: MeetingSummaryResult
                 if CommandLine.arguments[1] == "--render-draft" {
                     let notes = try JSONDecoder().decode(LocalMeetingSummarizer.Notes.self,
@@ -39,6 +61,29 @@ struct KikiError: LocalizedError {
                                 encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
                                 try encoder.encode(notes).write(to: URL(fileURLWithPath: prefix + "-\(index).json"), options: .atomic)
                             }
+                        }, inspectAction: { index, candidate, reviewed in
+                            if let prefix = ProcessInfo.processInfo.environment["KIKI_EVALUATION_AUDIT_PREFIX"] {
+                                struct Trace: Codable {
+                                    let candidate: LocalMeetingSummarizer.Action
+                                    let reviewed: LocalMeetingSummarizer.Action?
+                                }
+                                let encoder = JSONEncoder()
+                                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                                try encoder.encode(Trace(candidate: candidate, reviewed: reviewed)).write(
+                                    to: URL(fileURLWithPath: prefix + "-\(index).json"), options: .atomic)
+                            }
+                        }, savedSections: try ProcessInfo.processInfo.environment["KIKI_EVALUATION_CACHED_SECTION_PREFIX"].map { prefix in
+                            let original = input.summarySource.components(separatedBy: "\n\n").filter { !$0.isEmpty }
+                            let numbered = original.enumerated().map { "ENTRY \($0.offset + 1):\n\($0.element)" }.joined(separator: "\n\n")
+                            let count = try LocalMeetingSummarizer.sourceParts(numbered, maximumBytes: model == "apple" ? 5_000 : 14_000).count
+                            var cached: [LocalMeetingSummarizer.Notes] = []
+                            for index in 1...count {
+                                let path = prefix + "-\(index).json"
+                                guard FileManager.default.fileExists(atPath: path) else { break }
+                                cached.append(try JSONDecoder().decode(LocalMeetingSummarizer.Notes.self,
+                                    from: Data(contentsOf: URL(fileURLWithPath: path))))
+                            }
+                            return cached
                         })
                 } else {
                     result = try await MeetingSummaryGenerator.generate(from: input) { fputs($0 + "\n", stderr) }
@@ -235,6 +280,46 @@ struct KikiError: LocalizedError {
         precondition(LocalMeetingSummarizer.evidenceForQuotes([
             "We operate fourteen laptops at this location.", "We will buy ten computers next week."
         ], entries: separateEvidence) == nil)
+        precondition(LocalMeetingSummarizer.evidenceForReferences([1, 2], quotes: [], entries: separateEvidence) == separateEvidence.joined(separator: "\n  "))
+        precondition(LocalMeetingSummarizer.evidenceForReferences([0], quotes: [], entries: separateEvidence) == nil)
+        precondition(LocalMeetingSummarizer.evidenceForReferences([3], quotes: [], entries: separateEvidence) == nil)
+        let auditSource = "ENTRY 4:\n[00:01:00] Sam: I will send the quote.\n\nENTRY 9:\n[00:02:00] Sam: Tomorrow."
+        precondition(LocalMeetingSummarizer.reviewedClaimHasValidReferences("Sam will send the quote tomorrow.", references: [4, 9], source: auditSource))
+        precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("Sam will send the quote.", references: [5], source: auditSource), "A verifier cannot cite unseen speech")
+        precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("", references: [4], source: auditSource), "A kept claim must contain text")
+        precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("Audit only this proposed follow-up. Cite original ENTRY numbers.", references: [4], source: auditSource), "Review instructions are not meeting notes")
+        let correctionEntries = ["[00:00:01] Alex: We think the storage contract includes offsite storage."] +
+            (1...30).map { "[00:01:00] Sam: Unrelated printer discussion \($0)." } +
+            ["[00:30:00] Morgan: Correction: the storage contract excludes offsite storage."]
+        let review = LocalMeetingSummarizer.reviewSource(text: "The storage contract includes offsite storage", references: [1], quotes: [], entries: correctionEntries)
+        precondition(review.contains("ENTRY 1:") && review.contains("ENTRY 32:") && review.contains("excludes offsite"),
+                     "A later correction outside the original section must reach semantic review")
+        let interleaved = ["[00:00:01] Sam: Please share the equipment spreadsheet."] +
+            (1...15).map { "[00:00:10] Alex: Brief interleaved response \($0)." } +
+            ["[00:01:00] Morgan: I will update the list and email it in the next few days."]
+        let context = LocalMeetingSummarizer.reviewSource(text: "Share the equipment spreadsheet", references: [1], quotes: [], entries: interleaved)
+        precondition(context.contains("ENTRY 17:") && context.contains("next few days"), "Interleaved responses must not hide the commitment after a request")
+        let cited = LocalMeetingSummarizer.Notes(overview: "The prototype will be sent.",
+            points: [.init(text: "A prototype will be sent.", quotes: [], entries: [2])],
+            actions: [.init(task: "Send the prototype tomorrow.", quotes: [], entries: [2])], openQuestions: [])
+        let citedResult = try LocalMeetingSummarizer.render(cited, transcript: meeting, model: "test")
+        precondition(citedResult.warnings.isEmpty && citedResult.markdown.contains("Send the prototype tomorrow."),
+                     "Source references preserve valid actions without model-copied quotes")
+        precondition(LocalMeetingSummarizer.displayText("Send the prototype tomorrow. (ENTRY 2)", references: [2]) == "Send the prototype tomorrow.")
+        precondition(LocalMeetingSummarizer.displayText("Send 45 files. (ENTRY 2)", references: [2]).contains("45"),
+                     "Removing source metadata must not remove an unsupported spoken quantity")
+        let checkedActions = [LocalMeetingSummarizer.Action(task: "Morgan will email Priya the overall box volume", quotes: [], entries: [7, 8]),
+                              .init(task: "Priya will send Morgan the revised floor plan tomorrow", quotes: [], entries: [12])]
+        let retained = LocalMeetingSummarizer.retainingAuditedActions([checkedActions[0]], audited: checkedActions)
+        precondition(retained.count == 2 && retained[1].task.contains("floor plan"),
+                     "A final formatting pass must not drop a verified late deliverable")
+        let invented = LocalMeetingSummarizer.Action(task: "Purchase backup equipment", quotes: [], entries: [99])
+        precondition(LocalMeetingSummarizer.retainingAuditedActions([invented], audited: checkedActions).count == 2,
+                     "Formatting must not introduce a task that never passed semantic review")
+        let relatedTasks = [LocalMeetingSummarizer.Action(task: "Review the backup platform license", quotes: [], entries: [8]),
+                            .init(task: "Purchase the backup platform license", quotes: [], entries: [8])]
+        precondition(LocalMeetingSummarizer.retainingAuditedActions([], audited: relatedTasks).count == 2,
+                     "Shared topic words and evidence must not merge different operations")
         let sectionEntries = (1...100).map { "[00:01:00] Sam: Entry \($0) " + String(repeating: "retained speech ", count: 8) }
         let sections = try LocalMeetingSummarizer.sourceParts(sectionEntries.joined(separator: "\n\n"), maximumBytes: 1_000)
         precondition(sections.count > 1 && sections.allSatisfy { $0.utf8.count <= 1_000 })

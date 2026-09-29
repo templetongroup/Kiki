@@ -32,6 +32,7 @@ struct MeetingSummaryResult: Sendable {
 
 enum MeetingSummaryGenerator {
     static func generate(from transcript: MeetingTranscript, onProgress: (@MainActor @Sendable (String) -> Void)? = nil) async throws -> MeetingSummaryResult {
+        try Task.checkCancellation()
         guard !transcript.segments.isEmpty else {
             throw KikiError("There is no meeting transcript to summarize.")
         }
