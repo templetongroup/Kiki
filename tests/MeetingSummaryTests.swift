@@ -8,7 +8,8 @@ struct KikiError: LocalizedError {
 
 @main struct MeetingSummaryTests {
     static func main() async throws {
-        if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--evaluate" {
+        if (CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--evaluate") ||
+           (CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--render-draft") {
             let text = try String(contentsOfFile: CommandLine.arguments[2], encoding: .utf8)
             let expression = try NSRegularExpression(pattern: #"(?m)^- Duration: (\d{2,}):(\d\d):(\d\d)"#)
             let ns = text as NSString
@@ -21,7 +22,11 @@ struct KikiError: LocalizedError {
             }
             do {
                 let result: MeetingSummaryResult
-                if let model = ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"],
+                if CommandLine.arguments[1] == "--render-draft" {
+                    let notes = try JSONDecoder().decode(LocalMeetingSummarizer.Notes.self,
+                        from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[3])))
+                    result = try LocalMeetingSummarizer.render(notes, transcript: input, model: "saved evaluation draft")
+                } else if let model = ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"],
                    let draftPath = ProcessInfo.processInfo.environment["KIKI_EVALUATION_DRAFT_PATH"] {
                     result = try await LocalMeetingSummarizer.generate(transcript: input, model: model,
                         onProgress: { fputs($0 + "\n", stderr) }, inspectDraft: { notes in
@@ -196,6 +201,12 @@ struct KikiError: LocalizedError {
         precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send the 45 GB report", in: "Send the 4 GB report."))
         precondition(MeetingSummaryGenerator.detailsAreGrounded("Send the drive size", in: fragments.joined(separator: " ")))
         precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send 45 files", in: "[00:45:00] Sam: Send the files."))
+        precondition(!MeetingSummaryGenerator.detailsAreGrounded("The team plans to prohibit external storage.",
+            in: "I could implement a policy to prohibit external storage."), "A possible policy is not an agreed plan")
+        precondition(MeetingSummaryGenerator.detailsAreGrounded("A policy to prohibit external storage was proposed.",
+            in: "I could implement a policy to prohibit external storage."))
+        precondition(MeetingSummaryGenerator.detailsAreGrounded("The team approved the policy.",
+            in: "We could delay it, but we approved the policy."))
         let focused = ["[00:00:10] Sam: Tomorrow we discuss costs.", "[00:00:12] Sam: I will send the size of every drive."]
         precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the size of every drive.", in: focused) == focused[1],
                      "Evidence must not borrow unrelated neighboring dates")
@@ -206,6 +217,21 @@ struct KikiError: LocalizedError {
         precondition(localResult.markdown.contains("Incomplete draft"))
         precondition(!localResult.markdown.contains("next week"))
         precondition(!localResult.warnings.isEmpty)
+        let separateEvidence = ["[00:01:00] Sam: We operate fourteen laptops at this location.",
+                                "[00:02:00] Sam: We also keep two spare laptops here."]
+        precondition(LocalMeetingSummarizer.evidenceForQuotes([
+            "We operate fourteen laptops at this location.", "We also keep two spare laptops here."
+        ], entries: separateEvidence) == separateEvidence.joined(separator: "\n  "))
+        precondition(LocalMeetingSummarizer.evidenceForQuotes([
+            "We operate fourteen laptops at this location.", "We will buy ten computers next week."
+        ], entries: separateEvidence) == nil)
+        let sectionEntries = (1...100).map { "[00:01:00] Sam: Entry \($0) " + String(repeating: "retained speech ", count: 8) }
+        let sections = try LocalMeetingSummarizer.sourceParts(sectionEntries.joined(separator: "\n\n"), maximumBytes: 1_000)
+        precondition(sections.count > 1 && sections.allSatisfy { $0.utf8.count <= 1_000 })
+        precondition(sectionEntries.allSatisfy { entry in sections.contains { $0.components(separatedBy: "\n\n").contains(entry) } },
+                     "Sectioning must preserve every source entry, including the last")
+        precondition(sections.last?.hasSuffix(sectionEntries.last!) == true)
         print("PASS: evidence resolves actual clauses across fragments; unrelated quotes and unsupported dates/numbers rejected")
+        print("PASS: sectioning preserves the entire source; multi-passage evidence rejects unsupported quotes")
     }
 }

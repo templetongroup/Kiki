@@ -33,3 +33,15 @@ No WAV files were found in Kiki's standard meeting archive on the Work MBP durin
 Replace the current unvalidated summary approach with an evaluated candidate that distinguishes current commitments, proposals, historical work, and in-meeting navigation; reconciles corrections across sections; and checks semantic evidence rather than only headings and source-ID validity. Test on held-out meetings as well as this failure case. Do not treat a longer output as higher quality.
 
 For transcription, establish a retained, consented two-channel audio evaluation before changing capture, suppression, timing, or model defaults. Preserve raw recordings and originals during evaluation. The current published build and this candidate must not be described as Granola-equivalent or reliable for important meetings on the basis of these tests.
+
+## Implemented changes and regression checks (same-day continuation)
+
+- Parakeet final meeting recognition now receives 1.5 seconds of audio context at each core boundary. Acoustic word midpoints assign context words to the appropriate core; missing or inconsistent timing triggers a core-only retry rather than silent text removal.
+- Unfinished clauses spanning adjacent cores are rejoined. The actual candidate executable passes `bash scripts/test-meeting-boundary-integration.sh`: two synthetic sentences split at hard boundaries are saved once and complete, retaining amounts and negation. This is a synthetic boundary regression, **not a real-meeting word-accuracy score**.
+- The published capture-reader hotfix is merged into this branch. The rebuilt candidate passes `bash scripts/test-capture-reader.sh` at 820, 960 and 1200 point widths, reaching both the summary beginning and transcript end. The existing saved-reader test also passes.
+- Summary grounding tests reject opening-fragment substitutes, invented dates/numbers, unrelated quotes, and the narrow case of promoting a quoted possibility into an approved plan. Exact source quotation alone is not semantic validation.
+- An optional, loopback-only local-model backend is under evaluation. It is not enabled by default and has not been installed on the Work MBP. No private meeting material is sent to a cloud model or committed to Git.
+
+Two direct full-transcript Qwen 9B runs failed manual review: missing late actions, unreconciled late answers, and proposal-to-decision errors. Quote filtering also discarded useful material when a combined claim cited only one of its supporting passages. A bounded section-by-section implementation with chronological reconciliation and multiple supporting quotes is now being evaluated. Its source-partition tests verify every entry is retained, including the last; that does not establish semantic quality. Release remains blocked on actual output quality.
+
+The diagnostic candidate is locally built and ad-hoc signed only. No new version has been published or substituted for the installed 0.6.68 app during these checks.

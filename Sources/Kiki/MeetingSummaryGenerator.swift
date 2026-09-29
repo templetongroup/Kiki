@@ -249,6 +249,17 @@ enum MeetingSummaryGenerator {
         let text = normalizedEvidence(task)
         let speech = evidence.replacingOccurrences(of: #"(?m)^\s*\[\d{2,}:\d\d:\d\d\] [^:\n]+: "#, with: "", options: .regularExpression)
         let source = normalizedEvidence(speech)
+        // An exact supporting quote is not enough if the generated wording
+        // promotes a possibility into an approved plan. This catches that
+        // narrow failure; it is not a substitute for semantic evaluation.
+        let proposals = ["could", "might", "one option", "suggest", "suggested"]
+        let decisions = ["plans to", "agreed to", "decided to", "approved", "will implement"]
+        func containsPhrase(_ phrase: String, in value: String) -> Bool {
+            (" " + value + " ").contains(" " + phrase + " ")
+        }
+        if decisions.contains(where: { containsPhrase($0, in: text) }),
+           proposals.contains(where: { containsPhrase($0, in: source) }),
+           !decisions.contains(where: { containsPhrase($0, in: source) }) { return false }
         let timePhrases = ["today", "tomorrow", "tonight", "this week", "next week", "this month", "next month", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
         for phrase in timePhrases where (" " + text + " ").contains(" " + phrase + " ") {
             if !(" " + source + " ").contains(" " + phrase + " ") { return false }
