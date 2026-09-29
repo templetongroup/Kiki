@@ -33,6 +33,12 @@ struct KikiError: LocalizedError {
                             let encoder = JSONEncoder()
                             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
                             try encoder.encode(notes).write(to: URL(fileURLWithPath: draftPath), options: .atomic)
+                        }, inspectSection: { index, notes in
+                            if let prefix = ProcessInfo.processInfo.environment["KIKI_EVALUATION_SECTION_PREFIX"] {
+                                let encoder = JSONEncoder()
+                                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                                try encoder.encode(notes).write(to: URL(fileURLWithPath: prefix + "-\(index).json"), options: .atomic)
+                            }
                         })
                 } else {
                     result = try await MeetingSummaryGenerator.generate(from: input) { fputs($0 + "\n", stderr) }
@@ -197,6 +203,10 @@ struct KikiError: LocalizedError {
         precondition(MeetingSummaryGenerator.evidenceForQuote("Drive.", in: fragments) == nil)
         precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the size of every user's Drive.", in: fragments) == fragments.joined(separator: "\n  "))
         precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the estimate tomorrow.", in: fragments) == nil)
+        precondition(MeetingSummaryGenerator.evidenceForQuote("Sam: I will send the size of every user's Drive.", in: fragments) == fragments.joined(separator: "\n  "))
+        let identified = ["[00:01:00] Alex: I will review the drawings tomorrow.", "[00:02:00] Morgan: I will send the overall box volume."]
+        precondition(MeetingSummaryGenerator.evidenceForQuote("Alex: I will send the overall box volume.", in: identified) == nil,
+                     "A speaker-prefixed quote must not match someone else's words")
         precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send the drive size this week", in: fragments.joined(separator: " ")))
         precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send the 45 GB report", in: "Send the 4 GB report."))
         precondition(MeetingSummaryGenerator.detailsAreGrounded("Send the drive size", in: fragments.joined(separator: " ")))

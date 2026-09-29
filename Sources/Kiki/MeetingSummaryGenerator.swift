@@ -225,7 +225,24 @@ enum MeetingSummaryGenerator {
     }
 
     static func evidenceForQuote(_ quote: String, in entries: [String]) -> String? {
-        let needle = normalizedEvidence(quote)
+        var spokenQuote = quote.trimmingCharacters(in: .whitespacesAndNewlines)
+        var requiredSpeaker: String?
+        // Models sometimes copy the source's speaker label along with its
+        // words. Accept only a label actually present in this transcript, and
+        // require the matched passage to belong to that same speaker.
+        for entry in entries {
+            guard evidenceEntry(1, in: [entry]) != nil,
+                  let labelStart = entry.range(of: "] ")?.upperBound,
+                  let labelEnd = entry.range(of: ": ", range: labelStart..<entry.endIndex)?.lowerBound else { continue }
+            let speaker = String(entry[labelStart..<labelEnd])
+            let prefix = speaker + ": "
+            if spokenQuote.hasPrefix(prefix) {
+                spokenQuote = String(spokenQuote.dropFirst(prefix.count))
+                requiredSpeaker = speaker
+                break
+            }
+        }
+        let needle = normalizedEvidence(spokenQuote)
         guard needle.split(separator: " ").count >= 5 else { return nil }
         guard !entries.isEmpty else { return nil }
         for length in 1...min(4, entries.count) {
@@ -233,6 +250,7 @@ enum MeetingSummaryGenerator {
                 let end = start + length - 1
                 let window = entries[start...end]
                 guard window.allSatisfy({ evidenceEntry(1, in: [$0]) != nil }) else { continue }
+                if let requiredSpeaker, !window.allSatisfy({ $0.contains("] " + requiredSpeaker + ": ") }) { continue }
                 let speech = window.map { entry -> String in
                     guard let colon = entry.range(of: ": ") else { return "" }
                     return String(entry[colon.upperBound...])

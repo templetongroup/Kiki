@@ -45,3 +45,13 @@ For transcription, establish a retained, consented two-channel audio evaluation 
 Two direct full-transcript Qwen 9B runs failed manual review: missing late actions, unreconciled late answers, and proposal-to-decision errors. Quote filtering also discarded useful material when a combined claim cited only one of its supporting passages. A bounded section-by-section implementation with chronological reconciliation and multiple supporting quotes is now being evaluated. Its source-partition tests verify every entry is retained, including the last; that does not establish semantic quality. Release remains blocked on actual output quality.
 
 The diagnostic candidate is locally built and ad-hoc signed only. No new version has been published or substituted for the installed 0.6.68 app during these checks.
+
+## Subsequent bounded fixes and independent test
+
+The first sectioned Qwen 9B run also failed: it merged unrelated deliverables, retained superseded claims and took approximately twelve minutes. It is not release evidence. Changes following that failure separate final short-meeting instructions from intermediate section instructions, explicitly require commitments in the actions field, disallow combining unrelated deliverables, and enforce the key-point limit in the output schema.
+
+An additional reproduced application-side filtering bug discarded correct quotations when the model included the original speaker label. The matcher now recognizes labels present in the source and requires every matched entry to belong to that speaker. Positive and wrong-speaker regression tests pass; stripping a label must never permit a match to someone else's speech.
+
+`bash scripts/test-local-summary-quality.sh` now passes with the installed Qwen 9B model on a separate synthetic warehouse meeting. It retains both real commitments and the spoken deadline, excludes cancelled/historical/hypothetical work, resolves the later contract correction, and renders the grounded notes without omissions. The unassigned driver decision may be included as an additional supported task. This is one non-private case, not proof of general reliability. A larger-model draft also renders correctly after the speaker-label fix.
+
+The full private meeting is being rerun with these changes. Intermediate drafts and final output are retained only under `/tmp` for diagnosis. No new claim of real-meeting summary quality is made until that output is reviewed.
