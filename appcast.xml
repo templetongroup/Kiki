@@ -6,6 +6,28 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.69</title>
+            <pubDate>Tue, 29 Sep 2026 17:23:25 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.69</link>
+            <sparkle:version>102</sparkle:version>
+            <sparkle:shortVersionString>0.6.69</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.69
+
+- Preserve meeting speech independently of dictation cleanup. “Scratch that” no longer erases earlier meeting speech, and meeting participants cannot trigger dictation snippets or learned replacements.
+- Keep ordinary dictation editing unchanged.
+- Repair the packaged Whisper GPU shader to avoid CPU fallback caused by a missing header.
+
+## Important limitation
+
+Summary accuracy remains unresolved. Experimental summarization engines are not included. Verify generated notes against the transcript and do not rely on Kiki alone for important meetings. Existing records are not rewritten; this update cannot reconstruct previously omitted speech.
+
+Developer ID signed and Apple notarized. Build 102.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.69/Kiki-0.6.69-macOS.zip" length="8778771" type="application/octet-stream" sparkle:edSignature="8slF8U+anc1j1fIgecxTXG1b8RyshJ1pTAOmL9gl3TdzyNwjGb6JOQ22x01LX/37Lum1/kdz134i0aDZrL+1Cg=="/>
+        </item>
+        <item>
             <title>0.6.68</title>
             <pubDate>Tue, 29 Sep 2026 15:57:46 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.68</link>
