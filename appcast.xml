@@ -6,6 +6,28 @@
         <description>Developer ID signed and notarized updates for Kiki.</description>
         <language>en</language>
         <item>
+            <title>0.6.68</title>
+            <pubDate>Tue, 29 Sep 2026 15:57:46 -0400</pubDate>
+            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.68</link>
+            <sparkle:version>101</sparkle:version>
+            <sparkle:shortVersionString>0.6.68</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.68
+
+- Fix the blank Capture Meeting transcript panel. Meeting text now resizes and scrolls with the window.
+- Preserve existing transcripts and saved notes without rewriting history.
+- Report summary-generation failure explicitly instead of substituting the first two transcript fragments and calling that a successful summary.
+
+## Important limitation
+
+Meeting-summary quality remains under investigation. This release fixes display and failure reporting; it does not provide a new summarization model or guarantee accurate summaries. Review the full transcript and verify any generated notes before relying on them.
+
+Developer ID signed and Apple notarized. Build 101. Verified with the affected saved meeting on the Work MBP at three window sizes.
+]]></description>
+            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.68/Kiki-0.6.68-macOS.zip" length="8755585" type="application/octet-stream" sparkle:edSignature="iqxHYcJae4JarMuE+PsWBocQv1fhnHs95VfzqJKOjjphZCuPpSJ1GEPi3GrURbgRQBdE4XOB/lMhu8VNB4HNBA=="/>
+        </item>
+        <item>
             <title>0.6.67</title>
             <pubDate>Tue, 22 Sep 2026 16:23:00 -0400</pubDate>
             <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.67</link>
@@ -89,56 +111,6 @@
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-94.delta" sparkle:deltaFrom="94" length="410358" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="a5XA7o0Igri0FvyYgW8lGhZL7wVZy//O5Yxe83xyP2mfGJUkgCM9UgCZwWI3sMBV4iuUlrb1ZUubrn7DWStVCg=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-93.delta" sparkle:deltaFrom="93" length="429538" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="SAQc7V7910uzrt7MY2Z9L2KIfezuxbECi+XA90nz0oLTwtjk+ocl8icwQ/RjqBKICqrTvlwC3juPwXsulKS8CA=="/>
                 <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.64/Kiki97-92.delta" sparkle:deltaFrom="92" length="432594" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="G6N+HLAAKy1pmx+GdPLtdOgIANTYvfpcMZE42iMj3HxTMfDzc2X660B7OoM3NmIAa7UZCkTznk9KA6x5lfOJAQ=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.63</title>
-            <pubDate>Sun, 20 Sep 2026 11:02:59 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.63</link>
-            <sparkle:version>96</sparkle:version>
-            <sparkle:shortVersionString>0.6.63</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.63
-
-- Replace the listening orb with Silk Stream: nine flowing Templeton-green strands driven by the actual microphone level.
-- Smoothly grow the waves during speech and settle to gentle motion during pauses, with a distinct processing state.
-- Respect Reduce Motion and stop the flow when the listening display is dismissed. Existing Voice Orb preferences now select Silk Stream.
-
-This visual update does not resolve the separately reported sustained Zoom meeting performance issue.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki-0.6.63-macOS.zip" length="8747198" type="application/octet-stream" sparkle:edSignature="WsjWVy8UFs/M79r2zEmwFHGCxaCQCKmMxHLKYCGMDNdAnRPnIShwjpP2UZJgcyDJ63+dDsAkxIO+RYoyRT0NCA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki96-95.delta" sparkle:deltaFrom="95" length="376638" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="CM/IKYBd3lZK6oldZedbiILZrHQ97SgheISv6ZUdmEoa1KrknD9Ss3hKdtsm/44ZeV0JdP93yH3jt04u/YpoCg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki96-94.delta" sparkle:deltaFrom="94" length="420162" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Q1620quK6E8ADbOntx069IpS65Z0xYcFQ1h0sbrzbzPpdb6lV/FKJfJvnS1zDVru+POQtB0p6DLOJBMxPrO7CA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki96-93.delta" sparkle:deltaFrom="93" length="436102" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="5kMyZGR/yriiziSXmwZwoP9IQj1w6+6JqBPEpVvRyXUqqQ6qwqL3F6znW4LbPkUCDWLqc0wpq03hjNmOi08NDA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki96-92.delta" sparkle:deltaFrom="92" length="443954" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="FpuG9vISHHrPOXdusBO7bMP7OpP2OYD7AUcq8lHopjeVNIKMxzzxGHjOLxpDAdM0+w7bSAnGIMaWzGudePjdBA=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.63/Kiki96-91.delta" sparkle:deltaFrom="91" length="441798" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="XXOStRIFpGeLAIKIV0wpWXHq/La/jjcvcN2s/SDce1kOOKxdixZ116xcH2HG0J2HTKIMTyaejFFrjZPhVcf6Cg=="/>
-            </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.6.62</title>
-            <pubDate>Sat, 19 Sep 2026 15:59:43 -0400</pubDate>
-            <link>https://github.com/templetongroup/Kiki/releases/tag/v0.6.62</link>
-            <sparkle:version>95</sparkle:version>
-            <sparkle:shortVersionString>0.6.62</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Kiki 0.6.62
-
-- Replace the active-model numeric gauge with the Templeton-green silk waveform selected in the design preview.
-- Use gentle flowing motion while ready and stronger motion during dictation processing or model loading. The Active label remains visible; this is not a microphone level meter.
-- Respect Reduce Motion and pause model-indicator animation when hidden, detached, or the app is inactive.
-
-This visual update does not resolve the separately reported sustained Zoom meeting performance issue.
-]]></description>
-            <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki-0.6.62-macOS.zip" length="8743060" type="application/octet-stream" sparkle:edSignature="6w2UPappokUtREbSS9gH+vJyncvHK58AVUWRoNfxxXzgOhlajPjIpW0VzDo9GGhpRiAE+6X1ej1zk4uj7U9cAA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki95-94.delta" sparkle:deltaFrom="94" length="404606" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="rkAqmduh8od9aC/E1Dszz+JE9ww4AzWwUAEArx3aqp7pkUpZJ4cZhGmgqv+frV6HJGja1u71mOdS7QHD/Nm3Dg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki95-93.delta" sparkle:deltaFrom="93" length="430778" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="0eT4mn3JtSf8ZIKc/E7WUG7bxa6Za7O5FqdZbW0YAhS6/hRwbpn7RUUVU2Iu1NVCGeC3FHtMDykHvs43hmzDBg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki95-92.delta" sparkle:deltaFrom="92" length="423810" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="PAgJpButAJbufVyH4MvxIQ21R2/e29wr5Ny0ox6EJhaQnMrseVjnafOoXfhFFRlTx23a+xwa/xB+bOw9PacZAg=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki95-91.delta" sparkle:deltaFrom="91" length="433638" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="mYVdqjb/kE9buiaqjOcV0NlHDxtWBg95igDF9TS6j4Zgiv6Zg/PQqvHgh0/2Dea4oh08V7EWDCwSjfbz8ajoBQ=="/>
-                <enclosure url="https://github.com/templetongroup/Kiki/releases/download/v0.6.62/Kiki95-90.delta" sparkle:deltaFrom="90" length="1443350" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="977808" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="C9C/cdxGXalBzicKYzhg6995FGGBlKZxXJIyQj6axIda2Qubaf1Xrye82Rcrxvejp6FW8W202oudL2XsJKERCQ=="/>
             </sparkle:deltas>
         </item>
     </channel>
