@@ -40,6 +40,7 @@ export default function Home() {
           </div>
           <a className="text-link hero-feature-link" href="#features">See what Kiki can do <span>↓</span></a>
           <p className="compatibility">Version 0.6.68 · macOS 14+ · Apple silicon · Light &amp; dark modes</p>
+          <p className="compatibility">Latest update: fixes the blank Capture Meeting reader and reports summary failures honestly. Meeting-summary quality remains under investigation; verify generated notes against the transcript.</p>
         </div>
 
         <div className="hero-stage" aria-label="Kiki turns speech into private local text">
@@ -119,7 +120,7 @@ export default function Home() {
           <article><p>Live feedback</p><h3>See what Kiki hears while you speak.</h3><span>A lightweight transcript follows your caret, then disappears after insertion.</span></article>
           <article><p>Private session</p><h3>Leave no trail when the work is sensitive.</h3><span>Pause dictation history with one action. Your recording stays in memory for undo and retry.</span></article>
           <article><p>Recovery</p><h3>Undo or retry your exact last dictation.</h3><span>Recover quickly without Kiki saving the underlying recording to disk.</span></article>
-          <article><p>Meeting intelligence</p><h3>Keep meetings out of the dictation pile.</h3><span>Create or refresh notes from your saved meetings, with progress across the full transcript and preserved next steps. Summaries require macOS 26+ with Apple Intelligence available. Review generated notes before sharing.</span></article>
+          <article><p>Meeting transcripts</p><h3>Keep meetings out of the dictation pile.</h3><span>Read and export saved meetings separately from routine dictation. Summary generation requires macOS 26+ with Apple Intelligence available and remains under investigation for reliability. Version 0.6.68 fixes the blank Capture Meeting reader and reports generation failures instead of substituting opening fragments. Verify any generated notes against the transcript.</span></article>
           <article><p>Checkup</p><h3>Know what’s ready before you start.</h3><span>Test your microphone, permissions, model, shortcut, and first insertion in one place.</span></article>
         </div>
       </section>

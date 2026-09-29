@@ -18,7 +18,9 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
     exit 1
 fi
 
-swift build -c release --build-system "${KIKI_SWIFT_BUILD_SYSTEM:-native}"
+# Package.swift detects a locally supplied Sparkle framework at evaluation time.
+# A cached manifest can retain the remote dependency after it becomes available.
+swift build -c release --manifest-cache none --build-system "${KIKI_SWIFT_BUILD_SYSTEM:-native}"
 
 APP="build/Kiki.app"
 BIN=".build/release/Kiki"

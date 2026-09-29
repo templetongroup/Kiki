@@ -7,6 +7,28 @@ MetalResources.configure()
 //   Kiki --transcribe-file /path/to/audio.(wav|aiff|m4a|mp3)
 //   Kiki --transcribe-live-file /path/to/audio.(wav|aiff|m4a|mp3)
 let args = CommandLine.arguments
+if args.count >= 3, args[1] == "--verify-capture-reader" {
+    MainActor.assumeIsolated {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.accessory)
+        app.finishLaunching()
+        let controller = MeetingWindowController()
+        do {
+            var savedText: String?
+            if args.count >= 5 {
+                let records = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: args[3]))) as? [[String: Any]]
+                savedText = records?.first(where: { $0["id"] as? String == args[4] })?["text"] as? String
+                guard savedText != nil else { throw KikiError("Diagnostic meeting record not found") }
+            }
+            let result = try controller.verifyReaderForDiagnostics(output: args[2], savedText: savedText)
+            try ("PASS " + result).write(toFile: args[2], atomically: true, encoding: .utf8)
+            exit(0)
+        } catch {
+            try? ("FAIL " + error.localizedDescription).write(toFile: args[2], atomically: true, encoding: .utf8)
+            exit(1)
+        }
+    }
+}
 MainActor.assumeIsolated {
     _ = NSApplication.shared
     ApplicationMenu.install()
