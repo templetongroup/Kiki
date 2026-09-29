@@ -427,7 +427,7 @@ final class DictationController {
             } else {
                 throw KikiError("The selected transcription model is not ready.")
             }
-            let text = TranscriptPostProcessor.process(raw, context: nil)
+            let text = TranscriptPostProcessor.processMeeting(raw)
             guard !text.isEmpty else { continue }
             segments.append(contentsOf:
                 MeetingTranscriptSegment.sentenceSegments(
