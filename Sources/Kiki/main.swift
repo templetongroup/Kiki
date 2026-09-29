@@ -644,13 +644,14 @@ if args.count >= 3, ["--transcribe-file", "--transcribe-meeting-file", "--transc
                     let transcriber = try await ParakeetTranscriber.load(model: selectedModel)
                     if args[1] == "--transcribe-meeting-json" {
                         var segments: [MeetingTranscriptSegment] = []
-                        for (index, range) in MeetingAudioChunks.ranges(samples).enumerated() {
-                            let result = try await transcriber.transcribeMeetingChunk(Array(samples[range]))
+                        for (index, window) in MeetingAudioChunks.contextWindows(samples).enumerated() {
+                            let range = window.core
+                            let result = try await transcriber.transcribeMeetingWindow(samples, window: window)
                             guard !result.text.isEmpty else { continue }
-                            segments += MeetingTranscriptSegment.sentenceSegments(
+                            MeetingTranscriptSegment.appendChunk(MeetingTranscriptSegment.sentenceSegments(
                                 startTime: Double(range.lowerBound) / 16000,
                                 endTime: Double(range.upperBound) / 16000,
-                                speaker: "Unassigned", text: result.text, words: result.words)
+                                speaker: "Unassigned", text: result.text, words: result.words), to: &segments)
                             fputs("Completed audio chunk \(index + 1)\n", stderr)
                         }
                         let encoder = JSONEncoder()

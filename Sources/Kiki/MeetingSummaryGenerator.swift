@@ -35,6 +35,10 @@ enum MeetingSummaryGenerator {
         guard !transcript.segments.isEmpty else {
             throw KikiError("There is no meeting transcript to summarize.")
         }
+        if let model = ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"]
+            ?? UserDefaults.standard.string(forKey: "meetingSummaryLocalModel"), !model.isEmpty {
+            return try await LocalMeetingSummarizer.generate(transcript: transcript, model: model, onProgress: onProgress)
+        }
 
 #if canImport(FoundationModels)
         if #available(macOS 26.0, *), SystemLanguageModel.default.isAvailable {
@@ -43,7 +47,7 @@ enum MeetingSummaryGenerator {
                 if ProcessInfo.processInfo.environment["KIKI_DEBUG_SUMMARY"] == "1" {
                     fputs("Raw Apple Intelligence meeting summary:\n\(response.markdown)\n", stderr)
                 }
-                guard let markdown = normalized(response.markdown) else {
+                guard let markdown = normalizeForDiagnostics(response.markdown, transcript: transcript) else {
                     throw KikiError("The generated notes failed the completeness/format check.")
                 }
                 return MeetingSummaryResult(
@@ -208,7 +212,49 @@ enum MeetingSummaryGenerator {
     }
 
     static func normalizeForDiagnostics(_ value: String, transcript: MeetingTranscript) -> String? {
-        normalized(value)
+        guard let result = normalized(value) else { return nil }
+        let opening = transcript.segments.prefix(2).map(\.text).joined(separator: " ")
+        if transcript.duration > 300, transcript.segments.count > 2,
+           normalizedEvidence(section("Summary", in: result)) == normalizedEvidence(opening) { return nil }
+        return result
+    }
+
+    private static func normalizedEvidence(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    static func evidenceForQuote(_ quote: String, in entries: [String]) -> String? {
+        let needle = normalizedEvidence(quote)
+        guard needle.split(separator: " ").count >= 5 else { return nil }
+        guard !entries.isEmpty else { return nil }
+        for length in 1...min(4, entries.count) {
+            for start in 0...(entries.count - length) {
+                let end = start + length - 1
+                let window = entries[start...end]
+                guard window.allSatisfy({ evidenceEntry(1, in: [$0]) != nil }) else { continue }
+                let speech = window.map { entry -> String in
+                    guard let colon = entry.range(of: ": ") else { return "" }
+                    return String(entry[colon.upperBound...])
+                }.joined(separator: " ")
+                if (" " + normalizedEvidence(speech) + " ").contains(" " + needle + " ") {
+                    return window.joined(separator: "\n  ")
+                }
+            }
+        }
+        return nil
+    }
+
+    static func detailsAreGrounded(_ task: String, in evidence: String) -> Bool {
+        let text = normalizedEvidence(task)
+        let speech = evidence.replacingOccurrences(of: #"(?m)^\s*\[\d{2,}:\d\d:\d\d\] [^:\n]+: "#, with: "", options: .regularExpression)
+        let source = normalizedEvidence(speech)
+        let timePhrases = ["today", "tomorrow", "tonight", "this week", "next week", "this month", "next month", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        for phrase in timePhrases where (" " + text + " ").contains(" " + phrase + " ") {
+            if !(" " + source + " ").contains(" " + phrase + " ") { return false }
+        }
+        let numbers = text.split(separator: " ").filter { $0.contains(where: \.isNumber) }
+        return numbers.allSatisfy { (" " + source + " ").contains(" " + $0 + " ") }
     }
 
     static func evidenceEntry(_ number: Int, in entries: [String]) -> String? {

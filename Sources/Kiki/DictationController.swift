@@ -403,10 +403,11 @@ final class DictationController {
         speaker: String
     ) async throws -> [MeetingTranscriptSegment] {
         guard !samples.isEmpty else { return [] }
-        let ranges = MeetingAudioChunks.ranges(samples)
+        let windows = MeetingAudioChunks.contextWindows(samples)
         var segments: [MeetingTranscriptSegment] = []
-        let total = ranges.count
-        for (chunkIndex, range) in ranges.enumerated() {
+        let total = windows.count
+        for (chunkIndex, window) in windows.enumerated() {
+            let range = window.core
             let chunk = Array(samples[range])
             let index = chunkIndex + 1
             if state != .recording {
@@ -418,7 +419,7 @@ final class DictationController {
             let raw: String
             var wordTimings: [MeetingWordTiming] = []
             if let parakeetTranscriber {
-                let recognized = try await parakeetTranscriber.transcribeMeetingChunk(chunk)
+                let recognized = try await parakeetTranscriber.transcribeMeetingWindow(samples, window: window)
                 raw = recognized.text
                 wordTimings = recognized.words
             } else if let whisperTranscriber {
@@ -432,14 +433,14 @@ final class DictationController {
             }
             let text = TranscriptPostProcessor.process(raw, context: nil)
             guard !text.isEmpty else { continue }
-            segments.append(contentsOf:
+            MeetingTranscriptSegment.appendChunk(
                 MeetingTranscriptSegment.sentenceSegments(
                     startTime: Double(range.lowerBound) / AudioRecorder.sampleRate,
                     endTime: Double(range.upperBound) / AudioRecorder.sampleRate,
                     speaker: speaker,
                     text: text,
                     words: wordTimings
-                )
+                ), to: &segments
             )
         }
         return segments

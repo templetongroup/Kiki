@@ -20,8 +20,17 @@ struct KikiError: LocalizedError {
                 throw KikiError("No timestamped transcript entries found.")
             }
             do {
-                let result = try await MeetingSummaryGenerator.generate(from: input) { progress in
-                    fputs(progress + "\n", stderr)
+                let result: MeetingSummaryResult
+                if let model = ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"],
+                   let draftPath = ProcessInfo.processInfo.environment["KIKI_EVALUATION_DRAFT_PATH"] {
+                    result = try await LocalMeetingSummarizer.generate(transcript: input, model: model,
+                        onProgress: { fputs($0 + "\n", stderr) }, inspectDraft: { notes in
+                            let encoder = JSONEncoder()
+                            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                            try encoder.encode(notes).write(to: URL(fileURLWithPath: draftPath), options: .atomic)
+                        })
+                } else {
+                    result = try await MeetingSummaryGenerator.generate(from: input) { fputs($0 + "\n", stderr) }
                 }
                 print(result.markdown)
             } catch {
@@ -52,6 +61,16 @@ struct KikiError: LocalizedError {
             exit(1)
         }
         print("PASS: summary actions preserved; instruction leakage rejected")
+        let opening = MeetingTranscript(title: "Long review", createdAt: Date(), duration: 3200,
+            segments: [
+                .init(startTime: 0, endTime: 5, speaker: "You", text: "That one."),
+                .init(startTime: 8, endTime: 12, speaker: "You", text: "That one is not solvable next month."),
+                .init(startTime: 2900, endTime: 2910, speaker: "Sam", text: "I will send the backup quote tomorrow.")
+            ], actionItems: [])
+        let openingOnly = "## Summary\n\nThat one. That one is not solvable next month.\n\n## Key points\n\n- That one.\n\n## Next steps\n\n- We will see if anyone hears it."
+        guard MeetingSummaryGenerator.normalizeForDiagnostics(openingOnly, transcript: opening) == nil else {
+            fputs("FAIL: opening-only fallback accepted as a full meeting summary\n", stderr); exit(1)
+        }
         let timed = MeetingTranscriptSegment.sentenceSegments(startTime: 100, endTime: 130, speaker: "Alex", text: "Ready. Send it tomorrow.", words: [
             .init(text: "Ready.", startTime: 2, endTime: 3),
             .init(text: "Send", startTime: 25, endTime: 25.5),
@@ -74,6 +93,21 @@ struct KikiError: LocalizedError {
         ])
         precondition(outside.first?.startTime == 100, "Words beginning outside a chunk must not create inverted time ranges")
         print("PASS: acoustic sentence times preserve pauses and reject mismatched or invalid timing")
+        let crossing = [
+            MeetingWordTiming(text: "before", startTime: 0, endTime: 0.5),
+            MeetingWordTiming(text: "boundary", startTime: 1.3, endTime: 1.7),
+            MeetingWordTiming(text: "after", startTime: 2, endTime: 2.4)
+        ]
+        let owned = MeetingTranscriptSegment.wordsOwnedByCore(crossing, inferenceStart: 28.5, coreStart: 30, coreEnd: 60)
+        precondition(owned?.map(\.text) == ["boundary", "after"])
+        precondition(abs((owned?.first?.startTime ?? 0) - 0) < 0.001)
+        precondition(MeetingTranscriptSegment.wordsOwnedByCore([.init(text: "bad", startTime: .nan, endTime: 2)], inferenceStart: 0, coreStart: 0, coreEnd: 30) == nil)
+        print("PASS: overlap words assigned by acoustic midpoint; invalid timing cannot silently discard speech")
+        var chunked: [MeetingTranscriptSegment] = [.init(startTime: 29.4, endTime: 30, speaker: "You", text: "The archive")]
+        MeetingTranscriptSegment.appendChunk([.init(startTime: 30.1, endTime: 33.5, speaker: "You", text: "license costs four to five dollars.")], to: &chunked)
+        precondition(chunked.count == 1 && chunked[0].text == "The archive license costs four to five dollars.")
+        MeetingTranscriptSegment.appendChunk([.init(startTime: 34, endTime: 35, speaker: "You", text: "Next topic.")], to: &chunked)
+        precondition(chunked.count == 2, "Do not merge completed sentences")
         let version = MeetingTranscriptSegment.sentenceSegments(startTime: 0, endTime: 10, speaker: "Alex", text: "Use version 2.5 for the pilot. Then review it.")
         guard version.count == 2, version[0].text == "Use version 2.5 for the pilot." else {
             fputs("FAIL: decimal version split into separate transcript entries\n", stderr)
@@ -154,5 +188,24 @@ struct KikiError: LocalizedError {
               MeetingSummaryGenerator.evidenceEntry(1, in: ["Review note"]) == nil else {
             fputs("FAIL: task evidence must use an existing source entry verbatim\n", stderr); exit(1)
         }
+        let fragments = ["[00:01:00] Sam: I will send the size of every user's", "[00:01:05] Sam: Drive."]
+        precondition(MeetingSummaryGenerator.evidenceForQuote("Drive.", in: fragments) == nil)
+        precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the size of every user's Drive.", in: fragments) == fragments.joined(separator: "\n  "))
+        precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the estimate tomorrow.", in: fragments) == nil)
+        precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send the drive size this week", in: fragments.joined(separator: " ")))
+        precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send the 45 GB report", in: "Send the 4 GB report."))
+        precondition(MeetingSummaryGenerator.detailsAreGrounded("Send the drive size", in: fragments.joined(separator: " ")))
+        precondition(!MeetingSummaryGenerator.detailsAreGrounded("Send 45 files", in: "[00:45:00] Sam: Send the files."))
+        let focused = ["[00:00:10] Sam: Tomorrow we discuss costs.", "[00:00:12] Sam: I will send the size of every drive."]
+        precondition(MeetingSummaryGenerator.evidenceForQuote("I will send the size of every drive.", in: focused) == focused[1],
+                     "Evidence must not borrow unrelated neighboring dates")
+        let localNotes = LocalMeetingSummarizer.Notes(overview: "The team planned a prototype review.",
+            points: [.init(text: "A prototype will be sent.", quote: "I will send the prototype tomorrow.")],
+            actions: [.init(task: "Send the prototype next week.", quote: "I will send the prototype tomorrow.")], openQuestions: [])
+        let localResult = try LocalMeetingSummarizer.render(localNotes, transcript: meeting, model: "test")
+        precondition(localResult.markdown.contains("Incomplete draft"))
+        precondition(!localResult.markdown.contains("next week"))
+        precondition(!localResult.warnings.isEmpty)
+        print("PASS: evidence resolves actual clauses across fragments; unrelated quotes and unsupported dates/numbers rejected")
     }
 }

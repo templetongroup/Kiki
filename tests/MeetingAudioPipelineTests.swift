@@ -38,5 +38,10 @@ struct MeetingAudioPipelineTests {
         precondition(MeetingAudioChunks.ranges(continuous, sampleRate: 10) == [0..<300, 300..<600, 600..<601])
         precondition(MeetingAudioChunks.ranges([], sampleRate: 10).isEmpty)
         print("PASS: continuous speech remains bounded and retains the final sample")
+        let contextWindows = MeetingAudioChunks.contextWindows(continuous, sampleRate: 10)
+        precondition(contextWindows.map(\.core) == [0..<300, 300..<600, 600..<601])
+        precondition(contextWindows.map(\.inference) == [0..<315, 285..<601, 585..<601])
+        precondition(contextWindows.flatMap { Array($0.core) } == Array(continuous.indices))
+        print("PASS: recognizer receives boundary context while each core sample has one owner")
     }
 }

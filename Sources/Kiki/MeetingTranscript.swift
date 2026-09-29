@@ -2,6 +2,7 @@ import Foundation
 
 struct MeetingWordTiming: Codable, Sendable {
     let text: String
+
     let startTime: TimeInterval
     let endTime: TimeInterval
 }
@@ -12,6 +13,44 @@ struct MeetingTranscriptSegment: Codable, Identifiable, Sendable {
     let endTime: TimeInterval
     let speaker: String
     let text: String
+
+    /// A core boundary is not a sentence boundary. Rejoin only an unfinished
+    /// final clause when the following core continues the same audio source.
+    static func appendChunk(_ next: [MeetingTranscriptSegment], to segments: inout [MeetingTranscriptSegment]) {
+        guard let previous = segments.last, let first = next.first,
+              previous.speaker == first.speaker,
+              first.startTime >= previous.endTime - 0.1,
+              first.startTime - previous.endTime <= 2,
+              previous.text.count + first.text.count < 2_000,
+              !previous.text.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("."),
+              !previous.text.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("?"),
+              !previous.text.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("!") else {
+            segments.append(contentsOf: next)
+            return
+        }
+        segments[segments.count - 1] = MeetingTranscriptSegment(id: previous.id,
+            startTime: previous.startTime, endTime: first.endTime, speaker: previous.speaker,
+            text: previous.text + " " + first.text)
+        segments.append(contentsOf: next.dropFirst())
+    }
+
+    /// Acoustic midpoints assign overlap words to exactly one core window.
+    /// Nil means timings cannot safely trim the overlap; callers must retry the
+    /// unexpanded core rather than silently lose text or duplicate context.
+    static func wordsOwnedByCore(_ words: [MeetingWordTiming], inferenceStart: TimeInterval,
+                                 coreStart: TimeInterval, coreEnd: TimeInterval) -> [MeetingWordTiming]? {
+        guard !words.isEmpty, inferenceStart.isFinite, coreStart.isFinite, coreEnd.isFinite,
+              coreEnd > coreStart,
+              words.allSatisfy({ $0.startTime.isFinite && $0.endTime.isFinite && $0.startTime >= 0 && $0.endTime >= $0.startTime }),
+              zip(words, words.dropFirst()).allSatisfy({ $0.startTime <= $1.startTime }) else { return nil }
+        return words.compactMap { word in
+            let midpoint = inferenceStart + (word.startTime + word.endTime) / 2
+            guard midpoint >= coreStart, midpoint < coreEnd else { return nil }
+            return MeetingWordTiming(text: word.text,
+                startTime: max(0, inferenceStart + word.startTime - coreStart),
+                endTime: min(coreEnd - coreStart, inferenceStart + word.endTime - coreStart))
+        }
+    }
 
     init(
         id: UUID = UUID(),

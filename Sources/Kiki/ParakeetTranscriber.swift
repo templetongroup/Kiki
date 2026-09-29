@@ -71,6 +71,25 @@ final class ParakeetTranscriber {
         return (WhisperTranscriber.cleaned(result.text), words)
     }
 
+    /// Shared by the installed meeting path and the audio replay diagnostic.
+    func transcribeMeetingWindow(_ samples: [Float], window: MeetingAudioChunks.Window) async throws -> (text: String, words: [MeetingWordTiming]) {
+        let result = try await transcribeMeetingChunk(Array(samples[window.inference]))
+        func content(_ text: String) -> String {
+            String(text.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        }
+        let inferenceDuration = Double(window.inference.count) / AudioRecorder.sampleRate
+        if content(result.words.map(\.text).joined()) == content(result.text),
+           result.words.allSatisfy({ $0.endTime <= inferenceDuration + 0.1 }),
+           let words = MeetingTranscriptSegment.wordsOwnedByCore(result.words,
+                inferenceStart: Double(window.inference.lowerBound) / AudioRecorder.sampleRate,
+                coreStart: Double(window.core.lowerBound) / AudioRecorder.sampleRate,
+                coreEnd: Double(window.core.upperBound) / AudioRecorder.sampleRate), !words.isEmpty {
+            return (words.map(\.text).joined(separator: " "), words)
+        }
+        // Missing/partial acoustic timings cannot be used to drop context safely.
+        return try await transcribeMeetingChunk(Array(samples[window.core]))
+    }
+
     /// Creates a low-latency preview session. The preview uses short windows;
     /// Kiki still runs the normal batch pass afterward for final accuracy.
     func makeLiveSession(

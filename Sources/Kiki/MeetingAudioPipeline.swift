@@ -1,6 +1,20 @@
 import Foundation
 
 enum MeetingAudioChunks {
+    struct Window {
+        let core: Range<Int>
+        let inference: Range<Int>
+    }
+
+    /// Keep the original complete partition, but give the recognizer 1.5 seconds
+    /// of context on either side so a hard boundary does not cut a spoken word.
+    static func contextWindows(_ samples: [Float], sampleRate: Int = 16_000) -> [Window] {
+        let context = sampleRate * 3 / 2
+        return ranges(samples, sampleRate: sampleRate).map { core in
+            Window(core: core, inference: max(0, core.lowerBound - context)..<min(samples.count, core.upperBound + context))
+        }
+    }
+
     /// Prefer the end of a quiet run in the last six seconds of each window.
     /// Ranges partition the recording: no audio is dropped or duplicated.
     /// Continuous speech still requires a hard boundary at the maximum length.

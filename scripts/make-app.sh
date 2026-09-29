@@ -18,7 +18,7 @@ if [[ ! -f "$ENTITLEMENTS" ]]; then
     exit 1
 fi
 
-swift build -c release
+swift build -c release --build-system "${KIKI_SWIFT_BUILD_SYSTEM:-native}"
 
 APP="build/Kiki.app"
 BIN=".build/release/Kiki"
