@@ -27,6 +27,14 @@ enum SpeechProfile: String, CaseIterable {
 
 @MainActor
 enum TranscriptPostProcessor {
+    static func processMeeting(_ rawText: String) -> String {
+        // Meetings are records of everyone speaking, not commands to edit the
+        // user's current dictation. Preserve corrections, negations, names and
+        // acoustic word alignment. In particular, "scratch that" must never
+        // erase earlier meeting speech or trigger the user's snippets.
+        rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     static func process(_ rawText: String, context: AppContextSnapshot?) -> String {
         var text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return text }
