@@ -15,6 +15,7 @@ if args.count >= 3, args[1] == "--verify-summary-cancellation" {
         do {
             let controller = MeetingWindowController()
             var result = try await controller.verifySummaryCancellationForDiagnostics()
+            result += "\n" + (try controller.verifyLivePreviewPolicyForDiagnostics())
             let historyResult = try await HistoryWindowController.verifySummaryPersistenceForDiagnostics()
             if args.count >= 4 {
                 result += "\n" + (try await controller.verifyLocalInferenceCancellationForDiagnostics(model: args[3]))

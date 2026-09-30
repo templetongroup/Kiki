@@ -19,13 +19,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private lazy var exportButton = KikiActionButton("Export", kind: .primary, target: self, action: #selector(exportTranscript))
     private lazy var copyButton = KikiActionButton("Copy", kind: .hardware, target: self, action: #selector(copyTranscript))
     private let saveAudioCheckbox = KikiCheckbox("Keep local WAV files for this meeting", target: nil, action: nil)
+    private let livePreviewCheckbox = KikiCheckbox("Live microphone preview (uses more processing)", target: nil, action: nil)
     private let autoExportCheckbox = KikiCheckbox("Automatically save a Markdown transcript to a folder", target: nil, action: nil)
     private lazy var chooseAutoExportFolderButton = KikiActionButton("Choose Folder…", kind: .hardware, target: self, action: #selector(chooseAutoExportFolder))
     private let autoExportFolderLabel = kikiLabel("No folder selected", size: 12, color: KikiPalette.secondaryText)
     private let transcriptEmptyState = KikiEmptyStateView(
         symbol: "person.2.wave.2",
         title: "Ready to capture the room",
-        detail: "Name the meeting, confirm whether you want local WAV files, then start capture. The live draft and final transcript appear here."
+        detail: "Name the meeting, choose whether to keep local WAV files, then start capture. The full transcript appears after Stop & Transcribe; live preview is optional."
     )
     private var isRecording = false
     private var isCaptureBusy = false
@@ -70,6 +71,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             titleField.stringValue = "Meeting — \(DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short))"
         }
         saveAudioCheckbox.state = Settings.saveMeetingAudio ? .on : .off
+        if !isRecording { livePreviewCheckbox.state = Settings.meetingLivePreviewEnabled ? .on : .off }
         let autoExportConfiguration = Settings.meetingAutoExportConfiguration
         Settings.meetingAutoExportEnabled = autoExportConfiguration.isEnabled
         autoExportCheckbox.state = autoExportConfiguration.isEnabled ? .on : .off
@@ -84,6 +86,21 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     var preventsWorkbenchClose: Bool { isRecording || isCaptureBusy }
+
+    func verifyLivePreviewPolicyForDiagnostics() throws -> String {
+        let previous = livePreviewCheckbox.state
+        let previousFactory = onBeginLiveTranscription
+        defer { livePreviewCheckbox.state = previous; onBeginLiveTranscription = previousFactory }
+        var calls = 0
+        onBeginLiveTranscription = { _ in calls += 1; return nil }
+        livePreviewCheckbox.state = .off
+        _ = beginLivePreviewIfEnabled()
+        guard calls == 0 else { throw KikiError("Low-power recording started preview inference.") }
+        livePreviewCheckbox.state = .on
+        _ = beginLivePreviewIfEnabled()
+        guard calls == 1 else { throw KikiError("Explicit live preview did not reach its factory.") }
+        return "PASS: low-power capture does not start live inference; explicit preview remains available; preferences unchanged"
+    }
 
     func verifySummaryCancellationForDiagnostics() async throws -> String {
         let savedSummary = "## Summary\n\nExisting notes.\n\n## Key points\n\n- Existing point.\n\n## Next steps\n\n- Existing task."
@@ -263,6 +280,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         saveAudioCheckbox.target = self
         saveAudioCheckbox.action = #selector(saveAudioChanged)
         saveAudioCheckbox.contentTintColor = KikiPalette.accentText
+        livePreviewCheckbox.target = self
+        livePreviewCheckbox.action = #selector(livePreviewChanged)
+        livePreviewCheckbox.contentTintColor = KikiPalette.accentText
 
         autoExportCheckbox.target = self
         autoExportCheckbox.action = #selector(autoExportChanged)
@@ -280,7 +300,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         autoExportRow.orientation = .horizontal
         autoExportRow.alignment = .centerY
         autoExportRow.spacing = 10
-        let captureOptions = NSStackView(views: [saveAudioCheckbox, autoExportRow])
+        let captureOptions = NSStackView(views: [livePreviewCheckbox, saveAudioCheckbox, autoExportRow])
         captureOptions.identifier = NSUserInterfaceItemIdentifier("kiki.meeting.capture-options")
         captureOptions.orientation = .vertical
         captureOptions.alignment = .leading
@@ -417,6 +437,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func beginCapture() {
+        livePreviewCheckbox.isEnabled = false
         recordButton.isEnabled = false
         identifySpeakersButton.isEnabled = false
         exportButton.isEnabled = false
@@ -428,10 +449,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let preview = onBeginLiveTranscription? { [weak self] text in
-                    guard let self, self.isRecording else { return }
-                    self.textView.string = "LIVE PREVIEW · YOU · LAST 12 SECONDS\n\n\(text)"
-                }
+                let preview = beginLivePreviewIfEnabled()
                 liveTranscription = preview
                 captureSession.setMicrophoneSamplesHandler { [weak preview] samples in
                     preview?.yield(samples)
@@ -445,11 +463,14 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 timerLabel.textColor = .systemRed
                 transcriptEmptyState.isHidden = true
                 textView.string = preview == nil
-                    ? "Listening…\n\nLive preview requires a Parakeet model. The complete transcript will appear when capture stops."
+                    ? "Recording microphone and Mac audio…\n\nThe complete transcript appears after Stop & Transcribe. Live preview is off or unavailable, so Kiki is not repeatedly decoding speech during the meeting."
                     : "LIVE PREVIEW · YOU · LAST 12 SECONDS\n\nListening…"
-                statusLabel.stringValue = "Recording both sides locally. Preview shows your recent speech; the complete transcript appears after Stop & Transcribe."
+                statusLabel.stringValue = preview == nil
+                    ? "Recording both sides locally in low-power mode. The complete transcript appears after Stop & Transcribe."
+                    : "Recording both sides locally. Preview shows your recent microphone speech; the complete transcript appears after Stop & Transcribe."
                 startTimer()
             } catch {
+                livePreviewCheckbox.isEnabled = true
                 captureSession.setMicrophoneSamplesHandler(nil)
                 let preview = liveTranscription
                 liveTranscription = nil
@@ -499,6 +520,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     private func stopCapture() {
         guard isRecording else { return }
         isRecording = false
+        livePreviewCheckbox.isEnabled = true
         stopTimer()
         recordButton.title = "Start Meeting Capture"
         recordButton.isEnabled = false
@@ -581,6 +603,18 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func saveAudioChanged() {
         Settings.saveMeetingAudio = saveAudioCheckbox.state == .on
+    }
+
+    @objc private func livePreviewChanged() {
+        Settings.meetingLivePreviewEnabled = livePreviewCheckbox.state == .on
+    }
+
+    private func beginLivePreviewIfEnabled() -> MeetingLiveTranscription? {
+        guard livePreviewCheckbox.state == .on else { return nil }
+        return onBeginLiveTranscription? { [weak self] text in
+            guard let self, self.isRecording else { return }
+            self.textView.string = "LIVE PREVIEW · YOU · LAST 12 SECONDS\n\n\(text)"
+        }
     }
 
     @objc private func autoExportChanged() {

@@ -330,6 +330,11 @@ struct KikiError: LocalizedError {
         let linkedDeliverables = ["[00:00:01] Jordan: I will send the agreement to Lee after the call.",
                                   "[00:00:02] Jordan: I will publish the new price list only after Lee approves the agreement."]
         let roleTask = try LocalMeetingSummarizer.taskWithRoles("Send the agreement after the call.", owner: "Jordan", recipient: "Lee", references: [1], entries: linkedDeliverables)
+        precondition(LocalMeetingSummarizer.normalizedParty("speaker") == "" && LocalMeetingSummarizer.normalizedParty("requester") == "" && LocalMeetingSummarizer.normalizedParty("Speaker 1") == "", "Anonymous placeholders must remain unidentified, not become person names")
+        precondition(LocalMeetingSummarizer.normalizedParty(" Jordan ") == "Jordan")
+        precondition(LocalMeetingSummarizer.normalizedParty("all participants") == "", "A generic recipient group is not a named person")
+        let literalFallback = try LocalMeetingSummarizer.literalRoleFallback(references: [1], entries: linkedDeliverables)
+        precondition(literalFallback.contains("role needs review") && literalFallback.contains("send the agreement to Lee") && !literalFallback.contains("publish"), "An ungrounded role must preserve only its source request, not invent or substitute a task")
         precondition(roleTask.contains("Owner: Jordan.") && roleTask.contains("Recipient: Lee."), "Explicit role fields must survive a concise task description")
         do {
             _ = try LocalMeetingSummarizer.taskWithRoles("Send the agreement.", owner: "Jo", recipient: "Lee", references: [1], entries: linkedDeliverables)

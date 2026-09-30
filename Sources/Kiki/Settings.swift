@@ -193,6 +193,11 @@ enum Settings {
         set { UserDefaults.standard.set(newValue, forKey: "saveMeetingAudio") }
     }
 
+    static var meetingLivePreviewEnabled: Bool {
+        get { bool(forKey: "meetingLivePreviewEnabled", default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: "meetingLivePreviewEnabled") }
+    }
+
     static var meetingAutoExportEnabled: Bool {
         get { bool(forKey: "meetingAutoExportEnabled", default: false) }
         set { UserDefaults.standard.set(newValue, forKey: "meetingAutoExportEnabled") }
