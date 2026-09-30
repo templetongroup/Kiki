@@ -235,6 +235,25 @@ struct KikiError: LocalizedError {
             fputs("FAIL: long action list truncated\n", stderr); exit(1)
         }
         print("PASS: saved transcript preserved byte-for-byte; all 12 semantic actions retained")
+        let editable = MeetingTranscript(title: "Editable meeting", createdAt: Date(), duration: 20,
+            segments: [.init(startTime: 0.25, endTime: 9.5, speaker: "Sam", text: "The total is twelve boxes.")],
+            actionItems: [], summaryMarkdown: "## Summary\n\nPrevious notes.", historyRecordID: UUID())
+        let editedText = editable.markdown.replacingOccurrences(of: "twelve boxes", with: "sixteen boxes")
+            .replacingOccurrences(of: "Previous notes.", with: "Edited notes.")
+        let edited = try editable.applyingEditorText(editedText)
+        precondition(edited.markdown == editedText, "Visible edits must not be silently rewritten")
+        precondition(edited.summarySource.contains("sixteen boxes") && !edited.summarySource.contains("twelve boxes"), "Summary inference must use corrected speech")
+        precondition(edited.plainText.contains("sixteen boxes") && edited.srt.contains("sixteen boxes"), "Exports must use edited speech")
+        precondition(edited.segments[0].startTime == 0.25 && edited.segments[0].endTime == 9.5, "Editing words must preserve precise audio timing")
+        precondition(edited.historyRecordID == editable.historyRecordID && edited.summaryMarkdown?.contains("Edited notes.") == true)
+        let refreshed = edited.addingSummary("## Summary\n\nRefreshed notes.")
+        precondition(refreshed.markdown.components(separatedBy: "## Transcript\n").last == editedText.components(separatedBy: "## Transcript\n").last,
+            "Summary refresh must preserve edited transcript bytes")
+        do {
+            _ = try editable.applyingEditorText("Unstructured replacement")
+            preconditionFailure("Malformed edits must not silently replace a saved meeting")
+        } catch { precondition(editable.markdown.contains("twelve boxes")) }
+        print("PASS: edited speech reaches summary input and exports; notes, identity, precise timing and transcript bytes preserved")
         let acknowledgments: [MeetingTranscriptSegment] = [
             .init(startTime: 10, endTime: 11, speaker: "Speaker 1", text: "Yes."),
             .init(startTime: 11, endTime: 12, speaker: "You", text: "Yes.")

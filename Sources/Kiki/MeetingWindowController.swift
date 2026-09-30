@@ -124,7 +124,25 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 throw KikiError("Cancelling changed saved notes or left the controls stuck.")
             }
         }
-        return "PASS: cancel and retry restore controls; existing summary and full transcript unchanged; no inference started"
+        let corrected = meeting.markdown.replacingOccurrences(of: "I will send the quote tomorrow.", with: "I will send the corrected quote Friday.")
+        textView.string = corrected
+        createSummary()
+        guard isSummarizing, transcript?.summarySource.contains("corrected quote Friday") == true,
+              transcript?.markdown == corrected else { throw KikiError("Summary creation ignored visible transcript edits.") }
+        let editedJob = summaryTask
+        createSummary()
+        await editedJob?.value
+        guard !isSummarizing, transcript?.markdown == corrected, textView.string == corrected else {
+            throw KikiError("Cancelling discarded the user's corrected transcript.")
+        }
+        textView.string = "Unstructured replacement"
+        createSummary()
+        guard !isSummarizing, transcript?.markdown == corrected,
+              textView.string == "Unstructured replacement", statusLabel.stringValue.contains("edits could not be saved") else {
+            throw KikiError("Malformed edits started inference or silently replaced the meeting.")
+        }
+        textView.string = corrected
+        return "PASS: cancel/retry restores controls; visible edits reach summary input and survive cancellation; malformed edits cannot replace the meeting; no inference started"
     }
 
     func verifyLocalInferenceCancellationForDiagnostics(model: String) async throws -> String {
@@ -664,10 +682,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func copyTranscript() {
-        guard let transcript else {
-            statusLabel.stringValue = "Record and transcribe a meeting before copying."
-            return
-        }
+        guard let transcript = synchronizeEditor() else { return }
         TextInserter.copyOnly(transcript.markdown)
         statusLabel.stringValue = "Transcript copied."
     }
@@ -680,10 +695,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
             statusLabel.stringValue = "Cancelling summary; the transcript and saved notes will stay unchanged."
             return
         }
-        guard let transcript, !isSummarizing else {
-            statusLabel.stringValue = "Record and transcribe a meeting before creating a summary."
-            return
-        }
+        guard !isSummarizing, let transcript = synchronizeEditor() else { return }
         isSummarizing = true
         recordButton.isEnabled = false
         identifySpeakersButton.isEnabled = false
@@ -709,13 +721,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 }
                 try Task.checkCancellation()
                 let revised = transcript.addingSummary(result.markdown)
-                if let historyRecordID = revised.historyRecordID {
-                    try TranscriptionHistoryStore.shared.updatePersisting(
-                        id: historyRecordID,
-                        text: revised.markdown,
-                        context: revised.title
-                    )
-                }
+                try Self.persistRevision(revised, replacing: transcript, in: .shared)
                 self.transcript = revised
                 self.textView.string = revised.markdown
                 self.textView.scrollToBeginningOfDocument(nil)
@@ -735,18 +741,24 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func identifySpeakers() {
-        guard let transcript else {
-            statusLabel.stringValue = "Record and transcribe a meeting before identifying speakers."
-            return
-        }
+        guard let transcript = synchronizeEditor() else { return }
         let editor = MeetingSpeakerEditorWindowController(transcript: transcript)
         editor.onApply = { [weak self] revised in
             guard let self else { return }
+            guard self.textView.string == transcript.markdown else {
+                self.statusLabel.stringValue = "The meeting was edited while the speaker window was open. Your edits are unchanged; reopen Identify Speakers to apply names to the latest text."
+                self.speakerEditor = nil
+                return
+            }
+            do {
+                try Self.persistRevision(revised, replacing: transcript, in: .shared)
+            } catch {
+                self.statusLabel.stringValue = "Speaker names could not be saved: \(error.localizedDescription). The existing meeting is unchanged."
+                self.speakerEditor = nil
+                return
+            }
             self.transcript = revised
             self.textView.string = revised.markdown
-            if let historyRecordID = revised.historyRecordID {
-                TranscriptionHistoryStore.shared.update(id: historyRecordID, text: revised.markdown, context: revised.title)
-            }
             self.statusLabel.stringValue = "Speaker names updated everywhere and will be used by every export."
             self.speakerEditor = nil
         }
@@ -756,11 +768,38 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         editor.window?.makeKeyAndOrderFront(nil)
     }
 
-    @objc private func exportTranscript() {
-        guard let transcript else {
-            statusLabel.stringValue = "Record and transcribe a meeting before exporting."
-            return
+    /// Persist before changing the displayed meeting. Capture and speaker edits
+    /// must not overwrite a newer revision created from another surface.
+    static func persistRevision(_ revised: MeetingTranscript, replacing original: MeetingTranscript,
+                                in store: TranscriptionHistoryStore) throws {
+        guard revised.historyRecordID == original.historyRecordID else {
+            throw KikiError("The meeting's saved identity changed; no notes were overwritten.")
         }
+        guard let id = original.historyRecordID else { return }
+        try store.updatePersisting(id: id, text: revised.markdown, context: revised.title,
+                                   expectedText: original.markdown)
+    }
+
+    private func synchronizeEditor() -> MeetingTranscript? {
+        guard let original = transcript else {
+            statusLabel.stringValue = "Record and transcribe a meeting first."
+            return nil
+        }
+        do {
+            let revised = try original.applyingEditorText(textView.string)
+            if revised.markdown != original.markdown {
+                try Self.persistRevision(revised, replacing: original, in: .shared)
+                transcript = revised
+            }
+            return revised
+        } catch {
+            statusLabel.stringValue = "Meeting edits could not be saved: \(error.localizedDescription)"
+            return nil
+        }
+    }
+
+    @objc private func exportTranscript() {
+        guard let transcript = synchronizeEditor() else { return }
         let index = formatPopup.indexOfSelectedItem
         let ext = ["md", "txt", "srt", "vtt"][max(0, min(index, 3))]
         let contents: String

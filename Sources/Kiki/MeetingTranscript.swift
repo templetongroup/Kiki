@@ -128,6 +128,7 @@ struct MeetingTranscript: Codable, Sendable {
     let actionItems: [String]
     let summaryMarkdown: String?
     let historyRecordID: UUID?
+    private let preservedMarkdown: String?
 
     init(
         title: String,
@@ -136,7 +137,8 @@ struct MeetingTranscript: Codable, Sendable {
         segments: [MeetingTranscriptSegment],
         actionItems: [String],
         summaryMarkdown: String? = nil,
-        historyRecordID: UUID? = nil
+        historyRecordID: UUID? = nil,
+        preservedMarkdown: String? = nil
     ) {
         self.title = title
         self.createdAt = createdAt
@@ -145,6 +147,7 @@ struct MeetingTranscript: Codable, Sendable {
         self.actionItems = actionItems
         self.summaryMarkdown = summaryMarkdown
         self.historyRecordID = historyRecordID
+        self.preservedMarkdown = preservedMarkdown
     }
 
     var speakerNames: [String] {
@@ -183,6 +186,32 @@ struct MeetingTranscript: Codable, Sendable {
             return metadata + summary.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n" + savedText[transcript.lowerBound...]
         }
         return summary.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n## Transcript\n\n" + savedText
+    }
+
+    /// Treat visible edits as source data, without silently discarding their
+    /// wording or rewriting the original timestamped Markdown on summary save.
+    func applyingEditorText(_ text: String) throws -> MeetingTranscript {
+        if text == markdown { return self }
+        guard let boundary = text.range(of: "## Transcript\n"),
+              let restored = Self.restoringSavedText(text, title: title, createdAt: createdAt, duration: duration) else {
+            throw KikiError("Keep the Transcript heading and timestamped speaker labels when editing. Your edits remain on screen; the saved meeting is unchanged.")
+        }
+        let prefix = String(text[..<boundary.lowerBound])
+        let editedNotes = prefix.range(of: "## Summary").map {
+            String(prefix[$0.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        var retainedIDs = Set<UUID>()
+        let revised = restored.segments.enumerated().map { index, segment in
+            let indexed = segments.indices.contains(index) ? segments[index] : nil
+            let prior = indexed.flatMap { Int($0.startTime) == Int(segment.startTime) && !retainedIDs.contains($0.id) ? $0 : nil }
+                ?? segments.first { Int($0.startTime) == Int(segment.startTime) && $0.speaker == segment.speaker && !retainedIDs.contains($0.id) }
+            if let prior { retainedIDs.insert(prior.id) }
+            return MeetingTranscriptSegment(id: prior?.id ?? segment.id, startTime: prior?.startTime ?? segment.startTime,
+                endTime: prior?.endTime ?? segment.endTime, speaker: segment.speaker, text: segment.text)
+        }
+        return MeetingTranscript(title: title, createdAt: createdAt, duration: duration,
+            segments: revised, actionItems: [], summaryMarkdown: editedNotes,
+            historyRecordID: historyRecordID, preservedMarkdown: text)
     }
 
     func renamingSpeaker(from oldName: String, to newName: String) -> MeetingTranscript {
@@ -233,7 +262,8 @@ struct MeetingTranscript: Codable, Sendable {
             segments: segments,
             actionItems: actionItems,
             summaryMarkdown: markdown,
-            historyRecordID: historyRecordID
+            historyRecordID: historyRecordID,
+            preservedMarkdown: preservedMarkdown.map { Self.replacingSummary(in: $0, with: markdown) }
         )
     }
 
@@ -245,7 +275,8 @@ struct MeetingTranscript: Codable, Sendable {
             segments: segments,
             actionItems: actionItems,
             summaryMarkdown: summaryMarkdown,
-            historyRecordID: id
+            historyRecordID: id,
+            preservedMarkdown: preservedMarkdown
         )
     }
 
@@ -284,6 +315,7 @@ struct MeetingTranscript: Codable, Sendable {
     }
 
     var markdown: String {
+        if let preservedMarkdown { return preservedMarkdown }
         var result = "# \(title)\n\n"
         result += "- Date: \(DateFormatter.localizedString(from: createdAt, dateStyle: .medium, timeStyle: .short))\n"
         result += "- Duration: \(Self.timestamp(duration))\n"

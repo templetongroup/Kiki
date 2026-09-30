@@ -138,13 +138,15 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
                 throw KikiError("History cancellation changed saved notes or left controls stuck.")
             }
         }
-        let replacement = MeetingTranscript.replacingSummary(in: record.text, with: "## Summary\n\nNew notes.")
-        try store.updatePersisting(id: record.id, text: replacement, expectedText: record.text)
+        let linked = meeting.linkingHistoryRecord(record.id)
+        let revised = linked.addingSummary("## Summary\n\nNew notes.")
+        let replacement = revised.markdown
+        try MeetingWindowController.persistRevision(revised, replacing: linked, in: store)
         guard TranscriptionHistoryStore(fileURL: url).records.first?.text == replacement else {
             throw KikiError("A successful summary write did not survive reopening history.")
         }
         do {
-            try store.updatePersisting(id: record.id, text: record.text, expectedText: record.text)
+            try MeetingWindowController.persistRevision(linked, replacing: linked, in: store)
             throw KikiError("A stale source unexpectedly overwrote newer notes.")
         } catch {
             guard store.records[0].text == replacement else { throw error }
@@ -153,13 +155,13 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         try FileManager.default.moveItem(at: url, to: backup)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         var failed = false
-        do { try store.updatePersisting(id: record.id, text: record.text) }
+        do { try MeetingWindowController.persistRevision(linked, replacing: revised, in: store) }
         catch { failed = true }
         guard failed, store.records[0].text == replacement,
               TranscriptionHistoryStore(fileURL: backup).records.first?.text == replacement else {
             throw KikiError("Failed summary persistence changed existing notes or reported success.")
         }
-        return "PASS: isolated history cancel/retry preserves bytes; summary survives reopening; stale edits and write failures cannot overwrite notes"
+        return "PASS: isolated history cancel/retry preserves bytes; capture revision survives reopening; stale capture edits and write failures cannot overwrite notes"
     }
 
     private func buildContent() {
