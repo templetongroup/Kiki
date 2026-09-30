@@ -14,8 +14,11 @@ if args.count >= 3, args[1] == "--verify-summary-cancellation" {
     Task { @MainActor in
         do {
             let controller = MeetingWindowController()
-            let result = try await controller.verifySummaryCancellationForDiagnostics()
+            var result = try await controller.verifySummaryCancellationForDiagnostics()
             let historyResult = try await HistoryWindowController.verifySummaryPersistenceForDiagnostics()
+            if args.count >= 4 {
+                result += "\n" + (try await controller.verifyLocalInferenceCancellationForDiagnostics(model: args[3]))
+            }
             try (result + "\n" + historyResult).write(toFile: args[2], atomically: true, encoding: .utf8)
             exit(0)
         } catch {

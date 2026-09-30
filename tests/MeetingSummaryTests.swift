@@ -347,6 +347,12 @@ struct KikiError: LocalizedError {
                             .init(task: "Purchase the backup platform license", quotes: [], entries: [8])]
         precondition(LocalMeetingSummarizer.retainingAuditedActions([], audited: relatedTasks).count == 2,
                      "Shared topic words and evidence must not merge different operations")
+        let duplicateDelivery = [
+            LocalMeetingSummarizer.Action(task: "Sam will email Casey the backup service name and approximate price after the call.", quotes: [], entries: [4, 5]),
+            LocalMeetingSummarizer.Action(task: "Sam will email Casey the backup service name and approximate price after the call. No purchase is approved.", quotes: [], entries: [4, 5])
+        ]
+        precondition(LocalMeetingSummarizer.retainingAuditedActions([], audited: duplicateDelivery).count == 1,
+                     "A negated purchase mention must not duplicate one delivery task")
         let sectionEntries = (1...100).map { "[00:01:00] Sam: Entry \($0) " + String(repeating: "retained speech ", count: 8) }
         let sections = try LocalMeetingSummarizer.sourceParts(sectionEntries.joined(separator: "\n\n"), maximumBytes: 1_000)
         precondition(sections.count > 1 && sections.allSatisfy { $0.utf8.count <= 1_000 })

@@ -46,6 +46,7 @@ check(tasks.some(x => /sam/.test(x) && /casey/.test(x) && /(?:price|cost)/.test(
 check(tasks.some(x => /casey/.test(x) && /riley/.test(x) && /inventory/.test(x) && /next few days/.test(x)), 'Keep late equipment inventory deliverable and timing');
 const admin = tasks.find(x => /account/.test(x) && /admin/.test(x));
 check(admin && /sam/.test(admin) && /password/.test(admin) && /mfa/.test(admin), 'Keep account creation and both prerequisites');
+check(/recipient/.test(admin) && /(?:own password|their password)/.test(admin), 'The receiving administrator, not the account creator, establishes their own credentials');
 check(/(?:after|before|only|first)/.test(admin) && !/(?:admin(?:istrator)? access first|mfa later)/.test(admin), 'Do not reverse access/MFA order');
 check(!tasks.some(x => /buy|purchase|order an? appliance/.test(x)), 'Do not turn a historical or hypothetical purchase into a commitment');
 check(!notes.points.some(x => /already has an account|account exists/.test(x.text.toLowerCase()) && !/not|incorrect|guess/.test(x.text.toLowerCase())), 'Resolve the later account correction');

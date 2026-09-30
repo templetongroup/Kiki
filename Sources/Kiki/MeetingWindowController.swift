@@ -110,6 +110,53 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         return "PASS: cancel and retry restore controls; existing summary and full transcript unchanged; no inference started"
     }
 
+    func verifyLocalInferenceCancellationForDiagnostics(model: String) async throws -> String {
+        guard ["qwen3.5:9b", "gpt-oss:20b"].contains(model) else { throw KikiError("Unsupported diagnostic model") }
+        let previous = ProcessInfo.processInfo.environment["KIKI_LOCAL_SUMMARY_MODEL"]
+        setenv("KIKI_LOCAL_SUMMARY_MODEL", model, 1)
+        defer {
+            if let previous { setenv("KIKI_LOCAL_SUMMARY_MODEL", previous, 1) }
+            else { unsetenv("KIKI_LOCAL_SUMMARY_MODEL") }
+        }
+        let meeting = MeetingTranscript(title: "Isolated local inference cancellation", createdAt: Date(), duration: 10,
+            segments: [.init(startTime: 0, endTime: 10, speaker: "Sam", text: "I will send the quote to Casey tomorrow.")],
+            actionItems: [], summaryMarkdown: "## Summary\n\nExisting notes.\n\n## Key points\n\n- Existing point.\n\n## Next steps\n\n- Existing task.")
+        transcript = meeting
+        textView.string = meeting.markdown
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 2
+        configuration.connectionProxyDictionary = [:]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        func isLoaded() async -> Bool {
+            guard let (data, response) = try? await session.data(from: URL(string: "http://127.0.0.1:11434/api/ps")!),
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let models = json["models"] as? [[String: Any]] else { return false }
+            return models.contains { ($0["name"] as? String) == model || ($0["model"] as? String) == model }
+        }
+        createSummary()
+        let job = summaryTask
+        var observed = false
+        for _ in 0..<240 {
+            if await isLoaded(), isSummarizing { observed = true; break }
+            if !isSummarizing { break }
+            try await Task.sleep(for: .milliseconds(250))
+        }
+        if isSummarizing { createSummary() }
+        await job?.value
+        guard observed, !isSummarizing, summaryTask == nil, summaryButton.isEnabled,
+              textView.isEditable, transcript?.markdown == meeting.markdown,
+              textView.string == meeting.markdown, statusLabel.stringValue.contains("cancelled") else {
+            throw KikiError("In-flight inference cancellation did not preserve notes and restore controls.")
+        }
+        for _ in 0..<40 {
+            if !(await isLoaded()) { return "PASS: native Cancel Summary interrupts loaded local inference, releases model memory, restores controls and preserves prior notes" }
+            try await Task.sleep(for: .milliseconds(250))
+        }
+        throw KikiError("The cancelled summary left its local model loaded.")
+    }
+
     func verifyReaderForDiagnostics(output: String, savedText: String? = nil) throws -> String {
         guard let root = window?.contentView else { throw KikiError("Missing capture view") }
         // Match the workbench's detach-and-embed lifecycle, not just a bare text view.
