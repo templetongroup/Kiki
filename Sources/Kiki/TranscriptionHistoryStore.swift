@@ -95,6 +95,34 @@ final class TranscriptionHistoryStore {
         save()
     }
 
+    /// Summary replacement must succeed on disk before either the library or
+    /// capture view reports success. Failed writes leave the in-memory record
+    /// unchanged; an expected source protects against replacing newer edits.
+    func updatePersisting(id: UUID, text: String, context: String? = nil, expectedText: String? = nil) throws {
+        guard let index = records.firstIndex(where: { $0.id == id }), !text.isEmpty else {
+            throw KikiError("The saved meeting is no longer available. Nothing was overwritten.")
+        }
+        let existing = records[index]
+        if let expectedText, existing.text != expectedText {
+            throw KikiError("This meeting changed during generation. Nothing was overwritten; select it and try again.")
+        }
+        var updated = records
+        updated[index] = TranscriptionRecord(id: existing.id, createdAt: existing.createdAt,
+            text: text, duration: existing.duration, modelName: existing.modelName, source: existing.source,
+            context: context ?? existing.context, processedLocally: existing.processedLocally)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        do {
+            let data = try encoder.encode(updated)
+            try FileManager.default.createDirectory(at: storageURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: storageURL, options: .atomic)
+        } catch {
+            throw KikiError("Kiki could not save the new summary. Your saved transcript and notes are unchanged. Check available disk space and folder permissions, then try again.")
+        }
+        records = updated
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+    }
+
     func clear() {
         records.removeAll()
         save()

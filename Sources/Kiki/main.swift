@@ -15,7 +15,8 @@ if args.count >= 3, args[1] == "--verify-summary-cancellation" {
         do {
             let controller = MeetingWindowController()
             let result = try await controller.verifySummaryCancellationForDiagnostics()
-            try result.write(toFile: args[2], atomically: true, encoding: .utf8)
+            let historyResult = try await HistoryWindowController.verifySummaryPersistenceForDiagnostics()
+            try (result + "\n" + historyResult).write(toFile: args[2], atomically: true, encoding: .utf8)
             exit(0)
         } catch {
             try? ("FAIL: " + error.localizedDescription).write(toFile: args[2], atomically: true, encoding: .utf8)

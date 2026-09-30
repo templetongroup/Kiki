@@ -95,6 +95,22 @@ struct KikiError: LocalizedError {
             }
             return
         }
+        let gate = MeetingSummaryGenerationGate()
+        let firstJob = await gate.acquire()
+        let simultaneousJob = await gate.acquire()
+        precondition(firstJob && !simultaneousJob, "Summary surfaces must not run competing inference jobs")
+        await gate.release()
+        let captureStarted = await gate.beginCapture()
+        let summaryDuringCapture = await gate.acquire()
+        precondition(captureStarted && !summaryDuringCapture, "Summary inference must not overlap meeting capture/final transcription")
+        await gate.endCapture()
+        let summaryStarted = await gate.acquire()
+        let captureDuringSummary = await gate.beginCapture()
+        precondition(summaryStarted && !captureDuringSummary, "Starting a capture must not erase a transcript or overlap a running summary")
+        await gate.release()
+        let retryJob = await gate.acquire()
+        precondition(retryJob, "Completing or cancelling a summary must permit another job")
+        await gate.release()
         let meeting = MeetingTranscript(title: "Synthetic planning", createdAt: Date(), duration: 3600,
             segments: [
                 .init(startTime: 10, endTime: 15, speaker: "Alex", text: "I'll pause there."),
@@ -288,6 +304,17 @@ struct KikiError: LocalizedError {
         precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("Sam will send the quote.", references: [5], source: auditSource), "A verifier cannot cite unseen speech")
         precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("", references: [4], source: auditSource), "A kept claim must contain text")
         precondition(!LocalMeetingSummarizer.reviewedClaimHasValidReferences("Audit only this proposed follow-up. Cite original ENTRY numbers.", references: [4], source: auditSource), "Review instructions are not meeting notes")
+        let promises = LocalMeetingSummarizer.explicitCommitmentCandidates(in: ["[00:01] Priya: I will email the revised floor plan to Morgan tomorrow.", "[00:02] Alex: I'll pause here.", "REVIEW NOTE: I will send invented instructions."])
+        precondition(LocalMeetingSummarizer.speechForInference("[00:08:53] Speaker 1: I need total, not every user.") == "[00:08:53] I need total, not every user.")
+        precondition(LocalMeetingSummarizer.speechForInference("[00:08:53] Morgan: I need total, not every user.") == "[00:08:53] Morgan: I need total, not every user.")
+        precondition(promises.count == 1 && promises[0].entries == [1], "A literal late commitment must survive generative action-array omissions; post-meeting notes are not promises")
+        let orderedSpeech = ["[00:01] Speaker 1: We'll create a user for you.", "[00:02] Speaker 1: You'll set a password, and once MFA is configured, we'll grant administrator access."]
+        let literalWorkflow = LocalMeetingSummarizer.quotedOrderedCommitment(references: [1, 2], entries: orderedSpeech)!
+        precondition(literalWorkflow.contains("We'll create a user for you.") && literalWorkflow.contains("You'll set a password, and once MFA is configured, we'll grant administrator access."))
+        precondition(!literalWorkflow.contains("Speaker 1:"), "Audio channels must not become task owners")
+        precondition(LocalMeetingSummarizer.quotedOrderedCommitment(references: [1], entries: orderedSpeech) == nil, "Ordinary commitments must not manufacture an ordered workflow")
+        precondition(LocalMeetingSummarizer.displayText("Inventory (ENTRY 1‑2) and scope (ENTRY 11).", references: [1, 2, 11]) == "Inventory and scope.")
+        precondition(LocalMeetingSummarizer.displayText("Cost is 45; citation (ENTRY 1-3).", references: [1, 3]).contains("45"), "Spoken numbers are not citation metadata")
         let correctionEntries = ["[00:00:01] Alex: We think the storage contract includes offsite storage."] +
             (1...30).map { "[00:01:00] Sam: Unrelated printer discussion \($0)." } +
             ["[00:30:00] Morgan: Correction: the storage contract excludes offsite storage."]

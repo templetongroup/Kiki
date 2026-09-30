@@ -30,9 +30,41 @@ struct MeetingSummaryResult: Sendable {
     var warnings: [String] = []
 }
 
+actor MeetingSummaryGenerationGate {
+    static let shared = MeetingSummaryGenerationGate()
+    private var active = false
+    private var captureActive = false
+    func acquire() -> Bool {
+        guard !active, !captureActive else { return false }
+        active = true
+        return true
+    }
+    func release() { active = false }
+    func beginCapture() -> Bool {
+        guard !active, !captureActive else { return false }
+        captureActive = true
+        return true
+    }
+    func endCapture() { captureActive = false }
+}
+
 enum MeetingSummaryGenerator {
     static func generate(from transcript: MeetingTranscript, onProgress: (@MainActor @Sendable (String) -> Void)? = nil) async throws -> MeetingSummaryResult {
         try Task.checkCancellation()
+        guard await MeetingSummaryGenerationGate.shared.acquire() else {
+            throw KikiError("A meeting is recording/transcribing, or another summary is being created. Wait for it to finish or cancel the summary before starting this one.")
+        }
+        do {
+            let result = try await generateExclusively(from: transcript, onProgress: onProgress)
+            await MeetingSummaryGenerationGate.shared.release()
+            return result
+        } catch {
+            await MeetingSummaryGenerationGate.shared.release()
+            throw error
+        }
+    }
+
+    private static func generateExclusively(from transcript: MeetingTranscript, onProgress: (@MainActor @Sendable (String) -> Void)?) async throws -> MeetingSummaryResult {
         guard !transcript.segments.isEmpty else {
             throw KikiError("There is no meeting transcript to summarize.")
         }

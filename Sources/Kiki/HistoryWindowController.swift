@@ -37,6 +37,7 @@ enum TranscriptionHistoryScope: Equatable {
 @MainActor
 final class HistoryWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
     private let scope: TranscriptionHistoryScope
+    private let historyStore: TranscriptionHistoryStore
     private let tableView = NSTableView()
     private let textView = TranscriptReaderView()
     private let countLabel = NSTextField(labelWithString: "")
@@ -62,8 +63,9 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         return formatter
     }()
 
-    init(scope: TranscriptionHistoryScope = .transcripts) {
+    init(scope: TranscriptionHistoryScope = .transcripts, historyStore: TranscriptionHistoryStore? = nil) {
         self.scope = scope
+        self.historyStore = historyStore ?? .shared
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 920, height: 620),
             styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
@@ -102,6 +104,63 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     func prepareForEmbeddedDisplay() { reload() }
+
+    static func verifySummaryPersistenceForDiagnostics() async throws -> String {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("kiki-history-diagnostic-" + UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("history.json")
+        let meeting = MeetingTranscript(title: "Isolated history diagnostic", createdAt: Date(), duration: 10,
+            segments: [.init(startTime: 0, endTime: 10, speaker: "Sam", text: "I will send the quote tomorrow.")],
+            actionItems: [], summaryMarkdown: "## Summary\n\nExisting notes.\n\n## Key points\n\n- Existing point.\n\n## Next steps\n\n- Existing task.")
+        let record = TranscriptionRecord(id: UUID(), createdAt: Date(), text: meeting.markdown,
+            duration: 10, modelName: "Diagnostic", source: .meeting, context: meeting.title, processedLocally: true)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([record]).write(to: url, options: .atomic)
+        let store = TranscriptionHistoryStore(fileURL: url)
+        let controller = HistoryWindowController(scope: .meetings, historyStore: store)
+        controller.tableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        let originalData = try Data(contentsOf: url)
+        for _ in 0..<2 {
+            controller.summarizeSelected()
+            guard controller.isSummarizing, !controller.tableView.isEnabled,
+                  controller.summaryButton.isEnabled, controller.summaryButton.title == "Cancel Summary" else {
+                throw KikiError("History does not expose cancellation or protect selection.")
+            }
+            let job = controller.summaryTask
+            controller.summarizeSelected()
+            await job?.value
+            guard !controller.isSummarizing, controller.summaryTask == nil, controller.tableView.isEnabled,
+                  controller.summaryButton.isEnabled, store.records[0].text == record.text,
+                  try Data(contentsOf: url) == originalData,
+                  controller.statusLabel.stringValue.contains("cancelled") else {
+                throw KikiError("History cancellation changed saved notes or left controls stuck.")
+            }
+        }
+        let replacement = MeetingTranscript.replacingSummary(in: record.text, with: "## Summary\n\nNew notes.")
+        try store.updatePersisting(id: record.id, text: replacement, expectedText: record.text)
+        guard TranscriptionHistoryStore(fileURL: url).records.first?.text == replacement else {
+            throw KikiError("A successful summary write did not survive reopening history.")
+        }
+        do {
+            try store.updatePersisting(id: record.id, text: record.text, expectedText: record.text)
+            throw KikiError("A stale source unexpectedly overwrote newer notes.")
+        } catch {
+            guard store.records[0].text == replacement else { throw error }
+        }
+        let backup = directory.appendingPathComponent("saved-history.json")
+        try FileManager.default.moveItem(at: url, to: backup)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        var failed = false
+        do { try store.updatePersisting(id: record.id, text: record.text) }
+        catch { failed = true }
+        guard failed, store.records[0].text == replacement,
+              TranscriptionHistoryStore(fileURL: backup).records.first?.text == replacement else {
+            throw KikiError("Failed summary persistence changed existing notes or reported success.")
+        }
+        return "PASS: isolated history cancel/retry preserves bytes; summary survives reopening; stale edits and write failures cannot overwrite notes"
+    }
 
     private func buildContent() {
         guard let content = window?.contentView else { return }
@@ -277,7 +336,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
     }
 
     private var visibleRecords: [TranscriptionRecord] {
-        TranscriptionHistoryStore.shared.records.filter { scope.sources.contains($0.source) }
+        historyStore.records.filter { scope.sources.contains($0.source) }
     }
 
     @objc private func copySelected() {
@@ -321,12 +380,12 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
                     self?.statusLabel.stringValue = progress
                 }
                 try Task.checkCancellation()
-                guard TranscriptionHistoryStore.shared.records.contains(where: { $0.id == record.id && $0.text == record.text }) else {
+                guard self.historyStore.records.contains(where: { $0.id == record.id && $0.text == record.text }) else {
                     self.statusLabel.stringValue = "This meeting changed during generation. Select it and try again; nothing was overwritten."
                     return
                 }
                 let updated = MeetingTranscript.replacingSummary(in: record.text, with: result.markdown)
-                TranscriptionHistoryStore.shared.update(id: record.id, text: updated)
+                try self.historyStore.updatePersisting(id: record.id, text: updated, expectedText: record.text)
                 if let row = self.visibleRecords.firstIndex(where: { $0.id == record.id }) {
                     self.tableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
                 }
@@ -356,7 +415,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
             detail: "This permanently removes the selected transcript text from this Mac.",
             confirmTitle: "Delete Transcript"
         ) else { return }
-        TranscriptionHistoryStore.shared.remove(id: record.id)
+        historyStore.remove(id: record.id)
         textView.string = ""
         detailEmptyState.isHidden = false
         statusLabel.stringValue = "Transcript deleted from this Mac."
@@ -372,7 +431,7 @@ final class HistoryWindowController: NSWindowController, NSTableViewDataSource, 
         alert.addButton(withTitle: "Cancel")
         alert.alertStyle = .warning
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        TranscriptionHistoryStore.shared.clear(sources: scope.sources)
+        historyStore.clear(sources: scope.sources)
         textView.string = ""
         detailEmptyState.isHidden = false
         statusLabel.stringValue = "Local transcription history cleared."

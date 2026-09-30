@@ -28,6 +28,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         detail: "Name the meeting, confirm whether you want local WAV files, then start capture. The live draft and final transcript appear here."
     )
     private var isRecording = false
+    private var isCaptureBusy = false
     private var timer: Timer?
     private var startedAt: Date?
     private var transcript: MeetingTranscript?
@@ -82,7 +83,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    var preventsWorkbenchClose: Bool { isRecording }
+    var preventsWorkbenchClose: Bool { isRecording || isCaptureBusy }
 
     func verifySummaryCancellationForDiagnostics() async throws -> String {
         let savedSummary = "## Summary\n\nExisting notes.\n\n## Key points\n\n- Existing point.\n\n## Next steps\n\n- Existing task."
@@ -162,8 +163,10 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        guard isRecording else { return true }
-        statusLabel.stringValue = "Stop and transcribe the meeting before closing this window."
+        guard preventsWorkbenchClose else { return true }
+        statusLabel.stringValue = isRecording
+            ? "Stop and transcribe the meeting before closing this window."
+            : "Wait for meeting startup or final transcription to finish before closing this window."
         return false
     }
 
@@ -351,7 +354,22 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func startCapture() {
-        transcript = nil
+        guard !isCaptureBusy else { return }
+        isCaptureBusy = true
+        recordButton.isEnabled = false
+        Task { [weak self] in
+            guard let self else { return }
+            guard await MeetingSummaryGenerationGate.shared.beginCapture() else {
+                isCaptureBusy = false
+                recordButton.isEnabled = true
+                statusLabel.stringValue = "Another meeting summary is running. Cancel it or wait for it to finish before recording; the current transcript is unchanged."
+                return
+            }
+            beginCapture()
+        }
+    }
+
+    private func beginCapture() {
         recordButton.isEnabled = false
         identifySpeakersButton.isEnabled = false
         exportButton.isEnabled = false
@@ -372,6 +390,7 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                     preview?.yield(samples)
                 }
                 try await captureSession.start()
+                transcript = nil
                 isRecording = true
                 startedAt = Date()
                 recordButton.title = "Stop & Transcribe"
@@ -389,10 +408,18 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 liveTranscription = nil
                 Task { await preview?.stop() }
                 onCaptureStateChange?(false)
+                await MeetingSummaryGenerationGate.shared.endCapture()
+                isCaptureBusy = false
                 recordButton.isEnabled = true
                 statusLabel.stringValue = "Recording did not start — Kiki could not verify both you and the other speakers."
-                transcriptEmptyState.isHidden = false
-                textView.string = ""
+                transcriptEmptyState.isHidden = transcript != nil
+                textView.string = transcript?.markdown ?? ""
+                let hasTranscript = transcript?.segments.isEmpty == false
+                identifySpeakersButton.isEnabled = hasTranscript
+                summaryButton.isEnabled = hasTranscript
+                summaryButton.title = transcript?.summaryMarkdown == nil ? "Create Summary" : "Refresh Summary"
+                exportButton.isEnabled = hasTranscript
+                copyButton.isEnabled = hasTranscript
                 presentCaptureStartFailure(error)
             }
         }
@@ -435,7 +462,6 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
         let title = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         Task { [weak self] in
             guard let self else { return }
-            defer { onCaptureStateChange?(false) }
             let capture = await captureSession.stop()
             // Finish preview inference before starting the final pass. Capturing
             // stops first so waiting for the model cannot extend the recording.
@@ -479,6 +505,9 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 copyButton.isEnabled = false
                 summaryButton.isEnabled = false
             }
+            await MeetingSummaryGenerationGate.shared.endCapture()
+            isCaptureBusy = false
+            onCaptureStateChange?(false)
             recordButton.isEnabled = true
         }
     }
@@ -599,16 +628,16 @@ final class MeetingWindowController: NSWindowController, NSWindowDelegate {
                 }
                 try Task.checkCancellation()
                 let revised = transcript.addingSummary(result.markdown)
-                self.transcript = revised
-                self.textView.string = revised.markdown
-                self.textView.scrollToBeginningOfDocument(nil)
                 if let historyRecordID = revised.historyRecordID {
-                    TranscriptionHistoryStore.shared.update(
+                    try TranscriptionHistoryStore.shared.updatePersisting(
                         id: historyRecordID,
                         text: revised.markdown,
                         context: revised.title
                     )
                 }
+                self.transcript = revised
+                self.textView.string = revised.markdown
+                self.textView.scrollToBeginningOfDocument(nil)
                 _ = MeetingTranscriptAutoExporter.export(revised)
                 self.statusLabel.stringValue = result.warnings.isEmpty
                     ? "Summary created with \(result.methodDescription). Review or edit it before sharing."

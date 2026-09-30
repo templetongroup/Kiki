@@ -15,6 +15,11 @@ final class SettingsWindowController: NSWindowController {
     private let soundPopup = NSPopUpButton()
     private let appearancePopup = NSPopUpButton()
     private let microphonePopup = NSPopUpButton()
+    private let summaryEnginePopup = NSPopUpButton()
+    private let summaryEngineStatus = kikiLabel("", size: 12.5, color: KikiPalette.secondaryText)
+    private let summaryEngines = [(title: "Built-in Apple Intelligence", model: ""),
+                                  (title: "Local reasoning · GPT-OSS 20B", model: "gpt-oss:20b"),
+                                  (title: "Local compact · Qwen 3.5 9B", model: "qwen3.5:9b")]
     private let listeningPositionPopup = NSPopUpButton()
     private let listeningDisplayControl = NSSegmentedControl(
         labels: ListeningDisplayMode.allCases.map(\.title),
@@ -259,6 +264,13 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func configureControls() {
+        summaryEngines.forEach {
+            summaryEnginePopup.addItem(withTitle: $0.title)
+            summaryEnginePopup.lastItem?.representedObject = $0.model
+        }
+        summaryEnginePopup.target = self
+        summaryEnginePopup.action = #selector(summaryEngineChanged)
+        summaryEnginePopup.identifier = NSUserInterfaceItemIdentifier("kiki.settings.summary-engine")
         let checkboxes = [
             launchAtLoginCheckbox, automaticUpdatesCheckbox, automaticDownloadsCheckbox, silenceAudioCheckbox,
             zeroWaitCheckbox,
@@ -483,7 +495,14 @@ final class SettingsWindowController: NSWindowController {
             title: "Choose a transcription engine.",
             detail: "Parakeet delivers Kiki’s fastest live experience on Apple Silicon. Whisper remains available for compatibility and additional languages."
         )
-        return modelsPage(with: [introduction] + modelCards)
+        let summary = SettingsCard(
+            title: "Meeting summaries",
+            subtitle: "The summary engine is separate from speech transcription. Your meeting text stays on this Mac.",
+            views: [labeledRow("Engine", controls: [summaryEnginePopup], identifier: "kiki.settings.summary-engine-row", placesControlsAtTrailingEdge: false),
+                    summaryEngineStatus,
+                    KikiActionButton("Open Ollama", kind: .secondary, target: self, action: #selector(openSummaryEngine))]
+        )
+        return modelsPage(with: [summary, introduction] + modelCards)
     }
 
     private func makePrivacyPage() -> NSView {
@@ -601,6 +620,9 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func refresh() {
+        let summaryModel = UserDefaults.standard.string(forKey: "meetingSummaryLocalModel") ?? ""
+        summaryEnginePopup.selectItem(at: summaryEngines.firstIndex(where: { $0.model == summaryModel }) ?? 0)
+        updateSummaryEngineStatus()
         shortcutButton.title = Settings.dictationShortcut.displayString
         appearancePopup.selectItem(at: AppAppearanceMode.allCases.firstIndex(of: Settings.appearanceMode) ?? 0)
         messageLabel.stringValue = Settings.activationMode.configuredInstruction(for: Settings.dictationShortcut)
@@ -651,6 +673,33 @@ final class SettingsWindowController: NSWindowController {
         modelCards.forEach { $0.refresh() }
         if let modelPreparationStatus {
             modelCards.forEach { $0.update(preparationStatus: modelPreparationStatus) }
+        }
+    }
+
+    @objc private func summaryEngineChanged() {
+        guard let model = summaryEnginePopup.selectedItem?.representedObject as? String else { return }
+        UserDefaults.standard.set(model, forKey: "meetingSummaryLocalModel")
+        updateSummaryEngineStatus()
+    }
+
+    private func updateSummaryEngineStatus() {
+        let model = summaryEnginePopup.selectedItem?.representedObject as? String ?? ""
+        switch model {
+        case "gpt-oss:20b":
+            summaryEngineStatus.stringValue = "Requires Ollama and its gpt-oss:20b model (about 13 GB download, at least 16 GB memory). Search for that model in Ollama and download it once. No paid account required."
+        case "qwen3.5:9b":
+            summaryEngineStatus.stringValue = "Requires Ollama and its qwen3.5:9b model (about 6.6 GB download). This compact engine is experimental; review its notes carefully."
+        default:
+            summaryEngineStatus.stringValue = "Requires Apple Intelligence on macOS 26 or later. This smaller built-in engine can omit or misinterpret commitments; review the full transcript before relying on its notes."
+        }
+    }
+
+    @objc private func openSummaryEngine() {
+        let application = URL(fileURLWithPath: "/Applications/Ollama.app")
+        if FileManager.default.fileExists(atPath: application.path) {
+            NSWorkspace.shared.openApplication(at: application, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+        } else if let website = URL(string: "https://ollama.com/download/mac") {
+            NSWorkspace.shared.open(website)
         }
     }
 
