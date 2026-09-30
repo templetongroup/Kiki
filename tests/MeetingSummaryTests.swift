@@ -308,11 +308,39 @@ struct KikiError: LocalizedError {
         precondition(LocalMeetingSummarizer.speechForInference("[00:08:53] Speaker 1: I need total, not every user.") == "[00:08:53] I need total, not every user.")
         precondition(LocalMeetingSummarizer.speechForInference("[00:08:53] Morgan: I need total, not every user.") == "[00:08:53] Morgan: I need total, not every user.")
         precondition(promises.count == 1 && promises[0].entries == [1], "A literal late commitment must survive generative action-array omissions; post-meeting notes are not promises")
+        let publication = LocalMeetingSummarizer.explicitCommitmentCandidates(in: ["[00:00:01] Jordan: I will publish the price list only after Lee approves."])
+        precondition(publication.count == 1, "Publication promises must survive omission from a generated action array")
+        precondition(LocalMeetingSummarizer.explicitCommitmentCandidates(in: ["[00:00:01] Sam: Once MFA is configured, we'll elevate the permissions."]).count == 1, "An unfamiliar action verb must not hide a literal promise")
+        precondition(!LocalMeetingSummarizer.conditionalCommitmentSupportsOwner("Lee", entry: "[00:00:01] Lee: Once I approve the agreement, Jordan will publish the price list."), "A condition is not a separate commitment by its speaker")
+        precondition(LocalMeetingSummarizer.conditionalCommitmentSupportsOwner("Jordan", entry: "[00:00:01] Lee: Once I approve the agreement, Jordan will publish the price list."))
+        precondition(LocalMeetingSummarizer.conditionalCommitmentSupportsOwner("Sam", entry: "[00:00:01] Sam: I will create the account; only after MFA will I grant administrator access."))
         let orderedSpeech = ["[00:01] Speaker 1: We'll create a user for you.", "[00:02] Speaker 1: You'll set a password, and once MFA is configured, we'll grant administrator access."]
+        precondition(LocalMeetingSummarizer.reviewRemainsInScope(focusedReferences: [1], reviewedReferences: [1, 2]), "Later corrections may augment the original request")
+        precondition(!LocalMeetingSummarizer.reviewRemainsInScope(focusedReferences: [5, 6], reviewedReferences: [1, 3, 4, 8]), "An unrelated task cannot replace the focused exchange")
+        precondition(!LocalMeetingSummarizer.reviewRemainsInScope(focusedReferences: [], reviewedReferences: [1]), "An unanchored follow-up must not pass review")
         let literalWorkflow = LocalMeetingSummarizer.quotedOrderedCommitment(references: [1, 2], entries: orderedSpeech)!
         precondition(literalWorkflow.contains("We'll create a user for you.") && literalWorkflow.contains("You'll set a password, and once MFA is configured, we'll grant administrator access."))
         precondition(!literalWorkflow.contains("Speaker 1:"), "Audio channels must not become task owners")
         precondition(LocalMeetingSummarizer.quotedOrderedCommitment(references: [1], entries: orderedSpeech) == nil, "Ordinary commitments must not manufacture an ordered workflow")
+        let overCited = orderedSpeech + ["[00:05:00] Casey: I will update the equipment inventory tomorrow."]
+        let scopedWorkflow = LocalMeetingSummarizer.quotedOrderedCommitment(references: [1, 2, 3], entries: overCited,
+            topic: "Create the account and grant administrator access only after the recipient enables MFA", primary: 1)!
+        precondition(!scopedWorkflow.contains("inventory") && scopedWorkflow.contains("MFA"),
+                     "Overinclusive citations must not drag an unrelated promise into a workflow quote")
+        let linkedDeliverables = ["[00:00:01] Jordan: I will send the agreement to Lee after the call.",
+                                  "[00:00:02] Jordan: I will publish the new price list only after Lee approves the agreement."]
+        let roleTask = try LocalMeetingSummarizer.taskWithRoles("Send the agreement after the call.", owner: "Jordan", recipient: "Lee", references: [1], entries: linkedDeliverables)
+        precondition(roleTask.contains("Owner: Jordan.") && roleTask.contains("Recipient: Lee."), "Explicit role fields must survive a concise task description")
+        do {
+            _ = try LocalMeetingSummarizer.taskWithRoles("Send the agreement.", owner: "Jo", recipient: "Lee", references: [1], entries: linkedDeliverables)
+            preconditionFailure("A name substring is not evidence for a different person")
+        } catch {}
+        do {
+            _ = try LocalMeetingSummarizer.taskWithRoles("Send the agreement.", owner: "Speaker 1", recipient: "", references: [1], entries: ["[00:01] Speaker 1: I will send the agreement."])
+            preconditionFailure("Audio channels cannot become owners")
+        } catch {}
+        precondition(LocalMeetingSummarizer.quotedOrderedCommitment(references: [1, 2], entries: linkedDeliverables,
+            topic: linkedDeliverables[0]) == nil, "Sharing a document noun must not replace its delivery with a separate approval-dependent publication")
         precondition(LocalMeetingSummarizer.displayText("Inventory (ENTRY 1‑2) and scope (ENTRY 11).", references: [1, 2, 11]) == "Inventory and scope.")
         precondition(LocalMeetingSummarizer.displayText("Cost is 45; citation (ENTRY 1-3).", references: [1, 3]).contains("45"), "Spoken numbers are not citation metadata")
         let correctionEntries = ["[00:00:01] Alex: We think the storage contract includes offsite storage."] +

@@ -5,9 +5,12 @@ app="${1:-build/Kiki.app}"
 [[ -d "$app" ]] || { echo "Missing app bundle: $app" >&2; exit 1; }
 test_dir=$(mktemp -d /tmp/kiki-summary-cancellation.XXXXXX)
 trap 'rm -f "$test_dir/result.txt"; rmdir "$test_dir"' EXIT
-extra_args=()
-if [[ -n "${2:-}" ]]; then extra_args+=("$2"); fi
-open -n "$app" --args --verify-summary-cancellation "$test_dir/result.txt" "${extra_args[@]}"
+if [[ -n "${2:-}" ]]; then
+    open -n "$app" --args --verify-summary-cancellation "$test_dir/result.txt" "$2"
+else
+    # macOS's bundled Bash 3 treats an empty array as unset under nounset.
+    open -n "$app" --args --verify-summary-cancellation "$test_dir/result.txt"
+fi
 for ((attempt = 0; attempt < 800; attempt++)); do
     if [[ -f "$test_dir/result.txt" ]]; then
         cat "$test_dir/result.txt"

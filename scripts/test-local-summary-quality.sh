@@ -24,6 +24,7 @@ check(tasks.some(x => /floor plan/.test(x) && /morgan/.test(x) && /tomorrow/.tes
 check(!tasks.some(x => /courier|printer|locker/.test(x)), 'Do not promote cancelled or hypothetical work into tasks');
 check(!notes.openQuestions.some(x => /contract|offsite/.test(x.toLowerCase())), 'Later answer must resolve the earlier contract question');
 check(!notes.points.some(x => /storage/i.test(x.text) && /requires verification|needs? (?:to be )?confirm/i.test(x.text)), 'Do not retain superseded contract uncertainty as a current key point');
+check(!notes.points.some(x => /morgan.{0,30}(?:will|to) email.{0,35}floor plan.{0,20}priya/i.test(x.text)), 'Do not reverse the floor-plan sender and recipient in key points');
 check(/exclud|not includ|not covered|only.*main warehouse/i.test(notes.points.map(x => x.text).join(' ')), 'Preserve the corrected contract scope');
 check(!output.includes('Incomplete draft'), 'All expected evidence must survive rendering');
 check(/volume/i.test(output.split('## Next steps')[1] || ''), 'Do not silently filter the volume action');
@@ -50,6 +51,7 @@ check(/recipient/.test(admin) && /(?:own password|their password)/.test(admin), 
 check(/(?:after|before|only|first)/.test(admin) && !/(?:admin(?:istrator)? access first|mfa later)/.test(admin), 'Do not reverse access/MFA order');
 check(!tasks.some(x => /buy|purchase|order an? appliance/.test(x)), 'Do not turn a historical or hypothetical purchase into a commitment');
 check(!notes.points.some(x => /already has an account|account exists/.test(x.text.toLowerCase()) && !/not|incorrect|guess/.test(x.text.toLowerCase())), 'Resolve the later account correction');
+check(!notes.points.some(x => /(?:account|checked)/i.test(x.text) && /(?:unconfirmed|not confirmed|requires? corroboration)/i.test(x.text)), 'Do not invent uncertainty about an explicitly checked account correction');
 check(!output.includes('Incomplete draft'), 'All expected evidence must survive rendering');
 console.log('PASS: independent handover case retains pricing, inventory and correct access prerequisites without inventing a purchase');
 JS
@@ -65,6 +67,7 @@ function check(condition, label) {
 }
 check(tasks.length === 3, 'Retain the politely accepted report, agreement delivery, and approval-dependent publication');
 check(tasks.some(x => /total/.test(x) && /avery/.test(x) && !/breakdown/.test(x)), 'Use the final overall-total scope of the polite request');
+check(!tasks.some(x => /avery.*(?:provid|send|suppl).*data|(?:underlying|source) data.*(?:first|before)/.test(x)), 'Do not invent a prerequisite requiring the recipient to supply underlying data');
 check(tasks.some(x => /send/.test(x) && /agreement/.test(x) && /lee/.test(x)), 'Keep the agreement delivery distinct from publication');
 check(tasks.some(x => /publish/.test(x) && /price list/.test(x) && /lee/.test(x) && /approv/.test(x) && /after|only/.test(x)), 'Preserve the genuine conditional agreement and its approval prerequisite');
 check(!tasks.some(x => /workspace|appliance|order|purchase/.test(x)), 'Reject routine conditional services and unapproved purchase suggestions');
