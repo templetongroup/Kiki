@@ -19,8 +19,10 @@ function check(condition, label) {
 }
 check(tasks.length >= 2 && tasks.length <= 3, 'Retain both commitments; only the explicitly unassigned driver decision may be an additional task');
 check(tasks.every(x => /volume|floor plan|driv.*van|van.*driv/.test(x)), 'No unsupported extra tasks');
-check(tasks.some(x => /volume/.test(x) && /priya/.test(x)), 'Retain the overall box-volume follow-up and recipient');
-check(tasks.some(x => /floor plan/.test(x) && /morgan/.test(x) && /tomorrow/.test(x)), 'Retain the late floor-plan commitment, recipient and spoken deadline');
+check(tasks.some(x => /volume/.test(x) && /morgan/.test(x) && /priya/.test(x)), 'Retain the overall box-volume follow-up, owner and recipient');
+check(tasks.some(x => /floor plan/.test(x) && /priya/.test(x) && /morgan/.test(x) && /tomorrow/.test(x)), 'Retain the late floor-plan commitment, owner, recipient and spoken deadline');
+check(!tasks.some(x => /priya.{0,30}(?:will|to) (?:email|send|provide).{0,35}volume.{0,25}morgan/.test(x)), 'Do not reverse the volume task sender and recipient');
+check(!tasks.some(x => /morgan.{0,30}(?:will|to) email.{0,35}floor plan.{0,25}priya/.test(x)), 'Do not reverse the floor-plan task sender and recipient');
 check(!tasks.some(x => /courier|printer|locker/.test(x)), 'Do not promote cancelled or hypothetical work into tasks');
 check(!notes.openQuestions.some(x => /contract|offsite/.test(x.toLowerCase())), 'Later answer must resolve the earlier contract question');
 check(!notes.points.some(x => /storage/i.test(x.text) && /requires verification|needs? (?:to be )?confirm/i.test(x.text)), 'Do not retain superseded contract uncertainty as a current key point');
@@ -69,7 +71,8 @@ check(tasks.length === 3, 'Retain the politely accepted report, agreement delive
 check(tasks.some(x => /total/.test(x) && /avery/.test(x) && !/breakdown/.test(x)), 'Use the final overall-total scope of the polite request');
 check(!tasks.some(x => /avery.*(?:provid|send|suppl).*data|(?:underlying|source) data.*(?:first|before)/.test(x)), 'Do not invent a prerequisite requiring the recipient to supply underlying data');
 check(tasks.some(x => /send/.test(x) && /agreement/.test(x) && /lee/.test(x)), 'Keep the agreement delivery distinct from publication');
-check(tasks.some(x => /publish/.test(x) && /price list/.test(x) && /lee/.test(x) && /approv/.test(x) && /after|only/.test(x)), 'Preserve the genuine conditional agreement and its approval prerequisite');
+check(tasks.some(x => /publish/.test(x) && /price list/.test(x) && /jordan/.test(x) && /lee/.test(x) && /approv/.test(x) && /after|only/.test(x)), 'Preserve the publication owner and its named approval prerequisite');
+check(!tasks.some(x => /lee will publish/.test(x)), 'The reviewer is not the publication owner');
 check(!tasks.some(x => /workspace|appliance|order|purchase/.test(x)), 'Reject routine conditional services and unapproved purchase suggestions');
 check(!fs.readFileSync(process.argv[3], 'utf8').includes('Incomplete draft'), 'Do not silently remove supported follow-ups during rendering');
 console.log('PASS: polite requests and genuine pending prerequisites retained; routine conditional policies excluded');

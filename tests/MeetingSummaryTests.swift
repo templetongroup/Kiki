@@ -96,6 +96,10 @@ struct KikiError: LocalizedError {
             return
         }
         let gate = MeetingSummaryGenerationGate()
+        precondition(LocalMeetingSummarizer.metadataIsLocal(["model_info": ["general.architecture": "gptoss"]]))
+        precondition(!LocalMeetingSummarizer.metadataIsLocal(["model_info": ["general.architecture": "gptoss"], "remote_host": "https://example.invalid"]))
+        precondition(!LocalMeetingSummarizer.metadataIsLocal(["model_info": ["general.architecture": "gptoss"], "remote_model": "remote"]), "A localhost proxy is not proof of local inference")
+        precondition(!LocalMeetingSummarizer.metadataIsLocal([:]), "Unverified metadata must not receive the transcript")
         let firstJob = await gate.acquire()
         let simultaneousJob = await gate.acquire()
         precondition(firstJob && !simultaneousJob, "Summary surfaces must not run competing inference jobs")
