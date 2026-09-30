@@ -14,6 +14,10 @@
 
 [00:02:00] Jordan: The service works like this: if a customer requests a new workspace, our team will create one and assign the members.
 
+[00:02:05] Jordan: We will assign the members to that workspace.
+
+[00:02:10] Jordan: Once the members are part of it, they can make subfolders.
+
 [00:02:20] Avery: Understood. Nobody needs a new workspace now; I just wanted to understand the process.
 
 [00:03:00] Avery: A larger storage appliance could be an option later. That is just a suggestion, not approval to order one.
